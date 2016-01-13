@@ -10,12 +10,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	//	"bytes"
-	//	"time"
+	"time"
 )
 
-var debugMode = false
-var debugCounter = 0
+var startTime = time.Now()
 
 var logData []string
 
@@ -32,6 +30,15 @@ func (m *Message) ToString() string {
 	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",
 		m.Service, m.Address, m.Time, m.Severity, m.Message)
 	return s
+}
+
+type AdminLoggerMessage struct {
+	NumMessages int `json:"num_messages"`
+}
+
+type AdminMessage struct {
+	StartTime time.Time `json:"starttime"`
+	Logger AdminLoggerMessage `json:"logger"`
 }
 
 func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +68,20 @@ func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
 	logData = append(logData, mssg.ToString())
 }
 
+func handleAdminGet(w http.ResponseWriter, r *http.Request) {
+	m := AdminMessage{StartTime: startTime, Logger: AdminLoggerMessage{NumMessages: len(logData)}}
+
+	data, err := json.Marshal(m)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(data)
+}
+
 func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
+
 	s := ""
 	for _, m := range(logData) {
 		s += m + "\n"
@@ -79,11 +99,11 @@ func Log(handler http.Handler) http.Handler {
 	})
 }
 
-func runLoggerServer(host string, port string, debug bool) error {
-
-	debugMode = debug
+func runLoggerServer(host string, port string) error {
 
 	r := mux.NewRouter()
+	r.HandleFunc("/log/admin", handleAdminGet).
+		Methods("GET")
 	r.HandleFunc("/log", handleLoggerPost).
 		Methods("POST")
 	r.HandleFunc("/log", handleLoggerGet).
@@ -103,13 +123,12 @@ func runLoggerServer(host string, port string, debug bool) error {
 func app() int {
 	var host = flag.String("host", "localhost", "host name")
 	var port = flag.String("port", "12341", "port number")
-	var debug = flag.Bool("debug", false, "use debug mode")
 
 	flag.Parse()
 
-	log.Printf("starting logger: host=%s, port=%s, debug=%t", *host, *port, *debug)
+	log.Printf("starting logger: host=%s, port=%s", *host, *port)
 
-	err := runLoggerServer(*host, *port, *debug)
+	err := runLoggerServer(*host, *port)
 	if err != nil {
 		fmt.Print(err)
 		return 1

@@ -1,12 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
-	"io/ioutil"
 )
 
 // @TODO: need to automate call to setup() and/or kill thread after each test
@@ -19,6 +20,33 @@ func setup(port string, debug bool) {
 	go main2(s)
 
 	time.Sleep(250 * time.Millisecond)
+}
+
+func checkValidAdminResponse(t *testing.T, resp *http.Response) {
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("bad admin response: %s", resp.Status)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	var m AdminMessage
+	err = json.Unmarshal(data, &m)
+	if err != nil {
+		t.Fatalf("unmarshall of admin response: %v", err)
+	}
+
+	if time.Since(m.StartTime).Seconds() > 5 {
+		t.Fatalf("service start time too long ago")
+	}
+
+	if m.Logger.NumMessages != 2 {
+		t.Fatalf("wrong number of logs")
+	}
 }
 
 func checkValidResponse(t *testing.T, resp *http.Response) {
@@ -93,7 +121,7 @@ func TestOkay(t *testing.T) {
 	"message": "The qiuck brown fox"
 }`)
 
-	expected +=  "[log-tester, 128.0.0.0, 2006-04-05T14:30Z, Fatal, The qiuck brown fox]\n"
+	expected += "[log-tester, 128.0.0.0, 2006-04-05T14:30Z, Fatal, The qiuck brown fox]\n"
 
 	resp, err = http.Post("http://localhost:12341/log", "application/json", data)
 	if err != nil {
@@ -107,4 +135,9 @@ func TestOkay(t *testing.T) {
 	}
 	checkValidResponse2(t, resp, expected)
 
+	resp, err = http.Get("http://localhost:12341/log/admin")
+	if err != nil {
+		t.Fatalf("admin get failed: %s", err)
+	}
+	checkValidAdminResponse(t, resp)
 }
