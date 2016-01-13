@@ -143,7 +143,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../pz-uuidgen" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="go.libraries.notification.had.been.shown" value="true" />
   </component>
@@ -277,12 +277,12 @@
       <workItem from="1452626750802" duration="1765000" />
       <workItem from="1452628603084" duration="2103000" />
       <workItem from="1452630767407" duration="1089000" />
-      <workItem from="1452711809441" duration="1352000" />
+      <workItem from="1452711809441" duration="1565000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="7752000" />
+    <option name="totallyTimeSpent" value="7965000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1920" height="1091" extended-state="0" />
