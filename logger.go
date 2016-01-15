@@ -41,7 +41,7 @@ func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Print(mssg)
+	log.Printf("LOG: %s\n", mssg.ToString())
 
 	logData = append(logData, mssg.ToString())
 }
