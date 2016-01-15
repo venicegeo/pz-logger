@@ -5,19 +5,18 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/venicegeo/pz-gocommon"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
-	"github.com/venicegeo/pz-gocommon"
 )
 
 var startTime = time.Now()
 
 var logData []string
-
 
 func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
@@ -47,7 +46,7 @@ func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleAdminGet(w http.ResponseWriter, r *http.Request) {
-	m := piazza.AdminResponse{StartTime: startTime, Logger: &piazza.AdminResponse_Logger{NumMessages: len(logData)}}
+	m := piazza.AdminResponse{StartTime: startTime, Logger: &piazza.AdminResponseLogger{NumMessages: len(logData)}}
 
 	data, err := json.Marshal(m)
 	if err != nil {
@@ -61,7 +60,7 @@ func handleAdminGet(w http.ResponseWriter, r *http.Request) {
 func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
 
 	s := ""
-	for _, m := range(logData) {
+	for _, m := range logData {
 		s += m + "\n"
 	}
 
@@ -70,14 +69,13 @@ func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-
-func runLoggerServer(discoveryUrl string, port string) error {
+func runLoggerServer(discoveryURL string, port string) error {
 
 	myAddress := fmt.Sprintf("%s:%s", "localhost", port)
-	myUrl := fmt.Sprintf("http://%s/log", myAddress)
+	myURL := fmt.Sprintf("http://%s/log", myAddress)
 
-	piazza.RegistryInit(discoveryUrl)
-	err := piazza.RegisterService("pz-logger", "core-service", myUrl)
+	piazza.RegistryInit(discoveryURL)
+	err := piazza.RegisterService("pz-logger", "core-service", myURL)
 	if err != nil {
 		return err
 	}
@@ -90,7 +88,7 @@ func runLoggerServer(discoveryUrl string, port string) error {
 	r.HandleFunc("/log", handleLoggerGet).
 		Methods("GET")
 
-	server := &http.Server{Addr: myAddress, Handler: piazza.HttpLogHandler(r)}
+	server := &http.Server{Addr: myAddress, Handler: piazza.ServerLogHandler(r)}
 	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

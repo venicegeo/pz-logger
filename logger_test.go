@@ -3,12 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/venicegeo/pz-gocommon"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
-	"github.com/venicegeo/pz-gocommon"
 )
 
 // @TODO: need to automate call to setup() and/or kill thread after each test
