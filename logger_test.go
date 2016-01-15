@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"github.com/venicegeo/pz-gocommon"
 )
 
 // @TODO: need to automate call to setup() and/or kill thread after each test
@@ -34,7 +35,7 @@ func checkValidAdminResponse(t *testing.T, resp *http.Response) {
 		t.Fatalf("%v", err)
 	}
 
-	var m AdminMessage
+	var m piazza.AdminResponse
 	err = json.Unmarshal(data, &m)
 	if err != nil {
 		t.Fatalf("unmarshall of admin response: %v", err)
@@ -44,6 +45,9 @@ func checkValidAdminResponse(t *testing.T, resp *http.Response) {
 		t.Fatalf("service start time too long ago")
 	}
 
+	if m.Logger == nil {
+		t.Fatal("admin response didn't have logger data set")
+	}
 	if m.Logger.NumMessages != 2 {
 		t.Fatalf("wrong number of logs")
 	}

@@ -11,35 +11,13 @@ import (
 	"os"
 	"strings"
 	"time"
+	"github.com/venicegeo/pz-gocommon"
 )
 
 var startTime = time.Now()
 
 var logData []string
 
-// all fields required
-type Message struct {
-	Service  string `json:"service"`
-	Address  string `json:"address"`
-	Time     string `json:"time"`
-	Severity string `json:"severity"`
-	Message  string `json:"message"`
-}
-
-func (m *Message) ToString() string {
-	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",
-		m.Service, m.Address, m.Time, m.Severity, m.Message)
-	return s
-}
-
-type AdminLoggerMessage struct {
-	NumMessages int `json:"num_messages"`
-}
-
-type AdminMessage struct {
-	StartTime time.Time `json:"starttime"`
-	Logger AdminLoggerMessage `json:"logger"`
-}
 
 func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
@@ -50,16 +28,16 @@ func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var mssg Message
+	var mssg piazza.LogMessage
 	err = json.Unmarshal(data, &mssg)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
 		return
 	}
 
-	if mssg.Service == "" || mssg.Address == "" || mssg.Time == "" ||
-		mssg.Severity == "" || mssg.Message == "" {
-		http.Error(w, fmt.Sprintf("required field missing"), http.StatusBadRequest)
+	err = mssg.Validate()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -69,7 +47,7 @@ func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleAdminGet(w http.ResponseWriter, r *http.Request) {
-	m := AdminMessage{StartTime: startTime, Logger: AdminLoggerMessage{NumMessages: len(logData)}}
+	m := piazza.AdminResponse{StartTime: startTime, Logger: &piazza.AdminResponse_Logger{NumMessages: len(logData)}}
 
 	data, err := json.Marshal(m)
 	if err != nil {
@@ -92,12 +70,6 @@ func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func Log(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s %s", r.RemoteAddr, r.Method, r.URL)
-		handler.ServeHTTP(w, r)
-	})
-}
 
 func runLoggerServer(host string, port string) error {
 
@@ -109,7 +81,7 @@ func runLoggerServer(host string, port string) error {
 	r.HandleFunc("/log", handleLoggerGet).
 		Methods("GET")
 
-	server := &http.Server{Addr: host + ":" + port, Handler: Log(r)}
+	server := &http.Server{Addr: host + ":" + port, Handler: piazza.HttpLogHandler(r)}
 	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
