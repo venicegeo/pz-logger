@@ -71,7 +71,16 @@ func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func runLoggerServer(host string, port string) error {
+func runLoggerServer(discoveryUrl string, port string) error {
+
+	myAddress := fmt.Sprintf("%s:%s", "localhost", port)
+	myUrl := fmt.Sprintf("http://%s/log", myAddress)
+
+	piazza.RegistryInit(discoveryUrl)
+	err := piazza.RegisterService("pz-logger", "core-service", myUrl)
+	if err != nil {
+		return err
+	}
 
 	r := mux.NewRouter()
 	r.HandleFunc("/log/admin", handleAdminGet).
@@ -81,8 +90,8 @@ func runLoggerServer(host string, port string) error {
 	r.HandleFunc("/log", handleLoggerGet).
 		Methods("GET")
 
-	server := &http.Server{Addr: host + ":" + port, Handler: piazza.HttpLogHandler(r)}
-	err := server.ListenAndServe()
+	server := &http.Server{Addr: myAddress, Handler: piazza.HttpLogHandler(r)}
+	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -93,14 +102,14 @@ func runLoggerServer(host string, port string) error {
 }
 
 func app() int {
-	var host = flag.String("host", "localhost", "host name")
-	var port = flag.String("port", "12341", "port number")
+	var discovery = flag.String("discovery", "http://localhost:3000", "URL of pz-discovery")
+	var port = flag.String("port", "12341", "port number for pz-logger")
 
 	flag.Parse()
 
-	log.Printf("starting logger: host=%s, port=%s", *host, *port)
+	log.Printf("starting logger: discovery=%s, port=%s", *discovery, *port)
 
-	err := runLoggerServer(*host, *port)
+	err := runLoggerServer(*discovery, *port)
 	if err != nil {
 		fmt.Print(err)
 		return 1
