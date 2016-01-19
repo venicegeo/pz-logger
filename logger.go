@@ -18,6 +18,10 @@ var startTime = time.Now()
 
 var logData []string
 
+func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+  fmt.Fprintf(w, "ok")
+}
+
 func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -71,7 +75,7 @@ func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
 
 func runLoggerServer(discoveryURL string, port string) error {
 
-	myAddress := fmt.Sprintf("%s:%s", "localhost", port)
+	myAddress := fmt.Sprintf(":%s", port)
 	myURL := fmt.Sprintf("http://%s/log", myAddress)
 
 	piazza.RegistryInit(discoveryURL)
@@ -87,6 +91,8 @@ func runLoggerServer(discoveryURL string, port string) error {
 		Methods("POST")
 	r.HandleFunc("/log", handleLoggerGet).
 		Methods("GET")
+  r.HandleFunc("/", handleHealthCheck).
+    Methods("GET")
 
 	server := &http.Server{Addr: myAddress, Handler: piazza.ServerLogHandler(r)}
 	err = server.ListenAndServe()
@@ -100,8 +106,12 @@ func runLoggerServer(discoveryURL string, port string) error {
 }
 
 func app() int {
+  var defaultPort = os.Getenv("PORT")
+  if defaultPort == "" {
+    defaultPort = "12341"
+  }
 	var discovery = flag.String("discovery", "http://localhost:3000", "URL of pz-discovery")
-	var port = flag.String("port", "12341", "port number for pz-logger")
+	var port = flag.String("port", defaultPort, "port number for pz-logger")
 
 	flag.Parse()
 
