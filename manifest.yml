@@ -1,0 +1,8 @@
+applications:
+- name: pz-logger
+  host: pz-logger
+  memory: 512M
+  instances: 1
+  timeout: 80
+  command: ./pz-logger --discovery http://pz-discover.cf.piazzageo.io
+  buildpack: binary_buildpack
