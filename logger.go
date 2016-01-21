@@ -72,16 +72,16 @@ func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func runLoggerServer(discoveryURL string, port string) error {
+func runLoggerServer(serviceAddress string, discoverAddress string, debug bool) error {
 
-	myAddress := fmt.Sprintf(":%s", port)
-	myURL := fmt.Sprintf("http://%s/log", myAddress)
+	//myAddress := fmt.Sprintf(":%s", port)
+	//myURL := fmt.Sprintf("http://%s/log", myAddress)
 
-	piazza.RegistryInit(discoveryURL)
-	err := piazza.RegisterService("pz-logger", "core-service", myURL)
-	if err != nil {
-		return err
-	}
+	//piazza.RegistryInit(discoveryURL)
+	//err := piazza.RegisterService("pz-logger", "core-service", myURL)
+	//if err != nil {
+//		return err
+//	}
 
 	r := mux.NewRouter()
 	r.HandleFunc("/log/admin", handleAdminGet).
@@ -93,8 +93,8 @@ func runLoggerServer(discoveryURL string, port string) error {
 	r.HandleFunc("/", handleHealthCheck).
 		Methods("GET")
 
-	server := &http.Server{Addr: myAddress, Handler: piazza.ServerLogHandler(r)}
-	err = server.ListenAndServe()
+	server := &http.Server{Addr: serviceAddress, Handler: piazza.ServerLogHandler(r)}
+	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -105,20 +105,20 @@ func runLoggerServer(discoveryURL string, port string) error {
 }
 
 func app() int {
-	var defaultPort = os.Getenv("PORT")
-	if defaultPort == "" {
-		defaultPort = "12341"
-	}
-	var discovery = flag.String("discovery", "http://localhost:3000", "URL of pz-discovery")
-	var port = flag.String("port", defaultPort, "port number for pz-logger")
 
-	flag.Parse()
+	var err error
 
-	log.Printf("starting logger: discovery=%s, port=%s", *discovery, *port)
-
-	err := runLoggerServer(*discovery, *port)
+	// handles the command line flags, finds the discover service, registers us,
+	// and figures out our own server address
+	svc, err := piazza.NewDiscoverService(os.Args[0], "localhost:12341", "localhost:3000")
 	if err != nil {
-		fmt.Print(err)
+		log.Print(err)
+		return 1
+	}
+
+	err = runLoggerServer(svc.BindTo, svc.DiscoverAddress, *svc.DebugFlag)
+	if err != nil {
+		log.Print(err)
 		return 1
 	}
 

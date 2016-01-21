@@ -21,7 +21,7 @@ import (
 
 // @TODO: need to automate call to setup() and/or kill thread after each test
 func setup(port string, debug bool) {
-	s := fmt.Sprintf("-discovery http://localhost:3000 -port %s", port)
+	s := fmt.Sprintf("-server localhost:%s -discover localhost:3000", port)
 	if debug {
 		s += " -debug"
 	}
