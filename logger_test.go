@@ -1,15 +1,23 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/venicegeo/pz-gocommon"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 )
+
+/*type LogMessage struct {
+	Service  string `json:"service"`
+	Address  string `json:"address"`
+	Time     string `json:"time"`
+	Severity string `json:"severity"`
+	Message  string `json:"message"`
+}*/
 
 // @TODO: need to automate call to setup() and/or kill thread after each test
 func setup(port string, debug bool) {
@@ -66,7 +74,7 @@ func checkValidResponse(t *testing.T, resp *http.Response) {
 	}
 }
 
-func checkValidResponse2(t *testing.T, resp *http.Response, expected string) {
+func checkValidResponse2(t *testing.T, resp *http.Response, expected []byte) {
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -78,8 +86,8 @@ func checkValidResponse2(t *testing.T, resp *http.Response, expected string) {
 		t.Fatalf("bad post response: %s: %s", resp.Status, string(data))
 	}
 
-	if string(data) != expected {
-		t.Logf("Expected: %s\n", expected)
+	if string(data) != string(expected) {
+		t.Logf("Expected: %s\n", string(expected))
 		t.Logf("Actual:   %s\n", string(data))
 		t.Fatalf("returned log incorrect")
 	}
@@ -91,18 +99,19 @@ func TestOkay(t *testing.T) {
 	//var resp *http.Response
 	var err error
 
-	data := strings.NewReader(
-		`{
-	"service": "log-tester",
-	"address": "128.1.2.3",
-	"time": "2007-04-05T14:30Z",
-	"severity": "Info",
-	"message": "The quick brown fox"
-}`)
+	data1 := piazza.LogMessage{
+		Service:  "log-tester",
+		Address:  "128.1.2.3",
+		Time:     "2007-04-05T14:30Z",
+		Severity: "Info",
+		Message:  "The quick brown fox",
+	}
+	jsonData1, err := json.Marshal(data1)
+	if err != nil {
+		t.Fatalf("marshall failed: %s", err)
+	}
 
-	expected := "[log-tester, 128.1.2.3, 2007-04-05T14:30Z, Info, The quick brown fox]\n"
-
-	resp, err := http.Post("http://localhost:12341/log", "application/json", data)
+	resp, err := http.Post("http://localhost:12341/log", "application/json", bytes.NewBuffer(jsonData1))
 	if err != nil {
 		t.Fatalf("post failed: %s", err)
 	}
@@ -112,22 +121,29 @@ func TestOkay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get failed: %s", err)
 	}
-	checkValidResponse2(t, resp, expected)
+
+	data11 := []piazza.LogMessage{data1}
+	jsonData11, err := json.Marshal(data11)
+	if err != nil {
+		t.Fatalf("marshall failed: %s", err)
+	}
+	checkValidResponse2(t, resp, jsonData11)
 
 	///////////////////
 
-	data = strings.NewReader(
-		`{
-	"service": "log-tester",
-	"address": "128.0.0.0",
-	"time": "2006-04-05T14:30Z",
-	"severity": "Fatal",
-	"message": "The qiuck brown fox"
-}`)
+	data2 := piazza.LogMessage{
+		Service:  "log-tester",
+		Address:  "128.0.0.0",
+		Time:     "2006-04-05T14:30Z",
+		Severity: "Fatal",
+		Message:  "The quick brown fox",
+	}
+	jsonData2, err := json.Marshal(data2)
+	if err != nil {
+		t.Fatalf("marshall failed: %s", err)
+	}
 
-	expected += "[log-tester, 128.0.0.0, 2006-04-05T14:30Z, Fatal, The qiuck brown fox]\n"
-
-	resp, err = http.Post("http://localhost:12341/log", "application/json", data)
+	resp, err = http.Post("http://localhost:12341/log", "application/json", bytes.NewBuffer(jsonData2))
 	if err != nil {
 		t.Fatalf("post failed: %s", err)
 	}
@@ -137,7 +153,13 @@ func TestOkay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get failed: %s", err)
 	}
-	checkValidResponse2(t, resp, expected)
+
+	data22 := []piazza.LogMessage{data1, data2}
+	jsonData22, err := json.Marshal(data22)
+	if err != nil {
+		t.Fatalf("marshall failed: %s", err)
+	}
+	checkValidResponse2(t, resp, jsonData22)
 
 	resp, err = http.Get("http://localhost:12341/log/admin")
 	if err != nil {

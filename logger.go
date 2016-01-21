@@ -16,10 +16,10 @@ import (
 
 var startTime = time.Now()
 
-var logData []string
+var logData []piazza.LogMessage
 
 func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
-  fmt.Fprintf(w, "ok")
+	fmt.Fprintf(w, "Hi. I'm pz-logger.")
 }
 
 func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +46,7 @@ func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("LOG: %s\n", mssg.ToString())
 
-	logData = append(logData, mssg.ToString())
+	logData = append(logData, mssg)
 }
 
 func handleAdminGet(w http.ResponseWriter, r *http.Request) {
@@ -63,12 +63,11 @@ func handleAdminGet(w http.ResponseWriter, r *http.Request) {
 
 func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
 
-	s := ""
-	for _, m := range logData {
-		s += m + "\n"
+	data, err := json.Marshal(logData)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
+		return
 	}
-
-	data := []byte(s)
 
 	w.Write(data)
 }
@@ -91,8 +90,8 @@ func runLoggerServer(discoveryURL string, port string) error {
 		Methods("POST")
 	r.HandleFunc("/log", handleLoggerGet).
 		Methods("GET")
-  r.HandleFunc("/", handleHealthCheck).
-    Methods("GET")
+	r.HandleFunc("/", handleHealthCheck).
+		Methods("GET")
 
 	server := &http.Server{Addr: myAddress, Handler: piazza.ServerLogHandler(r)}
 	err = server.ListenAndServe()
@@ -106,10 +105,10 @@ func runLoggerServer(discoveryURL string, port string) error {
 }
 
 func app() int {
-  var defaultPort = os.Getenv("PORT")
-  if defaultPort == "" {
-    defaultPort = "12341"
-  }
+	var defaultPort = os.Getenv("PORT")
+	if defaultPort == "" {
+		defaultPort = "12341"
+	}
 	var discovery = flag.String("discovery", "http://localhost:3000", "URL of pz-discovery")
 	var port = flag.String("port", defaultPort, "port number for pz-logger")
 
