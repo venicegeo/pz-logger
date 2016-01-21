@@ -80,8 +80,8 @@ func runLoggerServer(serviceAddress string, discoverAddress string, debug bool) 
 	//piazza.RegistryInit(discoveryURL)
 	//err := piazza.RegisterService("pz-logger", "core-service", myURL)
 	//if err != nil {
-//		return err
-//	}
+	//		return err
+	//	}
 
 	r := mux.NewRouter()
 	r.HandleFunc("/log/admin", handleAdminGet).
@@ -110,7 +110,7 @@ func app() int {
 
 	// handles the command line flags, finds the discover service, registers us,
 	// and figures out our own server address
-	svc, err := piazza.NewDiscoverService(os.Args[0], "localhost:12341", "localhost:3000")
+	svc, err := piazza.NewDiscoverService("pz-logger", "localhost:12341", "localhost:3000")
 	if err != nil {
 		log.Print(err)
 		return 1

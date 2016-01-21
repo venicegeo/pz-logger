@@ -166,4 +166,10 @@ func TestOkay(t *testing.T) {
 		t.Fatalf("admin get failed: %s", err)
 	}
 	checkValidAdminResponse(t, resp)
+
+	err = piazza.Log("service", "address", "Info", "message from pz-logger unit test via piazza.Log()")
+	if err != nil {
+		t.Fatalf("piazza.Log() failed: %s", err)
+	}
+
 }
