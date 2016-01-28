@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var pzService *piazza.PzService
+
 var startTime = time.Now()
 
 var logData []piazza.LogMessage
@@ -50,7 +52,7 @@ func handleLoggerGet(c *gin.Context) {
 	c.JSON(http.StatusOK, logData)
 }
 
-func runLoggerServer(serviceAddress string, discoverAddress string, debug bool) error {
+func runLoggerServer() error {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	//router.Use(gin.Logger())
@@ -70,7 +72,7 @@ func runLoggerServer(serviceAddress string, discoverAddress string, debug bool) 
 		handleHealthCheck(c)
 	})
 
-	return router.Run(serviceAddress)
+	return router.Run(pzService.Address)
 }
 
 func app() int {
@@ -79,13 +81,19 @@ func app() int {
 
 	// handles the command line flags, finds the discover service, registers us,
 	// and figures out our own server address
-	svc, err := piazza.NewDiscoverService("pz-logger", "localhost:12341", "localhost:3000")
+	serviceAddress, discoverAddress, debug, err := piazza.NewDiscoverService("pz-logger", "localhost:12341", "localhost:3000")
 	if err != nil {
 		log.Print(err)
 		return 1
 	}
 
-	err = runLoggerServer(svc.BindTo, svc.DiscoverAddress, *svc.DebugFlag)
+	pzService, err = piazza.NewPzService("pz-logger", serviceAddress, discoverAddress, debug)
+	if err != nil {
+		log.Fatal(err)
+		return 1
+	}
+
+	err = runLoggerServer()
 	if err != nil {
 		log.Print(err)
 		return 1

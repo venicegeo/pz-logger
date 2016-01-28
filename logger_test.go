@@ -185,9 +185,8 @@ func TestOkay(t *testing.T) {
 	}
 	checkValidAdminResponse(t, resp)
 
-	err = piazza.Log("service", "address", "Info", "message from pz-logger unit test via piazza.Log()")
+	err = pzService.Log(piazza.SeverityInfo, "message from pz-logger unit test via piazza.Log()")
 	if err != nil {
 		t.Fatalf("piazza.Log() failed: %s", err)
 	}
-
 }
