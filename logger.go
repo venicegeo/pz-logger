@@ -75,7 +75,7 @@ func runLoggerServer() error {
 	return router.Run(pzService.Address)
 }
 
-func app() int {
+func app(done chan bool) int {
 
 	var err error
 
@@ -93,6 +93,10 @@ func app() int {
 		return 1
 	}
 
+	if done != nil {
+		done <- true
+	}
+
 	err = runLoggerServer()
 	if err != nil {
 		log.Print(err)
@@ -103,12 +107,12 @@ func app() int {
 	return 1
 }
 
-func main2(cmd string) int {
+func main2(cmd string, done chan bool) int {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	os.Args = strings.Fields("main_tester " + cmd)
-	return app()
+	return app(done)
 }
 
 func main() {
-	os.Exit(app())
+	os.Exit(app(nil))
 }
