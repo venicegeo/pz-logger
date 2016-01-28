@@ -75,6 +75,12 @@ func checkValidResponse(t *testing.T, resp *http.Response) {
 }
 
 func checkValidResponse2(t *testing.T, resp *http.Response, expected []byte) {
+	var expectedMssgs []piazza.LogMessage
+	err := json.Unmarshal(expected, &expectedMssgs)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -86,10 +92,21 @@ func checkValidResponse2(t *testing.T, resp *http.Response, expected []byte) {
 		t.Fatalf("bad post response: %s: %s", resp.Status, string(data))
 	}
 
-	if string(data) != string(expected) {
-		t.Logf("Expected: %s\n", string(expected))
-		t.Logf("Actual:   %s\n", string(data))
-		t.Fatalf("returned log incorrect")
+	var actualMssgs []piazza.LogMessage
+	err = json.Unmarshal(data, &actualMssgs)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if len(actualMssgs) != len(expectedMssgs) {
+		t.Fatalf("expected %d mssgs, got %d", len(expectedMssgs), len(actualMssgs))
+	}
+	for i := 0; i < len(actualMssgs); i++ {
+		if actualMssgs[i] != expectedMssgs[i] {
+			t.Logf("Expected: %s\n", string(expected))
+			t.Logf("Actual:   %s\n", string(data))
+			t.Fatalf("returned log incorrect")
+		}
 	}
 }
 
@@ -115,6 +132,7 @@ func TestOkay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("post failed: %s", err)
 	}
+	t.Log(string(jsonData1))
 	checkValidResponse(t, resp)
 
 	resp, err = http.Get("http://localhost:12341/log")

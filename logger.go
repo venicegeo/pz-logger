@@ -1,12 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
-	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -18,90 +15,62 @@ var startTime = time.Now()
 
 var logData []piazza.LogMessage
 
-func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi. I'm pz-logger.")
+func handleHealthCheck(c *gin.Context) {
+	c.String(http.StatusOK, "Hi. I'm pz-logger.")
 }
 
-func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
-		return
-	}
-
+func handleLoggerPost(c *gin.Context) {
 	var mssg piazza.LogMessage
-	err = json.Unmarshal(data, &mssg)
+	err := c.BindJSON(&mssg)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "%v", err)
 		return
 	}
 
 	err = mssg.Validate()
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "%v", err)
 		return
 	}
 
 	log.Printf("LOG: %s\n", mssg.ToString())
 
 	logData = append(logData, mssg)
+	//c.IndentedJSON(http.StatusOK,)
 }
 
-func handleAdminGet(w http.ResponseWriter, r *http.Request) {
+func handleAdminGet(c *gin.Context) {
 	m := piazza.AdminResponse{StartTime: startTime, Logger: &piazza.AdminResponseLogger{NumMessages: len(logData)}}
 
-	data, err := json.Marshal(m)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Write(data)
+	c.JSON(http.StatusOK, m)
 }
 
-func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
+func handleLoggerGet(c *gin.Context) {
 
-	data, err := json.Marshal(logData)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Write(data)
+	c.JSON(http.StatusOK, logData)
 }
 
 func runLoggerServer(serviceAddress string, discoverAddress string, debug bool) error {
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	//router.Use(gin.Logger())
+	//router.Use(gin.Recovery())
 
-	//myAddress := fmt.Sprintf(":%s", port)
-	//myURL := fmt.Sprintf("http://%s/log", myAddress)
+	router.GET("/log/admin", func(c *gin.Context) {
+		handleAdminGet(c)
+	})
+	router.POST("/log", func(c *gin.Context) {
+		handleLoggerPost(c)
+	})
 
-	//piazza.RegistryInit(discoveryURL)
-	//err := piazza.RegisterService("pz-logger", "core-service", myURL)
-	//if err != nil {
-	//		return err
-	//	}
+	router.GET("/log", func(c *gin.Context) {
+		handleLoggerGet(c)
+	})
+	router.GET("/", func(c *gin.Context) {
+		handleHealthCheck(c)
+	})
 
-	r := mux.NewRouter()
-	r.HandleFunc("/log/admin", handleAdminGet).
-		Methods("GET")
-	r.HandleFunc("/log", handleLoggerPost).
-		Methods("POST")
-	r.HandleFunc("/log", handleLoggerGet).
-		Methods("GET")
-	r.HandleFunc("/", handleHealthCheck).
-		Methods("GET")
-
-	server := &http.Server{Addr: serviceAddress, Handler: piazza.ServerLogHandler(r)}
-	err := server.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-
-	// not reached
-	return nil
+	return router.Run(serviceAddress)
 }
 
 func app() int {
