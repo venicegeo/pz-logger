@@ -1,124 +1,189 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
-	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
+var pzService *piazza.PzService
+
 var startTime = time.Now()
 
-var logData []piazza.LogMessage
-
-func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi. I'm pz-logger.")
+type LogData struct {
+	data []piazza.LogMessage
+	sync.Mutex
 }
 
-func handleLoggerPost(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+var logData LogData
 
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
-		return
-	}
+var debugMode bool
 
+func handleGetRoot(c *gin.Context) {
+	c.String(http.StatusOK, "Hi. I'm pz-logger.")
+}
+
+func handlePostMessages(c *gin.Context) {
 	var mssg piazza.LogMessage
-	err = json.Unmarshal(data, &mssg)
+	err := c.BindJSON(&mssg)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "%v", err)
 		return
 	}
 
 	err = mssg.Validate()
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "%v", err)
 		return
 	}
 
-	log.Printf("LOG: %s\n", mssg.ToString())
+	log.Printf("PZLOG: %s\n", mssg.ToString())
 
-	logData = append(logData, mssg)
+	logData.Lock()
+	logData.data = append(logData.data, mssg)
+	logData.Unlock()
 }
 
-func handleAdminGet(w http.ResponseWriter, r *http.Request) {
-	m := piazza.AdminResponse{StartTime: startTime, Logger: &piazza.AdminResponseLogger{NumMessages: len(logData)}}
+func handleGetAdminStats(c *gin.Context) {
+	logData.Lock()
+	n := len(logData.data)
+	logData.Unlock()
+	m := piazza.AdminResponse{StartTime: startTime, Logger: &piazza.AdminResponseLogger{NumMessages: n}}
+	c.JSON(http.StatusOK, m)
+}
 
-	data, err := json.Marshal(m)
+func handleGetAdminSettings(c *gin.Context) {
+	s := "false"
+	if debugMode {
+		s = "true"
+	}
+	m := map[string]string{"debug": s}
+	c.JSON(http.StatusOK, m)
+}
+
+func handlePostAdminSettings(c *gin.Context) {
+	m := map[string]string{}
+	err := c.BindJSON(&m)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
+		c.Error(err)
 		return
 	}
-
-	w.Write(data)
+	for k, v := range m {
+		switch k {
+		case "debug":
+			switch v {
+			case "true":
+				debugMode = true
+				break
+			case "false":
+				debugMode = false
+			default:
+				c.String(http.StatusBadRequest, "Illegal value for 'debug': %s", v)
+				return
+			}
+		default:
+			c.String(http.StatusBadRequest, "Unknown parameter: %s", k)
+			return
+		}
+	}
+	c.JSON(http.StatusOK, m)
 }
 
-func handleLoggerGet(w http.ResponseWriter, r *http.Request) {
-
-	data, err := json.Marshal(logData)
+func handlePostAdminShutdown(c *gin.Context) {
+	var reason string
+	err := c.BindJSON(&reason)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
+		c.String(http.StatusBadRequest, "no reason supplied")
 		return
 	}
+	pzService.Log(piazza.SeverityFatal, "Shutdown requested: "+reason)
 
-	w.Write(data)
+	// TODO: need a graceful shutdown method
+	os.Exit(0)
 }
 
-func runLoggerServer(discoveryURL string, port string) error {
-
-	myAddress := fmt.Sprintf(":%s", port)
-	myURL := fmt.Sprintf("http://%s/log", myAddress)
-
-	piazza.RegistryInit(discoveryURL)
-	err := piazza.RegisterService("pz-logger", "core-service", myURL)
-	if err != nil {
-		return err
+func handleGetMessages(c *gin.Context) {
+	var err error
+	count := 128
+	key := c.Query("count")
+	if key != "" {
+		count, err = strconv.Atoi(key)
+		if err != nil {
+			c.String(http.StatusBadRequest, "query argument invalid: %s", key)
+			return
+		}
 	}
 
-	r := mux.NewRouter()
-	r.HandleFunc("/log/admin", handleAdminGet).
-		Methods("GET")
-	r.HandleFunc("/log", handleLoggerPost).
-		Methods("POST")
-	r.HandleFunc("/log", handleLoggerGet).
-		Methods("GET")
-	r.HandleFunc("/", handleHealthCheck).
-		Methods("GET")
+	// copy up to count elements from the end of the log array
+	logData.Lock()
+	l := len(logData.data)
+	if count > l {
+		count = l
+	}
+	lines := make([]piazza.LogMessage, count)
+	j := l - count
+	for i := 0; i < count; i++ {
+		lines[i] = logData.data[j]
+		j++
+	}
+	logData.Unlock()
 
-	server := &http.Server{Addr: myAddress, Handler: piazza.ServerLogHandler(r)}
-	err = server.ListenAndServe()
+	c.JSON(http.StatusOK, lines)
+}
+
+func runLoggerServer() error {
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	//router.Use(gin.Logger())
+	//router.Use(gin.Recovery())
+
+	router.GET("/", func(c *gin.Context) { handleGetRoot(c) })
+
+	router.POST("/v1/messages", func(c *gin.Context) { handlePostMessages(c) })
+	router.GET("/v1/messages", func(c *gin.Context) { handleGetMessages(c) })
+
+	router.GET("/v1/admin/stats", func(c *gin.Context) { handleGetAdminStats(c) })
+
+	router.GET("/v1/admin/settings", func(c *gin.Context) { handleGetAdminSettings(c) })
+	router.POST("/v1/admin/settings", func(c *gin.Context) { handlePostAdminSettings(c) })
+
+	router.POST("/v1/admin/shutdown", func(c *gin.Context) { handlePostAdminShutdown(c) })
+
+	return router.Run(pzService.Address)
+}
+
+func app(done chan bool) int {
+
+	var err error
+
+	// handles the command line flags, finds the discover service, registers us,
+	// and figures out our own server address
+	serviceAddress, discoverAddress, debug, err := piazza.NewDiscoverService("pz-logger", "localhost:12341", "localhost:3000")
+	if err != nil {
+		log.Print(err)
+		return 1
+	}
+
+	pzService, err = piazza.NewPzService("pz-logger", serviceAddress, discoverAddress, debug)
 	if err != nil {
 		log.Fatal(err)
-		return err
+		return 1
 	}
 
-	// not reached
-	return nil
-}
-
-func app() int {
-	var defaultPort = os.Getenv("PORT")
-	if defaultPort == "" {
-		defaultPort = "12341"
+	if done != nil {
+		done <- true
 	}
-	var discovery = flag.String("discovery", "http://localhost:3000", "URL of pz-discovery")
-	var port = flag.String("port", defaultPort, "port number for pz-logger")
 
-	flag.Parse()
-
-	log.Printf("starting logger: discovery=%s, port=%s", *discovery, *port)
-
-	err := runLoggerServer(*discovery, *port)
+	err = runLoggerServer()
 	if err != nil {
-		fmt.Print(err)
+		log.Print(err)
 		return 1
 	}
 
@@ -126,12 +191,12 @@ func app() int {
 	return 1
 }
 
-func main2(cmd string) int {
+func main2(cmd string, done chan bool) int {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	os.Args = strings.Fields("main_tester " + cmd)
-	return app()
+	return app(done)
 }
 
 func main() {
-	os.Exit(app())
+	os.Exit(app(nil))
 }
