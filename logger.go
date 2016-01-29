@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -15,13 +17,20 @@ var pzService *piazza.PzService
 
 var startTime = time.Now()
 
-var logData []piazza.LogMessage
+type LogData struct {
+	data []piazza.LogMessage
+	sync.Mutex
+}
 
-func handleHealthCheck(c *gin.Context) {
+var logData LogData
+
+var debugMode bool
+
+func handleGetRoot(c *gin.Context) {
 	c.String(http.StatusOK, "Hi. I'm pz-logger.")
 }
 
-func handleLoggerPost(c *gin.Context) {
+func handlePostMessages(c *gin.Context) {
 	var mssg piazza.LogMessage
 	err := c.BindJSON(&mssg)
 	if err != nil {
@@ -35,21 +44,98 @@ func handleLoggerPost(c *gin.Context) {
 		return
 	}
 
-	log.Printf("LOG: %s\n", mssg.ToString())
+	log.Printf("PZLOG: %s\n", mssg.ToString())
 
-	logData = append(logData, mssg)
-	//c.IndentedJSON(http.StatusOK,)
+	logData.Lock()
+	logData.data = append(logData.data, mssg)
+	logData.Unlock()
 }
 
-func handleAdminGet(c *gin.Context) {
-	m := piazza.AdminResponse{StartTime: startTime, Logger: &piazza.AdminResponseLogger{NumMessages: len(logData)}}
-
+func handleGetAdminStats(c *gin.Context) {
+	logData.Lock()
+	n := len(logData.data)
+	logData.Unlock()
+	m := piazza.AdminResponse{StartTime: startTime, Logger: &piazza.AdminResponseLogger{NumMessages: n}}
 	c.JSON(http.StatusOK, m)
 }
 
-func handleLoggerGet(c *gin.Context) {
+func handleGetAdminSettings(c *gin.Context) {
+	s := "false"
+	if debugMode {
+		s = "true"
+	}
+	m := map[string]string{"debug": s}
+	c.JSON(http.StatusOK, m)
+}
 
-	c.JSON(http.StatusOK, logData)
+func handlePostAdminSettings(c *gin.Context) {
+	m := map[string]string{}
+	err := c.BindJSON(&m)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	for k, v := range m {
+		switch k {
+		case "debug":
+			switch v {
+			case "true":
+				debugMode = true
+				break
+			case "false":
+				debugMode = false
+			default:
+				c.String(http.StatusBadRequest, "Illegal value for 'debug': %s", v)
+				return
+			}
+		default:
+			c.String(http.StatusBadRequest, "Unknown parameter: %s", k)
+			return
+		}
+	}
+	c.JSON(http.StatusOK, m)
+}
+
+func handlePostAdminShutdown(c *gin.Context) {
+	var reason string
+	err := c.BindJSON(&reason)
+	if err != nil {
+		c.String(http.StatusBadRequest, "no reason supplied")
+		return
+	}
+	pzService.Log(piazza.SeverityFatal, "Shutdown requested: "+reason)
+
+	// TODO: need a graceful shutdown method
+	os.Exit(0)
+}
+
+func handleGetMessages(c *gin.Context) {
+	var err error
+	count := 128
+	key := c.Query("count")
+	if key != "" {
+		count, err = strconv.Atoi(key)
+		if err != nil {
+			c.String(http.StatusBadRequest, "query argument invalid: %s", key)
+			return
+		}
+	}
+
+	// copy up to count elements from the end of the log array
+	logData.Lock()
+	l := len(logData.data)
+	if count > l {
+		count = l
+	}
+	lines := make([]piazza.LogMessage, count)
+	j := l - count
+	for i := 0; i < count; i++ {
+		lines[i] = logData.data[j]
+		j++
+	}
+	logData.Unlock()
+
+	c.JSON(http.StatusOK, lines)
 }
 
 func runLoggerServer() error {
@@ -58,19 +144,17 @@ func runLoggerServer() error {
 	//router.Use(gin.Logger())
 	//router.Use(gin.Recovery())
 
-	router.GET("/log/admin", func(c *gin.Context) {
-		handleAdminGet(c)
-	})
-	router.POST("/log", func(c *gin.Context) {
-		handleLoggerPost(c)
-	})
+	router.GET("/", func(c *gin.Context) { handleGetRoot(c) })
 
-	router.GET("/log", func(c *gin.Context) {
-		handleLoggerGet(c)
-	})
-	router.GET("/", func(c *gin.Context) {
-		handleHealthCheck(c)
-	})
+	router.POST("/v1/messages", func(c *gin.Context) { handlePostMessages(c) })
+	router.GET("/v1/messages", func(c *gin.Context) { handleGetMessages(c) })
+
+	router.GET("/v1/admin/stats", func(c *gin.Context) { handleGetAdminStats(c) })
+
+	router.GET("/v1/admin/settings", func(c *gin.Context) { handleGetAdminSettings(c) })
+	router.POST("/v1/admin/settings", func(c *gin.Context) { handlePostAdminSettings(c) })
+
+	router.POST("/v1/admin/shutdown", func(c *gin.Context) { handlePostAdminShutdown(c) })
 
 	return router.Run(pzService.Address)
 }

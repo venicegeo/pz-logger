@@ -126,14 +126,14 @@ func TestOkay(t *testing.T) {
 		t.Fatalf("marshall failed: %s", err)
 	}
 
-	resp, err := http.Post("http://localhost:12341/log", "application/json", bytes.NewBuffer(jsonData1))
+	resp, err := http.Post("http://localhost:12341/v1/messages", "application/json", bytes.NewBuffer(jsonData1))
 	if err != nil {
 		t.Fatalf("post failed: %s", err)
 	}
 	t.Log(string(jsonData1))
 	checkValidResponse(t, resp)
 
-	resp, err = http.Get("http://localhost:12341/log")
+	resp, err = http.Get("http://localhost:12341/v1/messages")
 	if err != nil {
 		t.Fatalf("get failed: %s", err)
 	}
@@ -159,13 +159,13 @@ func TestOkay(t *testing.T) {
 		t.Fatalf("marshall failed: %s", err)
 	}
 
-	resp, err = http.Post("http://localhost:12341/log", "application/json", bytes.NewBuffer(jsonData2))
+	resp, err = http.Post("http://localhost:12341/v1/messages", "application/json", bytes.NewBuffer(jsonData2))
 	if err != nil {
 		t.Fatalf("post failed: %s", err)
 	}
 	checkValidResponse(t, resp)
 
-	resp, err = http.Get("http://localhost:12341/log")
+	resp, err = http.Get("http://localhost:12341/v1/messages")
 	if err != nil {
 		t.Fatalf("get failed: %s", err)
 	}
@@ -177,7 +177,7 @@ func TestOkay(t *testing.T) {
 	}
 	checkValidResponse2(t, resp, jsonData22)
 
-	resp, err = http.Get("http://localhost:12341/log/admin")
+	resp, err = http.Get("http://localhost:12341/v1/admin/stats")
 	if err != nil {
 		t.Fatalf("admin get failed: %s", err)
 	}
@@ -186,5 +186,51 @@ func TestOkay(t *testing.T) {
 	err = pzService.Log(piazza.SeverityInfo, "message from pz-logger unit test via piazza.Log()")
 	if err != nil {
 		t.Fatalf("piazza.Log() failed: %s", err)
+	}
+
+	////
+
+	resp, err = http.Get("http://localhost:12341/v1/admin/settings")
+	if err != nil {
+		t.Fatalf("admin settings get failed: %s", err)
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	sm := map[string]string{}
+	err = json.Unmarshal(data, &sm)
+	if err != nil {
+		t.Fatalf("admin settings get failed: %s", err)
+	}
+	if sm["debug"] != "false" {
+		t.Error("settings get had invalid response")
+	}
+
+	m := map[string]string{"debug":"true"}
+	b, err := json.Marshal(m)
+	if err != nil {
+		t.Fatalf("admin settings %s", err)
+	}
+	resp, err = http.Post("http://localhost:12341/v1/admin/settings", "application/json", bytes.NewBuffer(b))
+	if err != nil {
+		t.Fatalf("admin settings post failed: %s", err)
+	}
+
+	resp, err = http.Get("http://localhost:12341/v1/admin/settings")
+	if err != nil {
+		t.Fatalf("admin settings get failed: %s", err)
+	}
+	data, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	sm = map[string]string{}
+	err = json.Unmarshal(data, &sm)
+	if err != nil {
+		t.Fatalf("admin settings get failed: %s", err)
+	}
+	if sm["debug"] != "true" {
+		t.Error("settings get had invalid response")
 	}
 }
