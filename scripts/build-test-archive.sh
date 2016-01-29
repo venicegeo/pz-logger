@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -x
+
 pushd `dirname $0` > /dev/null
 base=$(pwd -P)
 popd > /dev/null
@@ -10,6 +12,7 @@ mkdir -p $GOPATH
 ###
 
 go get github.com/venicegeo/pz-logger
+ls -R $GOPATH
 
 go test -v github.com/venicegeo/pz-logger
 
