@@ -53,45 +53,24 @@ func handleGetAdminStats(c *gin.Context) {
 	logData.Lock()
 	n := len(logData.data)
 	logData.Unlock()
-	m := piazza.AdminResponse{StartTime: startTime, Logger: &piazza.AdminResponseLogger{NumMessages: n}}
+	m := piazza.LoggerAdminStats{StartTime: startTime, NumMessages: n}
 	c.JSON(http.StatusOK, m)
 }
 
 func handleGetAdminSettings(c *gin.Context) {
-	s := "false"
-	if debugMode {
-		s = "true"
-	}
-	m := map[string]string{"debug": s}
-	c.JSON(http.StatusOK, m)
+	s := piazza.LoggerAdminSettings{Debug: debugMode}
+	c.JSON(http.StatusOK, s)
 }
 
 func handlePostAdminSettings(c *gin.Context) {
-	m := map[string]string{}
-	err := c.BindJSON(&m)
+	settings := piazza.LoggerAdminSettings{}
+	err := c.BindJSON(&settings)
 	if err != nil {
 		c.Error(err)
 		return
 	}
-	for k, v := range m {
-		switch k {
-		case "debug":
-			switch v {
-			case "true":
-				debugMode = true
-				break
-			case "false":
-				debugMode = false
-			default:
-				c.String(http.StatusBadRequest, "Illegal value for 'debug': %s", v)
-				return
-			}
-		default:
-			c.String(http.StatusBadRequest, "Unknown parameter: %s", k)
-			return
-		}
-	}
-	c.JSON(http.StatusOK, m)
+	debugMode = settings.Debug
+	c.String(http.StatusOK, "")
 }
 
 func handlePostAdminShutdown(c *gin.Context) {

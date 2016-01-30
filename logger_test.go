@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	//assert "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -81,37 +80,15 @@ func checkValidResponse(t *testing.T, resp *http.Response) {
 	}
 }
 
-func checkValidResponse2(t *testing.T, resp *http.Response, expected []byte) {
-	var expectedMssgs []piazza.LogMessage
-	err := json.Unmarshal(expected, &expectedMssgs)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	defer resp.Body.Close()
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("bad post response: %s: %s", resp.Status, string(data))
-	}
-
-	var actualMssgs []piazza.LogMessage
-	err = json.Unmarshal(data, &actualMssgs)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+func checkValidResponse2(t *testing.T, actualMssgs []piazza.LogMessage, expectedMssgs []piazza.LogMessage) {
 
 	if len(actualMssgs) != len(expectedMssgs) {
 		t.Fatalf("expected %d mssgs, got %d", len(expectedMssgs), len(actualMssgs))
 	}
 	for i := 0; i < len(actualMssgs); i++ {
 		if actualMssgs[i] != expectedMssgs[i] {
-			t.Logf("Expected: %s\n", string(expected))
-			t.Logf("Actual:   %s\n", string(data))
+			t.Logf("Expected[%d]: %v\n", i, expectedMssgs[i])
+			t.Logf("Actual[%d]:   %v\n", i, actualMssgs[i])
 			t.Fatalf("returned log incorrect")
 		}
 	}
@@ -120,8 +97,11 @@ func checkValidResponse2(t *testing.T, resp *http.Response, expected []byte) {
 func (suite *LoggerTester) TestOkay() {
 	t := suite.T()
 
-	//var resp *http.Response
 	var err error
+	var actualMssgs []piazza.LogMessage
+	var expectedMssgs []piazza.LogMessage
+
+	client := NewPzLoggerClient("localhost:12341")
 
 	data1 := piazza.LogMessage{
 		Service:  "log-tester",
@@ -130,29 +110,18 @@ func (suite *LoggerTester) TestOkay() {
 		Severity: "Info",
 		Message:  "The quick brown fox",
 	}
-	jsonData1, err := json.Marshal(data1)
+	err = client.PostToMessages(&data1)
 	if err != nil {
-		t.Fatalf("marshall failed: %s", err)
+		t.Fatalf("%s", err)
 	}
 
-	resp, err := http.Post("http://localhost:12341/v1/messages", "application/json", bytes.NewBuffer(jsonData1))
+	actualMssgs, err = client.GetFromMessages()
 	if err != nil {
-		t.Fatalf("post failed: %s", err)
-	}
-	t.Log(string(jsonData1))
-	checkValidResponse(t, resp)
-
-	resp, err = http.Get("http://localhost:12341/v1/messages")
-	if err != nil {
-		t.Fatalf("get failed: %s", err)
+		t.Fatalf("%s", err)
 	}
 
-	data11 := []piazza.LogMessage{data1}
-	jsonData11, err := json.Marshal(data11)
-	if err != nil {
-		t.Fatalf("marshall failed: %s", err)
-	}
-	checkValidResponse2(t, resp, jsonData11)
+	expectedMssgs = []piazza.LogMessage{data1}
+	checkValidResponse2(t, actualMssgs, expectedMssgs)
 
 	///////////////////
 
@@ -163,34 +132,27 @@ func (suite *LoggerTester) TestOkay() {
 		Severity: "Fatal",
 		Message:  "The quick brown fox",
 	}
-	jsonData2, err := json.Marshal(data2)
-	if err != nil {
-		t.Fatalf("marshall failed: %s", err)
-	}
 
-	resp, err = http.Post("http://localhost:12341/v1/messages", "application/json", bytes.NewBuffer(jsonData2))
+	err = client.PostToMessages(&data2)
 	if err != nil {
 		t.Fatalf("post failed: %s", err)
 	}
-	checkValidResponse(t, resp)
 
-	resp, err = http.Get("http://localhost:12341/v1/messages")
+	actualMssgs, err = client.GetFromMessages()
 	if err != nil {
 		t.Fatalf("get failed: %s", err)
 	}
 
-	data22 := []piazza.LogMessage{data1, data2}
-	jsonData22, err := json.Marshal(data22)
-	if err != nil {
-		t.Fatalf("marshall failed: %s", err)
-	}
-	checkValidResponse2(t, resp, jsonData22)
+	expectedMssgs = []piazza.LogMessage{data1, data2}
+	checkValidResponse2(t, actualMssgs, expectedMssgs)
 
-	resp, err = http.Get("http://localhost:12341/v1/admin/stats")
+	stats, err := client.GetFromAdminStats()
 	if err != nil {
 		t.Fatalf("admin get failed: %s", err)
 	}
-	checkValidAdminResponse(t, resp)
+	if stats.NumMessages != 2 {
+		t.Fatalf("stats wrong, expected 3, got %d", stats.NumMessages)
+	}
 
 	err = pzService.Log(piazza.SeverityInfo, "message from pz-logger unit test via piazza.Log()")
 	if err != nil {
@@ -199,47 +161,25 @@ func (suite *LoggerTester) TestOkay() {
 
 	////
 
-	resp, err = http.Get("http://localhost:12341/v1/admin/settings")
+	settings, err := client.GetFromAdminSettings()
 	if err != nil {
 		t.Fatalf("admin settings get failed: %s", err)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-	sm := map[string]string{}
-	err = json.Unmarshal(data, &sm)
-	if err != nil {
-		t.Fatalf("admin settings get failed: %s", err)
-	}
-	if sm["debug"] != "false" {
+	if settings.Debug {
 		t.Error("settings get had invalid response")
 	}
 
-	m := map[string]string{"debug": "true"}
-	b, err := json.Marshal(m)
-	if err != nil {
-		t.Fatalf("admin settings %s", err)
-	}
-	resp, err = http.Post("http://localhost:12341/v1/admin/settings", "application/json", bytes.NewBuffer(b))
+	settings.Debug = true
+	err = client.PostToAdminSettings(settings)
 	if err != nil {
 		t.Fatalf("admin settings post failed: %s", err)
 	}
 
-	resp, err = http.Get("http://localhost:12341/v1/admin/settings")
+	settings, err = client.GetFromAdminSettings()
 	if err != nil {
 		t.Fatalf("admin settings get failed: %s", err)
 	}
-	data, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-	sm = map[string]string{}
-	err = json.Unmarshal(data, &sm)
-	if err != nil {
-		t.Fatalf("admin settings get failed: %s", err)
-	}
-	if sm["debug"] != "true" {
+	if !settings.Debug {
 		t.Error("settings get had invalid response")
 	}
 }
