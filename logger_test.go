@@ -3,7 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	//assert "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	piazza "github.com/venicegeo/pz-gocommon"
 	"io/ioutil"
 	"net/http"
@@ -11,22 +12,30 @@ import (
 	"time"
 )
 
+type LoggerTester struct {
+	suite.Suite
+}
 
-// TODO: need to automate call to setup() and/or kill thread after each test
-func setup(t *testing.T, port string, debug bool) {
-	s := fmt.Sprintf("-server localhost:%s -discover localhost:3000", port)
-	if debug {
-		s += " -debug"
-	}
+func (suite *LoggerTester) SetupSuite() {
+	t := suite.T()
 
 	done := make(chan bool, 1)
-	go main2(s, done)
+	go Main(done, true)
 	<-done
 
 	err := pzService.WaitForService(pzService.Name, 1000)
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func (suite *LoggerTester) TearDownSuite() {
+	//TODO: kill the go routine running the server
+}
+
+func TestRunSuite(t *testing.T) {
+	s := new(LoggerTester)
+	suite.Run(t, s)
 }
 
 func checkValidAdminResponse(t *testing.T, resp *http.Response) {
@@ -108,8 +117,8 @@ func checkValidResponse2(t *testing.T, resp *http.Response, expected []byte) {
 	}
 }
 
-func TestOkay(t *testing.T) {
-	setup(t, "12341", false)
+func (suite *LoggerTester) TestOkay() {
+	t := suite.T()
 
 	//var resp *http.Response
 	var err error
@@ -207,7 +216,7 @@ func TestOkay(t *testing.T) {
 		t.Error("settings get had invalid response")
 	}
 
-	m := map[string]string{"debug":"true"}
+	m := map[string]string{"debug": "true"}
 	b, err := json.Marshal(m)
 	if err != nil {
 		t.Fatalf("admin settings %s", err)

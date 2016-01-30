@@ -1,14 +1,12 @@
 package main
 
 import (
-	"flag"
 	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -138,7 +136,7 @@ func handleGetMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, lines)
 }
 
-func runLoggerServer() error {
+func runLoggerServer(bindTo string) error {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	//router.Use(gin.Logger())
@@ -156,22 +154,28 @@ func runLoggerServer() error {
 
 	router.POST("/v1/admin/shutdown", func(c *gin.Context) { handlePostAdminShutdown(c) })
 
-	return router.Run(pzService.Address)
+	return router.Run(bindTo)
 }
 
-func app(done chan bool) int {
+func Main(done chan bool, local bool) int {
 
 	var err error
 
 	// handles the command line flags, finds the discover service, registers us,
 	// and figures out our own server address
-	serviceAddress, discoverAddress, debug, err := piazza.NewDiscoverService("pz-logger", "localhost:12341", "localhost:3000")
+	config, err := piazza.GetConfig("pz-logger", local)
 	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
 		return 1
 	}
 
-	pzService, err = piazza.NewPzService("pz-logger", serviceAddress, discoverAddress, debug)
+	err = config.RegisterServiceWithDiscover()
+	if err != nil {
+		log.Fatal(err)
+		return 1
+	}
+
+	pzService, err = piazza.NewPzService(config, false)
 	if err != nil {
 		log.Fatal(err)
 		return 1
@@ -181,7 +185,7 @@ func app(done chan bool) int {
 		done <- true
 	}
 
-	err = runLoggerServer()
+	err = runLoggerServer(config.BindTo)
 	if err != nil {
 		log.Print(err)
 		return 1
@@ -191,12 +195,7 @@ func app(done chan bool) int {
 	return 1
 }
 
-func main2(cmd string, done chan bool) int {
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	os.Args = strings.Fields("main_tester " + cmd)
-	return app(done)
-}
-
 func main() {
-	os.Exit(app(nil))
+	local := piazza.IsLocalConfig()
+	os.Exit(Main(nil, local))
 }
