@@ -13,6 +13,8 @@ mkdir -p $GOPATH
 
 go get github.com/venicegeo/pz-logger
 
+go get github.com/stretchr/testify/suite
+
 go test -v github.com/venicegeo/pz-logger
 
 go install github.com/venicegeo/pz-logger
