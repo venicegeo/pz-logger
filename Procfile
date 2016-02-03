@@ -1,2 +1,0 @@
-web: ./pz-logger
-
