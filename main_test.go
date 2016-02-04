@@ -4,9 +4,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/venicegeo/pz-logger/client"
-//	piazza "github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-logger/server"
+	piazza "github.com/venicegeo/pz-gocommon"
 	"testing"
 	"time"
+	"log"
 )
 
 type LoggerTester struct {
@@ -16,11 +18,29 @@ type LoggerTester struct {
 func (suite *LoggerTester) SetupSuite() {
 	t := suite.T()
 
-	done := make(chan bool, 1)
-	go Main(done, true)
-	<-done
+	config, err := piazza.GetConfig("pz-logger", true)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	err := pzService.WaitForService(pzService.Name, 1000)
+	discover, err := piazza.NewDiscoverClient(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = discover.RegisterServiceWithDiscover(config.ServiceName, config.ServerAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		err = server.RunLoggerServer(config)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	err = discover.WaitForService(config.ServiceName, 1000)
 	if err != nil {
 		t.Fatal(err)
 	}

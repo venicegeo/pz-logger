@@ -4,50 +4,32 @@ import (
 	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-logger/server"
 	"log"
-	"os"
 )
 
-var pzService *piazza.PzService
+func main() {
 
-func Main(done chan bool, local bool) int {
+	local := piazza.IsLocalConfig()
 
-	var err error
-
-	// handles the command line flags, finds the discover service, registers us,
-	// and figures out our own server address
 	config, err := piazza.GetConfig("pz-logger", local)
 	if err != nil {
 		log.Fatal(err)
-		return 1
 	}
 
-	err = config.RegisterServiceWithDiscover()
+	discover, err := piazza.NewDiscoverClient(config)
 	if err != nil {
 		log.Fatal(err)
-		return 1
 	}
 
-	pzService, err = piazza.NewPzService(config, false)
+	err = discover.RegisterServiceWithDiscover(config.ServiceName, config.ServerAddress)
 	if err != nil {
 		log.Fatal(err)
-		return 1
 	}
 
-	if done != nil {
-		done <- true
-	}
-
-	err = server.RunLoggerServer(config.BindTo, pzService)
+	err = server.RunLoggerServer(config)
 	if err != nil {
-		log.Print(err)
-		return 1
+		log.Fatal(err)
 	}
 
 	// not reached
-	return 1
-}
-
-func main() {
-	local := piazza.IsLocalConfig()
-	os.Exit(Main(nil, local))
+	log.Fatal("not reached")
 }
