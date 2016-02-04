@@ -13,37 +13,34 @@ import (
 
 type LoggerTester struct {
 	suite.Suite
+
+	logger *client.PzLoggerClient
 }
 
 func (suite *LoggerTester) SetupSuite() {
-	t := suite.T()
+	//t := suite.T()
 
-	config, err := piazza.GetConfig("pz-logger", true)
+	config, err := piazza.NewConfig("pz-logger", piazza.ConfigModeTest)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	discover, err := piazza.NewDiscoverClient(config)
+	sys, err := piazza.NewSystem(config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = discover.RegisterServiceWithDiscover(config.ServiceName, config.ServerAddress)
+	suite.logger, err = client.NewPzLoggerClient(sys)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	go func() {
-		err = server.RunLoggerServer(config)
+		err = server.RunLoggerServer(sys)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
-
-	err = discover.WaitForService(config.ServiceName, 1000)
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func (suite *LoggerTester) TearDownSuite() {
@@ -68,11 +65,11 @@ func checkMessageArrays(t *testing.T, actualMssgs []client.LogMessage, expectedM
 func (suite *LoggerTester) TestOkay() {
 	t := suite.T()
 
+	logger := suite.logger
+
 	var err error
 	var actualMssgs []client.LogMessage
 	var expectedMssgs []client.LogMessage
-
-	logger := client.NewPzLoggerClient("localhost:12341")
 
 	assert := assert.New(t)
 

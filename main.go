@@ -8,24 +8,22 @@ import (
 
 func main() {
 
-	local := piazza.IsLocalConfig()
+	var mode piazza.ConfigMode = piazza.ConfigModeCloud
+	if piazza.IsLocalConfig() {
+		mode = piazza.ConfigModeLocal
+	}
 
-	config, err := piazza.GetConfig("pz-logger", local)
+	config, err := piazza.NewConfig("pz-logger", mode)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	discover, err := piazza.NewDiscoverClient(config)
+	sys, err := piazza.NewSystem(config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = discover.RegisterServiceWithDiscover(config.ServiceName, config.ServerAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = server.RunLoggerServer(config)
+	err = server.RunLoggerServer(sys)
 	if err != nil {
 		log.Fatal(err)
 	}

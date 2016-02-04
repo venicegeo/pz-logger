@@ -19,12 +19,23 @@ type PzLoggerClient struct{
 	Address string
 }
 
-func NewPzLoggerClient(address string) *PzLoggerClient {
+func NewPzLoggerClient(sys *piazza.System) (*PzLoggerClient, error) {
+	data := (*sys.DiscoverSvc.Data)["pz-logger"]
+
 	c := new(PzLoggerClient)
-	c.Url = fmt.Sprintf("http://%s/v1", address)
+	c.Url = fmt.Sprintf("http://%s/v1", data.Host)
 	c.Name = "pz-logger"
-	c.Address = address
-	return c
+	c.Address = data.Host
+
+	return c, nil
+}
+
+func (c PzLoggerClient) GetName() string {
+	return c.Name
+}
+
+func (c PzLoggerClient) GetAddress() string {
+	return c.Address
 }
 
 func (c *PzLoggerClient) PostToMessages(mssg *LogMessage) error {

@@ -105,7 +105,7 @@ func handleGetMessages(c *gin.Context) {
 }
 
 
-func RunLoggerServer(config *piazza.ServiceConfig) error {
+func RunLoggerServer(sys *piazza.System) error {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
@@ -124,6 +124,6 @@ func RunLoggerServer(config *piazza.ServiceConfig) error {
 
 	router.POST("/v1/admin/shutdown", func(c *gin.Context) { handlePostAdminShutdown(c) })
 
-	return router.Run(config.BindTo)
+	return router.Run(sys.Config.BindTo)
 }
 
