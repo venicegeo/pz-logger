@@ -20,7 +20,10 @@ type PzLoggerClient struct{
 }
 
 func NewPzLoggerClient(sys *piazza.System) (*PzLoggerClient, error) {
-	data := (*sys.DiscoverSvc.Data)["pz-logger"]
+	data, err := sys.DiscoverService.GetData("pz-logger")
+	if err != nil {
+		return nil, err
+	}
 
 	c := new(PzLoggerClient)
 	c.Url = fmt.Sprintf("http://%s/v1", data.Host)
@@ -179,13 +182,16 @@ func (pz *PzLoggerClient) Log(severity string, message string) error {
 	return pz.postLogMessage(&mssg)
 }
 
-func (pz *PzLoggerClient) Fatal(err error) {
+func (pz *PzLoggerClient) Fatal(err error) error {
 	log.Printf("Fatal: %v", err)
 
 	mssg := LogMessage{Service: pz.Name, Address: pz.Address, Severity: SeverityFatal, Message: fmt.Sprintf("%v", err), Time: time.Now().String()}
 	pz.postLogMessage(&mssg)
 
 	os.Exit(1)
+
+	/*notreached*/
+	return nil
 }
 
 func (pz *PzLoggerClient) Error(text string, err error) error {
