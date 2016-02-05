@@ -13,35 +13,46 @@ import (
 	"os"
 )
 
-type PzLoggerClient struct{
+type PzLoggerService struct{
 	Url string
 	Name string
 	Address string
 }
 
-func NewPzLoggerClient(sys *piazza.System) (*PzLoggerClient, error) {
+func NewPzLoggerService(sys *piazza.System, wait bool) (*PzLoggerService, error) {
+	var _ piazza.IService = new(PzLoggerService)
+	var _ ILoggerService = new(PzLoggerService)
+
 	data, err := sys.DiscoverService.GetData("pz-logger")
 	if err != nil {
 		return nil, err
 	}
 
-	c := new(PzLoggerClient)
-	c.Url = fmt.Sprintf("http://%s/v1", data.Host)
-	c.Name = "pz-logger"
-	c.Address = data.Host
+	service := new(PzLoggerService)
+	service.Url = fmt.Sprintf("http://%s/v1", data.Host)
 
-	return c, nil
+	service.Name = "pz-logger"
+	service.Address = data.Host
+
+	if wait {
+		err = sys.WaitForService(service, 100)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return service, nil
 }
 
-func (c PzLoggerClient) GetName() string {
+func (c PzLoggerService) GetName() string {
 	return c.Name
 }
 
-func (c PzLoggerClient) GetAddress() string {
+func (c PzLoggerService) GetAddress() string {
 	return c.Address
 }
 
-func (c *PzLoggerClient) PostToMessages(mssg *LogMessage) error {
+func (c *PzLoggerService) PostToMessages(mssg *LogMessage) error {
 
 	mssgData, err := json.Marshal(mssg)
 	if err != nil {
@@ -60,7 +71,7 @@ func (c *PzLoggerClient) PostToMessages(mssg *LogMessage) error {
 	return nil
 }
 
-func (c *PzLoggerClient) GetFromMessages() ([]LogMessage, error) {
+func (c *PzLoggerService) GetFromMessages() ([]LogMessage, error) {
 
 	resp, err := http.Get(c.Url + "/messages")
 	if err != nil {
@@ -86,7 +97,7 @@ func (c *PzLoggerClient) GetFromMessages() ([]LogMessage, error) {
 	return mssgs, nil
 }
 
-func (c *PzLoggerClient) GetFromAdminStats() (*LoggerAdminStats, error) {
+func (c *PzLoggerService) GetFromAdminStats() (*LoggerAdminStats, error) {
 
 	resp, err := http.Get(c.Url + "/admin/stats")
 	if err != nil {
@@ -108,7 +119,7 @@ func (c *PzLoggerClient) GetFromAdminStats() (*LoggerAdminStats, error) {
 	return stats, nil
 }
 
-func (c *PzLoggerClient) GetFromAdminSettings() (*LoggerAdminSettings, error) {
+func (c *PzLoggerService) GetFromAdminSettings() (*LoggerAdminSettings, error) {
 
 	resp, err := http.Get(c.Url + "/admin/settings")
 	if err != nil {
@@ -130,7 +141,7 @@ func (c *PzLoggerClient) GetFromAdminSettings() (*LoggerAdminSettings, error) {
 	return settings, nil
 }
 
-func (c *PzLoggerClient) PostToAdminSettings(settings *LoggerAdminSettings) error {
+func (c *PzLoggerService) PostToAdminSettings(settings *LoggerAdminSettings) error {
 
 	data, err := json.Marshal(settings)
 	if err != nil {
@@ -151,7 +162,7 @@ func (c *PzLoggerClient) PostToAdminSettings(settings *LoggerAdminSettings) erro
 
 ///////////////////
 
-func (pz *PzLoggerClient) postLogMessage(mssg *LogMessage) error {
+func (pz *PzLoggerService) postLogMessage(mssg *LogMessage) error {
 
 	data, err := json.Marshal(mssg)
 	if err != nil {
@@ -175,14 +186,14 @@ func (pz *PzLoggerClient) postLogMessage(mssg *LogMessage) error {
 
 // Log sends a LogMessage to the logger.
 // TODO: support fmt
-func (pz *PzLoggerClient) Log(severity string, message string) error {
+func (pz *PzLoggerService) Log(severity string, message string) error {
 
 	mssg := LogMessage{Service: pz.Name, Address: pz.Address, Severity: severity, Message: message, Time: time.Now().String()}
 
 	return pz.postLogMessage(&mssg)
 }
 
-func (pz *PzLoggerClient) Fatal(err error) error {
+func (pz *PzLoggerService) Fatal(err error) error {
 	log.Printf("Fatal: %v", err)
 
 	mssg := LogMessage{Service: pz.Name, Address: pz.Address, Severity: SeverityFatal, Message: fmt.Sprintf("%v", err), Time: time.Now().String()}
@@ -194,7 +205,7 @@ func (pz *PzLoggerClient) Fatal(err error) error {
 	return nil
 }
 
-func (pz *PzLoggerClient) Error(text string, err error) error {
+func (pz *PzLoggerService) Error(text string, err error) error {
 	log.Printf("Error: %v", err)
 
 	s := fmt.Sprintf("%s: %v", text, err)

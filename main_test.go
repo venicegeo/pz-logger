@@ -14,7 +14,7 @@ import (
 type LoggerTester struct {
 	suite.Suite
 
-	logger *client.PzLoggerClient
+	logger *client.PzLoggerService
 }
 
 func (suite *LoggerTester) SetupSuite() {
@@ -30,7 +30,7 @@ func (suite *LoggerTester) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.logger, err = client.NewPzLoggerClient(sys)
+	suite.logger, err = client.NewPzLoggerService(sys, false)
 	if err != nil {
 		log.Fatal(err)
 	}

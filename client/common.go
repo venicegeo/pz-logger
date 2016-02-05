@@ -16,7 +16,10 @@ type LogMessage struct {
 	Message  string `json:"message"`
 }
 
-type LoggerClient interface {
+type ILoggerService interface {
+	GetName() string
+	GetAddress() string
+
 	// low-level interfaces
 	PostToMessages(*LogMessage) error
 	GetFromMessages() ([]LogMessage, error)
