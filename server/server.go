@@ -1,22 +1,20 @@
-package main
+package server
 
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-logger/client"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"sync"
 	"time"
 )
 
-var pzService *piazza.PzService
-
 var startTime = time.Now()
 
 type LogData struct {
-	data []piazza.LogMessage
+	data []client.LogMessage
 	sync.Mutex
 }
 
@@ -29,7 +27,7 @@ func handleGetRoot(c *gin.Context) {
 }
 
 func handlePostMessages(c *gin.Context) {
-	var mssg piazza.LogMessage
+	var mssg client.LogMessage
 	err := c.BindJSON(&mssg)
 	if err != nil {
 		c.String(http.StatusBadRequest, "%v", err)
@@ -53,17 +51,17 @@ func handleGetAdminStats(c *gin.Context) {
 	logData.Lock()
 	n := len(logData.data)
 	logData.Unlock()
-	m := piazza.LoggerAdminStats{StartTime: startTime, NumMessages: n}
+	m := client.LoggerAdminStats{StartTime: startTime, NumMessages: n}
 	c.JSON(http.StatusOK, m)
 }
 
 func handleGetAdminSettings(c *gin.Context) {
-	s := piazza.LoggerAdminSettings{Debug: debugMode}
+	s := client.LoggerAdminSettings{Debug: debugMode}
 	c.JSON(http.StatusOK, s)
 }
 
 func handlePostAdminSettings(c *gin.Context) {
-	settings := piazza.LoggerAdminSettings{}
+	settings := client.LoggerAdminSettings{}
 	err := c.BindJSON(&settings)
 	if err != nil {
 		c.Error(err)
@@ -74,7 +72,7 @@ func handlePostAdminSettings(c *gin.Context) {
 }
 
 func handlePostAdminShutdown(c *gin.Context) {
-	piazza.HandlePostAdminShutdown(pzService, c)
+	piazza.HandlePostAdminShutdown(c)
 }
 
 func handleGetMessages(c *gin.Context) {
@@ -95,7 +93,7 @@ func handleGetMessages(c *gin.Context) {
 	if count > l {
 		count = l
 	}
-	lines := make([]piazza.LogMessage, count)
+	lines := make([]client.LogMessage, count)
 	j := l - count
 	for i := 0; i < count; i++ {
 		lines[i] = logData.data[j]
@@ -106,7 +104,9 @@ func handleGetMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, lines)
 }
 
-func runLoggerServer(bindTo string) error {
+
+func RunLoggerServer(sys *piazza.System) error {
+
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	//router.Use(gin.Logger())
@@ -124,48 +124,6 @@ func runLoggerServer(bindTo string) error {
 
 	router.POST("/v1/admin/shutdown", func(c *gin.Context) { handlePostAdminShutdown(c) })
 
-	return router.Run(bindTo)
+	return router.Run(sys.Config.BindTo)
 }
 
-func Main(done chan bool, local bool) int {
-
-	var err error
-
-	// handles the command line flags, finds the discover service, registers us,
-	// and figures out our own server address
-	config, err := piazza.GetConfig("pz-logger", local)
-	if err != nil {
-		log.Fatal(err)
-		return 1
-	}
-
-	err = config.RegisterServiceWithDiscover()
-	if err != nil {
-		log.Fatal(err)
-		return 1
-	}
-
-	pzService, err = piazza.NewPzService(config, false)
-	if err != nil {
-		log.Fatal(err)
-		return 1
-	}
-
-	if done != nil {
-		done <- true
-	}
-
-	err = runLoggerServer(config.BindTo)
-	if err != nil {
-		log.Print(err)
-		return 1
-	}
-
-	// not reached
-	return 1
-}
-
-func main() {
-	local := piazza.IsLocalConfig()
-	os.Exit(Main(nil, local))
-}
