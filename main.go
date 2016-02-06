@@ -23,11 +23,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = server.RunLoggerServer(sys)
+	done := sys.StartServer(server.CreateHandlers(sys))
+
+	err = <- done
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// not reached
-	log.Fatal("not reached")
 }

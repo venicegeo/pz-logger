@@ -23,6 +23,7 @@ var logData LogData
 var debugMode bool
 
 func handleGetRoot(c *gin.Context) {
+	log.Print("got health-check request")
 	c.String(http.StatusOK, "Hi. I'm pz-logger.")
 }
 
@@ -104,8 +105,7 @@ func handleGetMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, lines)
 }
 
-
-func RunLoggerServer(sys *piazza.System) error {
+func CreateHandlers(sys *piazza.System) (http.Handler) {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
@@ -124,6 +124,5 @@ func RunLoggerServer(sys *piazza.System) error {
 
 	router.POST("/v1/admin/shutdown", func(c *gin.Context) { handlePostAdminShutdown(c) })
 
-	return router.Run(sys.Config.BindTo)
+	return router
 }
-

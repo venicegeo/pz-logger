@@ -19,7 +19,7 @@ type PzLoggerService struct{
 	Address string
 }
 
-func NewPzLoggerService(sys *piazza.System, wait bool) (*PzLoggerService, error) {
+func NewPzLoggerService(sys *piazza.System) (*PzLoggerService, error) {
 	var _ piazza.IService = new(PzLoggerService)
 	var _ ILoggerService = new(PzLoggerService)
 
@@ -34,11 +34,9 @@ func NewPzLoggerService(sys *piazza.System, wait bool) (*PzLoggerService, error)
 	service.Name = "pz-logger"
 	service.Address = data.Host
 
-	if wait {
-		err = sys.WaitForService(service, 100)
-		if err != nil {
-			return nil, err
-		}
+	err = sys.WaitForService(service.Name, service.Address)
+	if err != nil {
+		return nil, err
 	}
 
 	return service, nil

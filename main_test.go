@@ -8,18 +8,29 @@ import (
 	piazza "github.com/venicegeo/pz-gocommon"
 	"testing"
 	"time"
+	"runtime"
 	"log"
 )
 
 type LoggerTester struct {
 	suite.Suite
 
-	logger *client.PzLoggerService
+	logger client.ILoggerService
+}
+
+
+func X() {
+	pc, _, _, ok := runtime.Caller(1)
+	if !ok {
+		panic(1)
+	}
+	f := runtime.FuncForPC(pc)
+	log.Printf(">>>>>>>>>>>>>>>>>>>>>>>> %s", f.Name())
 }
 
 func (suite *LoggerTester) SetupSuite() {
 	//t := suite.T()
-
+X()
 	config, err := piazza.NewConfig("pz-logger", piazza.ConfigModeTest)
 	if err != nil {
 		log.Fatal(err)
@@ -30,17 +41,12 @@ func (suite *LoggerTester) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.logger, err = client.NewPzLoggerService(sys, false)
+	_ = sys.StartServer(server.CreateHandlers(sys))
+
+	suite.logger, err = client.NewPzLoggerService(sys)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	go func() {
-		err = server.RunLoggerServer(sys)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 }
 
 func (suite *LoggerTester) TearDownSuite() {
