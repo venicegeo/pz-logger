@@ -4,6 +4,7 @@ import (
 	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-logger/server"
 	"log"
+	"github.com/venicegeo/pz-logger/client"
 )
 
 func main() {
@@ -13,7 +14,7 @@ func main() {
 		mode = piazza.ConfigModeLocal
 	}
 
-	config, err := piazza.NewConfig("pz-logger", mode)
+	config, err := piazza.NewConfig(piazza.PzLogger, mode)
 	if err != nil {
 		log.Fatal(err)
 	}

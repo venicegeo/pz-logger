@@ -11,16 +11,27 @@ import (
 	"time"
 )
 
-var startTime = time.Now()
+type LockedAdminSettings struct {
+	sync.Mutex
+	client.LoggerAdminSettings
+}
+var settings LockedAdminSettings
+
+type LockedAdminStats struct {
+	sync.Mutex
+	client.LoggerAdminStats
+}
+var stats LockedAdminStats
 
 type LogData struct {
-	data []client.LogMessage
 	sync.Mutex
+	data []client.LogMessage
 }
-
 var logData LogData
 
-var debugMode bool
+func init() {
+	stats.StartTime = time.Now()
+}
 
 func handleGetRoot(c *gin.Context) {
 	log.Print("got health-check request")
@@ -50,25 +61,29 @@ func handlePostMessages(c *gin.Context) {
 
 func handleGetAdminStats(c *gin.Context) {
 	logData.Lock()
-	n := len(logData.data)
+	stats.LoggerAdminStats.NumMessages = len(logData.data)
+	t := stats.LoggerAdminStats
 	logData.Unlock()
-	m := client.LoggerAdminStats{StartTime: startTime, NumMessages: n}
-	c.JSON(http.StatusOK, m)
+	c.JSON(http.StatusOK, t)
 }
 
 func handleGetAdminSettings(c *gin.Context) {
-	s := client.LoggerAdminSettings{Debug: debugMode}
-	c.JSON(http.StatusOK, s)
+	settings.Lock()
+	t := settings.LoggerAdminSettings
+	settings.Unlock()
+	c.JSON(http.StatusOK, t)
 }
 
 func handlePostAdminSettings(c *gin.Context) {
-	settings := client.LoggerAdminSettings{}
-	err := c.BindJSON(&settings)
+	t := client.LoggerAdminSettings{}
+	err := c.BindJSON(&t)
 	if err != nil {
 		c.Error(err)
 		return
 	}
-	debugMode = settings.Debug
+	settings.Lock()
+	settings.LoggerAdminSettings = t
+	settings.Unlock()
 	c.String(http.StatusOK, "")
 }
 

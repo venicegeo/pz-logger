@@ -31,7 +31,7 @@ func X() {
 func (suite *LoggerTester) SetupSuite() {
 	//t := suite.T()
 X()
-	config, err := piazza.NewConfig("pz-logger", piazza.ConfigModeTest)
+	config, err := piazza.NewConfig(piazza.PzLogger, piazza.ConfigModeTest)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -119,11 +119,11 @@ func (suite *LoggerTester) TestOkay() {
 	stats, err := logger.GetFromAdminStats()
 	assert.NoError(err, "GetFromAdminStats")
 	assert.Equal(2, stats.NumMessages, "stats check")
-	assert.WithinDuration(time.Now(), stats.StartTime, 5*time.Second, "service start time too long ago")
+	assert.WithinDuration(time.Now(), stats.StartTime, 10*time.Second, "service start time too long ago")
 
 	////
 
-	err = logger.Log(client.SeverityInfo, "message from pz-logger unit test via piazza.Log()")
+	err = logger.Log(client.SeverityInfo, "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 
 	////
