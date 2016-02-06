@@ -3,24 +3,34 @@ package main
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	piazza "github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-logger/client"
 	"github.com/venicegeo/pz-logger/server"
-	piazza "github.com/venicegeo/pz-gocommon"
+	"log"
+	"runtime"
 	"testing"
 	"time"
-	"log"
 )
 
 type LoggerTester struct {
 	suite.Suite
 
-	logger *client.PzLoggerService
+	logger client.ILoggerService
+}
+
+func X() {
+	pc, _, _, ok := runtime.Caller(1)
+	if !ok {
+		panic(1)
+	}
+	f := runtime.FuncForPC(pc)
+	log.Printf(">>>>>>>>>>>>>>>>>>>>>>>> %s", f.Name())
 }
 
 func (suite *LoggerTester) SetupSuite() {
 	//t := suite.T()
-
-	config, err := piazza.NewConfig("pz-logger", piazza.ConfigModeTest)
+	X()
+	config, err := piazza.NewConfig(piazza.PzLogger, piazza.ConfigModeTest)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,17 +40,12 @@ func (suite *LoggerTester) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.logger, err = client.NewPzLoggerService(sys, false)
+	_ = sys.StartServer(server.CreateHandlers(sys))
+
+	suite.logger, err = client.NewPzLoggerService(sys)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	go func() {
-		err = server.RunLoggerServer(sys)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 }
 
 func (suite *LoggerTester) TearDownSuite() {
@@ -113,11 +118,11 @@ func (suite *LoggerTester) TestOkay() {
 	stats, err := logger.GetFromAdminStats()
 	assert.NoError(err, "GetFromAdminStats")
 	assert.Equal(2, stats.NumMessages, "stats check")
-	assert.WithinDuration(time.Now(), stats.StartTime, 5*time.Second, "service start time too long ago")
+	assert.WithinDuration(time.Now(), stats.StartTime, 10*time.Second, "service start time too long ago")
 
 	////
 
-	err = logger.Log(client.SeverityInfo, "message from pz-logger unit test via piazza.Log()")
+	err = logger.Log(client.SeverityInfo, "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 
 	////

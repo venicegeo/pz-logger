@@ -2,32 +2,34 @@ package client
 
 import (
 	"fmt"
+	"github.com/venicegeo/pz-gocommon"
 	"log"
 	"time"
-	"github.com/venicegeo/pz-gocommon"
 )
 
 // implements Logger
-type MockLoggerService struct{
-	Name string
-	Address string
+type MockLoggerService struct {
+	name    string
+	address string
 }
 
 func NewMockLoggerService(sys *piazza.System) (ILoggerService, error) {
 	var _ piazza.IService = new(MockLoggerService)
 	var _ ILoggerService = new(MockLoggerService)
 
-	m := MockLoggerService{Name: "pz-logger", Address: "0.0.0.0"}
+	service := &MockLoggerService{name: piazza.PzLogger, address: "0.0.0.0"}
 
-	return &m, nil
+	sys.Services[piazza.PzLogger] = service
+
+	return service, nil
 }
 
 func (m *MockLoggerService) GetName() string {
-	return m.Name
+	return m.name
 }
 
 func (m *MockLoggerService) GetAddress() string {
-	return m.Address
+	return m.address
 }
 
 func (*MockLoggerService) PostToMessages(m *LogMessage) error {
