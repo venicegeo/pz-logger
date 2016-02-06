@@ -3,13 +3,13 @@ package main
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	piazza "github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-logger/client"
 	"github.com/venicegeo/pz-logger/server"
-	piazza "github.com/venicegeo/pz-gocommon"
+	"log"
+	"runtime"
 	"testing"
 	"time"
-	"runtime"
-	"log"
 )
 
 type LoggerTester struct {
@@ -17,7 +17,6 @@ type LoggerTester struct {
 
 	logger client.ILoggerService
 }
-
 
 func X() {
 	pc, _, _, ok := runtime.Caller(1)
@@ -30,7 +29,7 @@ func X() {
 
 func (suite *LoggerTester) SetupSuite() {
 	//t := suite.T()
-X()
+	X()
 	config, err := piazza.NewConfig(piazza.PzLogger, piazza.ConfigModeTest)
 	if err != nil {
 		log.Fatal(err)

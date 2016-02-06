@@ -15,18 +15,21 @@ type LockedAdminSettings struct {
 	sync.Mutex
 	client.LoggerAdminSettings
 }
+
 var settings LockedAdminSettings
 
 type LockedAdminStats struct {
 	sync.Mutex
 	client.LoggerAdminStats
 }
+
 var stats LockedAdminStats
 
 type LogData struct {
 	sync.Mutex
 	data []client.LogMessage
 }
+
 var logData LogData
 
 func init() {
@@ -120,7 +123,7 @@ func handleGetMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, lines)
 }
 
-func CreateHandlers(sys *piazza.System) (http.Handler) {
+func CreateHandlers(sys *piazza.System) http.Handler {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()

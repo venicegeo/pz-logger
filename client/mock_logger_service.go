@@ -2,13 +2,13 @@ package client
 
 import (
 	"fmt"
+	"github.com/venicegeo/pz-gocommon"
 	"log"
 	"time"
-	"github.com/venicegeo/pz-gocommon"
 )
 
 // implements Logger
-type MockLoggerService struct{
+type MockLoggerService struct {
 	name    string
 	address string
 }

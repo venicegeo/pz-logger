@@ -42,7 +42,6 @@ type LoggerAdminSettings struct {
 	Debug bool `json:"debug"`
 }
 
-
 // ToString returns a LogMessage as a formatted string.
 func (mssg *LogMessage) ToString() string {
 	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",

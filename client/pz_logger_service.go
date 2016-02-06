@@ -58,7 +58,7 @@ func (c *PzLoggerService) PostToMessages(mssg *LogMessage) error {
 		return err
 	}
 
-	resp, err := http.Post(c.url +"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(mssgData))
+	resp, err := http.Post(c.url+"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(mssgData))
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (c *PzLoggerService) PostToAdminSettings(settings *LoggerAdminSettings) err
 		return err
 	}
 
-	resp, err := http.Post(c.url +"/admin/settings", piazza.ContentTypeJSON, bytes.NewBuffer(data))
+	resp, err := http.Post(c.url+"/admin/settings", piazza.ContentTypeJSON, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (pz *PzLoggerService) postLogMessage(mssg *LogMessage) error {
 		return err
 	}
 
-	resp, err := http.Post(pz.url +"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(data))
+	resp, err := http.Post(pz.url+"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(data))
 	if err != nil {
 		log.Printf("pz-logger failed to post request: %v", err)
 		return err

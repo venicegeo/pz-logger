@@ -4,7 +4,6 @@ import (
 	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-logger/server"
 	"log"
-	"github.com/venicegeo/pz-logger/client"
 )
 
 func main() {
@@ -26,7 +25,7 @@ func main() {
 
 	done := sys.StartServer(server.CreateHandlers(sys))
 
-	err = <- done
+	err = <-done
 	if err != nil {
 		log.Fatal(err)
 	}
