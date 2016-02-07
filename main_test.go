@@ -42,7 +42,7 @@ func (suite *LoggerTester) SetupSuite() {
 
 	_ = sys.StartServer(server.CreateHandlers(sys))
 
-	suite.logger, err = client.NewPzLoggerService(sys)
+	suite.logger, err = client.NewPzLoggerService(sys, sys.Config.GetBindToAddress())
 	if err != nil {
 		log.Fatal(err)
 	}

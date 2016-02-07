@@ -19,18 +19,16 @@ type PzLoggerService struct {
 	address string
 }
 
-func NewPzLoggerService(sys *piazza.System) (*PzLoggerService, error) {
+func NewPzLoggerService(sys *piazza.System, address string) (*PzLoggerService, error) {
 	var _ piazza.IService = new(PzLoggerService)
 	var _ ILoggerService = new(PzLoggerService)
 
 	var err error
 
-	data := sys.DiscoverService.GetDataForService(piazza.PzLogger)
-
 	service := &PzLoggerService{
-		url:     fmt.Sprintf("http://%s/v1", data.Host),
-		name:    "pz-logger",
-		address: data.Host,
+		url:     fmt.Sprintf("http://%s/v1", address),
+		name:    piazza.PzLogger,
+		address: address,
 	}
 
 	err = sys.WaitForService(service)
