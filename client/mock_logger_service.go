@@ -1,15 +1,14 @@
 package client
 
 import (
-	"fmt"
-	"github.com/venicegeo/pz-gocommon"
+	piazza "github.com/venicegeo/pz-gocommon"
 	"log"
 	"time"
 )
 
 // implements Logger
 type MockLoggerService struct {
-	name    string
+	name    piazza.ServiceName
 	address string
 }
 
@@ -24,7 +23,7 @@ func NewMockLoggerService(sys *piazza.System) (ILoggerService, error) {
 	return service, nil
 }
 
-func (m *MockLoggerService) GetName() string {
+func (m *MockLoggerService) GetName() piazza.ServiceName {
 	return m.name
 }
 
@@ -33,7 +32,7 @@ func (m *MockLoggerService) GetAddress() string {
 }
 
 func (*MockLoggerService) PostToMessages(m *LogMessage) error {
-	log.Printf("MOCKLOG: %v", m)
+	log.Printf("MOCKLOG: %#v", m)
 	return nil
 }
 
@@ -53,15 +52,7 @@ func (*MockLoggerService) PostToAdminSettings(*LoggerAdminSettings) error {
 	return nil
 }
 
-func (mock *MockLoggerService) Log(severity string, message string) error {
-	mssg := LogMessage{Service: "MockLogger", Address: "0.0.0.0", Severity: severity, Message: message, Time: time.Now().String()}
+func (mock *MockLoggerService) Log(service piazza.ServiceName, address string, severity Severity, message string, t time.Time) error {
+	mssg := LogMessage{Service: service, Address: address, Severity: severity, Message: message, Time: t}
 	return mock.PostToMessages(&mssg)
-}
-
-func (mock *MockLoggerService) Fatal(err error) error {
-	return mock.Log(SeverityFatal, fmt.Sprintf("%v", err))
-}
-
-func (mock *MockLoggerService) Error(text string, err error) error {
-	return mock.Log(SeverityError, fmt.Sprintf("%v", err))
 }

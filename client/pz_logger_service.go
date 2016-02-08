@@ -9,13 +9,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
 type PzLoggerService struct {
 	url     string
-	name    string
+	name    piazza.ServiceName
 	address string
 }
 
@@ -41,7 +40,7 @@ func NewPzLoggerService(sys *piazza.System, address string) (*PzLoggerService, e
 	return service, nil
 }
 
-func (c PzLoggerService) GetName() string {
+func (c PzLoggerService) GetName() piazza.ServiceName {
 	return c.name
 }
 
@@ -183,30 +182,9 @@ func (pz *PzLoggerService) postLogMessage(mssg *LogMessage) error {
 
 // Log sends a LogMessage to the logger.
 // TODO: support fmt
-func (pz *PzLoggerService) Log(severity string, message string) error {
+func (pz *PzLoggerService) Log(service piazza.ServiceName, address string, severity Severity, message string, t time.Time) error {
 
-	mssg := LogMessage{Service: pz.name, Address: pz.address, Severity: severity, Message: message, Time: time.Now().String()}
+	mssg := LogMessage{Service: service, Address: address, Severity: severity, Message: message, Time: t}
 
-	return pz.postLogMessage(&mssg)
-}
-
-func (pz *PzLoggerService) Fatal(err error) error {
-	log.Printf("Fatal: %v", err)
-
-	mssg := LogMessage{Service: pz.name, Address: pz.address, Severity: SeverityFatal, Message: fmt.Sprintf("%v", err), Time: time.Now().String()}
-	pz.postLogMessage(&mssg)
-
-	os.Exit(1)
-
-	/*notreached*/
-	return nil
-}
-
-func (pz *PzLoggerService) Error(text string, err error) error {
-	log.Printf("Error: %v", err)
-
-	s := fmt.Sprintf("%s: %v", text, err)
-
-	mssg := LogMessage{Service: pz.name, Address: pz.address, Severity: SeverityError, Message: s, Time: time.Now().String()}
 	return pz.postLogMessage(&mssg)
 }

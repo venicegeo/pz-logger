@@ -1,6 +1,7 @@
 package client
 
 import (
+	piazza "github.com/venicegeo/pz-gocommon"
 	"errors"
 	"fmt"
 	"time"
@@ -9,15 +10,15 @@ import (
 // LogMessage represents the contents of a messge for the logger service.
 // All fields are required.
 type LogMessage struct {
-	Service  string `json:"service"`
-	Address  string `json:"address"`
-	Time     string `json:"time"`
-	Severity string `json:"severity"`
-	Message  string `json:"message"`
+	Service  piazza.ServiceName    `json:"service"`
+	Address  string    `json:"address"`
+	Time     time.Time `json:"time"`
+	Severity Severity  `json:"severity"`
+	Message  string    `json:"message"`
 }
 
 type ILoggerService interface {
-	GetName() string
+	GetName() piazza.ServiceName
 	GetAddress() string
 
 	// low-level interfaces
@@ -28,9 +29,7 @@ type ILoggerService interface {
 	PostToAdminSettings(*LoggerAdminSettings) error
 
 	// high-level interfaces
-	Log(severity string, message string) error
-	Fatal(err error) error
-	Error(text string, err error) error
+	Log(service piazza.ServiceName, address string, severity Severity, message string, t time.Time) error
 }
 
 type LoggerAdminStats struct {
@@ -49,20 +48,24 @@ func (mssg *LogMessage) ToString() string {
 	return s
 }
 
-// SeverityDebug is for log messages that are only used in development.
-const SeverityDebug = "Debug"
+type Severity string
 
-// SeverityInfo is for log messages that are only informative, no action needed.
-const SeverityInfo = "Info"
+const (
+	// SeverityDebug is for log messages that are only used in development.
+	SeverityDebug Severity = "Debug"
 
-// SeverityWarning is for log messages that indicate possible problems. Execution continues normally.
-const SeverityWarning = "Warning"
+	// SeverityInfo is for log messages that are only informative, no action needed.
+	SeverityInfo Severity = "Info"
 
-// SeverityError is for log messages that indicate something went wrong. The problem is usually handled and execution continues.
-const SeverityError = "Error"
+	// SeverityWarning is for log messages that indicate possible problems. Execution continues normally.
+	SeverityWarning Severity = "Warning"
 
-// SeverityFatal is for log messages that indicate an internal error and the system is likely now unstable. These should never happen.
-const SeverityFatal = "Fatal"
+	// SeverityError is for log messages that indicate something went wrong. The problem is usually handled and execution continues.
+	SeverityError Severity = "Error"
+
+	// SeverityFatal is for log messages that indicate an internal error and the system is likely now unstable. These should never happen.
+	SeverityFatal Severity = "Fatal"
+)
 
 // Validate checks to make sure a LogMessage is properly filled out. If not, a non-nil error is returned.
 func (mssg *LogMessage) Validate() error {
@@ -72,7 +75,7 @@ func (mssg *LogMessage) Validate() error {
 	if mssg.Address == "" {
 		return errors.New("required field 'address' not set")
 	}
-	if mssg.Time == "" {
+	if mssg.Time.IsZero() {
 		return errors.New("required field 'time' not set")
 	}
 	if mssg.Severity == "" {
@@ -80,17 +83,6 @@ func (mssg *LogMessage) Validate() error {
 	}
 	if mssg.Message == "" {
 		return errors.New("required field 'message' not set")
-	}
-
-	ok := false
-	for _, code := range [...]string{SeverityDebug, SeverityInfo, SeverityWarning, SeverityError, SeverityFatal} {
-		if mssg.Severity == code {
-			ok = true
-			break
-		}
-	}
-	if !ok {
-		return errors.New("invalid 'severity' setting")
 	}
 
 	return nil

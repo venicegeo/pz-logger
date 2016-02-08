@@ -83,7 +83,7 @@ func (suite *LoggerTester) TestOkay() {
 	data1 := client.LogMessage{
 		Service:  "log-tester",
 		Address:  "128.1.2.3",
-		Time:     "2007-04-05T14:30Z",
+		Time:     time.Now().Local(),
 		Severity: "Info",
 		Message:  "The quick brown fox",
 	}
@@ -101,7 +101,7 @@ func (suite *LoggerTester) TestOkay() {
 	data2 := client.LogMessage{
 		Service:  "log-tester",
 		Address:  "128.0.0.0",
-		Time:     "2006-04-05T14:30Z",
+		Time:     time.Now().UTC(),
 		Severity: "Fatal",
 		Message:  "The quick brown fox",
 	}
@@ -122,7 +122,7 @@ func (suite *LoggerTester) TestOkay() {
 
 	////
 
-	err = logger.Log(client.SeverityInfo, "message from logger unit test via piazza.Log()")
+	err = logger.Log("mocktest", "0.0.0.0", client.SeverityInfo, "message from logger unit test via piazza.Log()", time.Now())
 	assert.NoError(err, "pzService.Log()")
 
 	////
