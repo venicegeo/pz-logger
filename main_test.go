@@ -76,7 +76,7 @@ func checkMessageArrays(t *testing.T, actualMssgs []client.LogMessage, expectedM
 
 	for i := 0; i < len(actualMssgs); i++ {
 		if actualMssgs[i] != expectedMssgs[i] {
-			assert.Equal(t, expectedMssgs[i], actualMssgs[i], "message %d not equal", i)
+			assert.EqualValues(t, expectedMssgs[i], actualMssgs[i], "message %d not equal", i)
 		}
 	}
 }
