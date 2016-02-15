@@ -69,7 +69,7 @@ func handlePostMessages(c *gin.Context) {
 		return
 	}
 
-	log.Printf("PZLOG: %s\n", mssg.ToString())
+	log.Printf("PZLOG: %s\n", mssg.String())
 
 	logData.Lock()
 	logData.data = append(logData.data, mssg)

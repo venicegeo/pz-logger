@@ -56,7 +56,7 @@ type LoggerAdminSettings struct {
 }
 
 // ToString returns a LogMessage as a formatted string.
-func (mssg *LogMessage) ToString() string {
+func (mssg *LogMessage) String() string {
 	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",
 		mssg.Service, mssg.Address, mssg.Time, mssg.Severity, mssg.Message)
 	return s
