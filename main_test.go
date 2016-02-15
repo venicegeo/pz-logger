@@ -97,7 +97,7 @@ func (suite *LoggerTester) TestOkay() {
 	data1 := client.LogMessage{
 		Service:  "log-tester",
 		Address:  "128.1.2.3",
-		Time:     time.Now().Local(),
+		Time:     time.Now(),
 		Severity: "Info",
 		Message:  "The quick brown fox",
 	}
@@ -115,7 +115,7 @@ func (suite *LoggerTester) TestOkay() {
 	data2 := client.LogMessage{
 		Service:  "log-tester",
 		Address:  "128.0.0.0",
-		Time:     time.Now().UTC(),
+		Time:     time.Now(),
 		Severity: "Fatal",
 		Message:  "The quick brown fox",
 	}
