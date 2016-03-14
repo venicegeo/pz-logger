@@ -45,11 +45,6 @@ func (m *MockLoggerService) GetAddress() string {
 	return m.address
 }
 
-func (*MockLoggerService) PostToMessages(m *LogMessage) error {
-	log.Printf("MOCKLOG: %#v", m)
-	return nil
-}
-
 func (*MockLoggerService) GetFromMessages() ([]LogMessage, error) {
 	return nil, nil
 }
@@ -66,7 +61,12 @@ func (*MockLoggerService) PostToAdminSettings(*LoggerAdminSettings) error {
 	return nil
 }
 
-func (mock *MockLoggerService) Log(service piazza.ServiceName, address string, severity Severity, message string, t time.Time) error {
+func (*MockLoggerService) LogMessage(mssg *LogMessage) error {
+	log.Printf("MOCKLOG: %#v", mssg)
+	return nil
+}
+
+func (mock *MockLoggerService) Log(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error {
 	mssg := LogMessage{Service: service, Address: address, Severity: severity, Message: message, Time: t}
-	return mock.PostToMessages(&mssg)
+	return mock.LogMessage(&mssg)
 }

@@ -104,7 +104,7 @@ func (suite *LoggerTester) TestOkay() {
 		Severity: "Info",
 		Message:  "The quick brown fox",
 	}
-	err = logger.PostToMessages(&data1)
+	err = logger.LogMessage(&data1)
 	assert.NoError(err, "PostToMessages")
 
 	actualMssgs, err = logger.GetFromMessages()
@@ -123,7 +123,7 @@ func (suite *LoggerTester) TestOkay() {
 		Message:  "The quick brown fox",
 	}
 
-	err = logger.PostToMessages(&data2)
+	err = logger.LogMessage(&data2)
 	assert.NoError(err, "PostToMessages")
 
 	actualMssgs, err = logger.GetFromMessages()
@@ -139,9 +139,22 @@ func (suite *LoggerTester) TestOkay() {
 
 	////
 
-	err = logger.Log("mocktest", "0.0.0.0", client.SeverityInfo, "message from logger unit test via piazza.Log()", time.Now())
+	err = logger.Log("mocktest", "0.0.0.0", client.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 
+	////
+
+	clogger := client.NewCustomLogger(&logger, "TesingService", "123 Main St.")
+	err = clogger.Debug("a %s message", "DEBUG")
+	assert.NoError(err)
+	err = clogger.Info("a %s message", "INFO")
+	assert.NoError(err)
+	err = clogger.Warn("a %s message", "WARN")
+	assert.NoError(err)
+	err = clogger.Error("a %s message", "ERROR")
+	assert.NoError(err)
+	err = clogger.Fatal("a %s message", "FATAL")
+	assert.NoError(err)
 	////
 
 	settings, err := logger.GetFromAdminSettings()

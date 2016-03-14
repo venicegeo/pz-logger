@@ -172,7 +172,7 @@ func (c *PzLoggerService) PostToAdminSettings(settings *LoggerAdminSettings) err
 
 ///////////////////
 
-func (pz *PzLoggerService) postLogMessage(mssg *LogMessage) error {
+func (pz *PzLoggerService) LogMessage(mssg *LogMessage) error {
 
 	data, err := json.Marshal(mssg)
 	if err != nil {
@@ -194,11 +194,16 @@ func (pz *PzLoggerService) postLogMessage(mssg *LogMessage) error {
 	return nil
 }
 
-// Log sends a LogMessage to the logger.
-// TODO: support fmt
-func (pz *PzLoggerService) Log(service piazza.ServiceName, address string, severity Severity, message string, t time.Time) error {
+// Log sends the components of a LogMessage to the logger.
+func (pz *PzLoggerService) Log(
+	service piazza.ServiceName,
+	address string,
+	severity Severity,
+	t time.Time,
+	message string, v ...interface{}) error {
 
-	mssg := LogMessage{Service: service, Address: address, Severity: severity, Message: message, Time: t}
+	str := fmt.Sprintf(message, v...)
+	mssg := LogMessage{Service: service, Address: address, Severity: severity, Time: t, Message: str}
 
-	return pz.postLogMessage(&mssg)
+	return pz.LogMessage(&mssg)
 }
