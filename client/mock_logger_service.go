@@ -15,9 +15,10 @@
 package client
 
 import (
-	piazza "github.com/venicegeo/pz-gocommon"
 	"log"
 	"time"
+
+	piazza "github.com/venicegeo/pz-gocommon"
 )
 
 // implements Logger
@@ -30,7 +31,7 @@ func NewMockLoggerService(sys *piazza.System) (ILoggerService, error) {
 	var _ piazza.IService = new(MockLoggerService)
 	var _ ILoggerService = new(MockLoggerService)
 
-	service := &MockLoggerService{name: piazza.PzLogger, address: "0.0.0.0"}
+	service := &MockLoggerService{name: "piazza.PzLogger", address: "0.0.0.0"}
 
 	sys.Services[piazza.PzLogger] = service
 
@@ -62,7 +63,8 @@ func (*MockLoggerService) PostToAdminSettings(*LoggerAdminSettings) error {
 }
 
 func (*MockLoggerService) LogMessage(mssg *LogMessage) error {
-	log.Printf("MOCKLOG: %#v", mssg)
+	tim := mssg.Time.Format("Jan _2 15:04:05")
+	log.Printf("[%s, %s, %s, %s]", tim, mssg.Service, mssg.Severity, mssg.Message)
 	return nil
 }
 

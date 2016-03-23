@@ -15,15 +15,15 @@
 package main
 
 import (
+	"log"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	piazza "github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-logger/client"
 	"github.com/venicegeo/pz-logger/server"
-	"log"
-	"runtime"
-	"testing"
-	"time"
 )
 
 type LoggerTester struct {
@@ -32,18 +32,7 @@ type LoggerTester struct {
 	logger client.ILoggerService
 }
 
-func X() {
-	pc, _, _, ok := runtime.Caller(1)
-	if !ok {
-		panic(1)
-	}
-	f := runtime.FuncForPC(pc)
-	log.Printf(">>>>>>>>>>>>>>>>>>>>>>>> %s", f.Name())
-}
-
 func (suite *LoggerTester) SetupSuite() {
-	//t := suite.T()
-	X()
 	config, err := piazza.NewConfig(piazza.PzLogger, piazza.ConfigModeTest)
 	if err != nil {
 		log.Fatal(err)
