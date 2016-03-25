@@ -27,13 +27,11 @@ type MockLoggerService struct {
 	address string
 }
 
-func NewMockLoggerService(sys *piazza.System) (ILoggerService, error) {
+func NewMockLoggerService(sys *piazza.SystemConfig) (ILoggerService, error) {
 	var _ piazza.IService = new(MockLoggerService)
 	var _ ILoggerService = new(MockLoggerService)
 
 	service := &MockLoggerService{name: "piazza.PzLogger", address: "0.0.0.0"}
-
-	sys.Services[piazza.PzLogger] = service
 
 	return service, nil
 }
