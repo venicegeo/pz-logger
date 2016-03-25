@@ -15,24 +15,15 @@
 package main
 
 import (
+	"log"
+
 	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-logger/server"
-	"log"
 )
 
 func main() {
 
-	var mode piazza.ConfigMode = piazza.ConfigModeCloud
-	if piazza.IsLocalConfig() {
-		mode = piazza.ConfigModeLocal
-	}
-
-	config, err := piazza.NewConfig(piazza.PzLogger, mode)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	sys, err := piazza.NewSystem(config)
+	sys, err := piazza.NewSystemConfig(piazza.PzLogger, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
