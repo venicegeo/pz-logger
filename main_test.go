@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	piazza "github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-logger/client"
 	"github.com/venicegeo/pz-logger/server"
 )
@@ -29,14 +30,22 @@ import (
 type LoggerTester struct {
 	suite.Suite
 
+	sys    *piazza.SystemConfig
 	logger client.ILoggerService
 }
 
 func (suite *LoggerTester) SetupSuite() {
-	sys, err := piazza.NewSystemConfig(piazza.PzLogger, nil)
+
+	endpoints := &piazza.ServicesMap{
+		piazza.PzElasticSearch: "https://search-venice-es-pjebjkdaueu2gukocyccj4r5m4.us-east-1.es.amazonaws.com",
+	}
+
+	sys, err := piazza.NewSystemConfig(piazza.PzLogger, endpoints)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	suite.sys = sys
 
 	_ = sys.StartServer(server.CreateHandlers(sys))
 
@@ -51,7 +60,7 @@ func (suite *LoggerTester) TearDownSuite() {
 }
 
 func TestRunSuite(t *testing.T) {
-	s := new(LoggerTester)
+	s := &LoggerTester{}
 	suite.Run(t, s)
 }
 
@@ -66,6 +75,18 @@ func checkMessageArrays(t *testing.T, actualMssgs []client.LogMessage, expectedM
 		assert.EqualValues(t, expectedMssgs[i].Time.String(), actualMssgs[i].Time.String(), "message.time %d not equal", i)
 		assert.EqualValues(t, expectedMssgs[i].String(), actualMssgs[i].String(), "message.string %d not equal", i)
 	}
+}
+
+func (suite *LoggerTester) TestElasticsearch() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	client, err := elasticsearch.NewClient(suite.sys, true)
+	assert.NoError(err)
+
+	version, err := client.Version()
+	assert.NoError(err)
+	assert.Contains("1.5.2", version)
 }
 
 func (suite *LoggerTester) TestOkay() {
