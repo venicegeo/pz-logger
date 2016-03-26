@@ -62,7 +62,7 @@ func (*MockLoggerService) PostToAdminSettings(*LoggerAdminSettings) error {
 
 func (*MockLoggerService) LogMessage(mssg *LogMessage) error {
 	tim := mssg.Time.Format("Jan _2 15:04:05")
-	log.Printf("[%s, %s, %s, %s]", tim, mssg.Service, mssg.Severity, mssg.Message)
+	log.Printf("[[%s, %s, %s, %s]]", tim, mssg.Service, mssg.Severity, mssg.Message)
 	return nil
 }
 
