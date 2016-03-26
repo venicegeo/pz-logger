@@ -49,7 +49,7 @@ func (suite *LoggerTester) SetupSuite() {
 
 	_ = sys.StartServer(server.CreateHandlers(sys))
 
-	suite.logger, err = client.NewPzLoggerService(sys, sys.BindTo)
+	suite.logger, err = client.NewPzLoggerService(sys)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func (suite *LoggerTester) TestOkay() {
 
 	////
 
-	clogger := client.NewCustomLogger(&logger, "TesingService", "123 Main St.")
+	clogger := client.NewCustomLogger(&logger, "TestingService", "123 Main St.")
 	err = clogger.Debug("a DEBUG message")
 	assert.NoError(err)
 	err = clogger.Info("a INFO message")
