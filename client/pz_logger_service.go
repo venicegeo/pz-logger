@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
@@ -177,18 +176,15 @@ func (pz *PzLoggerService) LogMessage(mssg *LogMessage) error {
 
 	data, err := json.Marshal(mssg)
 	if err != nil {
-		log.Printf("pz-logger failed to marshall request: %v", err)
 		return err
 	}
 
 	resp, err := http.Post(pz.url+"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(data))
 	if err != nil {
-		log.Printf("pz-logger failed to post request: %v", err)
 		return err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("pz-logger failed to post request: %v", err)
 		return errors.New(resp.Status)
 	}
 

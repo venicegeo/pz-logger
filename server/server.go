@@ -15,6 +15,7 @@
 package server
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-logger/client"
 )
 
@@ -42,13 +44,73 @@ var stats LockedAdminStats
 
 type LogData struct {
 	sync.Mutex
-	data []client.LogMessage
+	esClient *elasticsearch.Client
+	esIndex  *elasticsearch.Index
+	id       int
 }
 
 var logData LogData
 
-func init() {
+func initServer(testMode bool) {
 	stats.StartTime = time.Now()
+
+	endpoints := &piazza.ServicesMap{
+		piazza.PzElasticSearch: "https://search-venice-es-pjebjkdaueu2gukocyccj4r5m4.us-east-1.es.amazonaws.com",
+	}
+
+	sys, err := piazza.NewSystemConfig(piazza.PzTest, endpoints)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	esClient, err := elasticsearch.NewClient(sys, testMode)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	esIndex := elasticsearch.NewIndex(esClient, "pzlogger")
+
+	if !esIndex.IndexExists() {
+		err = esIndex.Create()
+		if err != nil {
+			log.Fatal(err)
+		}
+		mapping :=
+			`{
+		    "LogData":{
+			    "properties":{
+				    "service":{
+					    "type": "string",
+                        "store": true
+    			    },
+				    "address":{
+					    "type": "string",
+                        "store": true
+    			    },
+				    "time":{
+					    "type": "string",
+                        "store": true
+    			    },
+				    "severity":{
+					    "type": "string",
+                        "store": true
+    			    },
+				    "message":{
+					    "type": "string",
+                        "store": true
+    			    }
+	    	    }
+	        }
+        }`
+
+		err = esIndex.SetMapping("LogData", piazza.JsonString(mapping))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	logData.esClient = esClient
+	logData.esIndex = esIndex
 }
 
 func handleGetRoot(c *gin.Context) {
@@ -73,13 +135,32 @@ func handlePostMessages(c *gin.Context) {
 	log.Printf("PZLOG: %s\n", mssg.String())
 
 	logData.Lock()
-	logData.data = append(logData.data, mssg)
+	idStr := strconv.Itoa(logData.id)
+	logData.id++
 	logData.Unlock()
+	indexResult, err := logData.esIndex.PostData("LogData", idStr, mssg)
+	if err != nil {
+		c.String(http.StatusBadRequest, "%v", err)
+		return
+	}
+	if !indexResult.Created {
+		c.String(http.StatusBadRequest, "POST of log data failed")
+		return
+	}
+
+	err = logData.esIndex.Flush()
+	if err != nil {
+		c.String(http.StatusBadRequest, "%v", err)
+		return
+	}
+
+	stats.LoggerAdminStats.NumMessages++
+
+	c.JSON(http.StatusOK, nil)
 }
 
 func handleGetAdminStats(c *gin.Context) {
 	logData.Lock()
-	stats.LoggerAdminStats.NumMessages = len(logData.data)
 	t := stats.LoggerAdminStats
 	logData.Unlock()
 	c.JSON(http.StatusOK, t)
@@ -122,23 +203,36 @@ func handleGetMessages(c *gin.Context) {
 	}
 
 	// copy up to count elements from the end of the log array
-	logData.Lock()
-	l := len(logData.data)
+
+	searchResult, err := logData.esIndex.FilterByMatchAll("LogData")
+	if err != nil {
+		c.String(http.StatusBadRequest, "query failed: %s", err)
+		return
+	}
+
+	l := len(searchResult.Hits.Hits)
 	if count > l {
 		count = l
 	}
 	lines := make([]client.LogMessage, count)
-	j := l - count
-	for i := 0; i < count; i++ {
-		lines[i] = logData.data[j]
-		j++
+
+	i := 0
+	for _, hit := range searchResult.Hits.Hits {
+		var tmp client.LogMessage
+		err = json.Unmarshal(*hit.Source, &tmp)
+		if err != nil {
+			c.String(http.StatusBadRequest, "query unmarshal failed: %s", err)
+			return
+		}
+		lines[i] = tmp
+		i++
 	}
-	logData.Unlock()
 
 	c.JSON(http.StatusOK, lines)
 }
 
-func CreateHandlers(sys *piazza.SystemConfig) http.Handler {
+func CreateHandlers(sys *piazza.SystemConfig, testMode bool) http.Handler {
+	initServer(testMode)
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
