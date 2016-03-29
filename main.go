@@ -28,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	done := sys.StartServer(server.CreateHandlers(sys))
+	done := sys.StartServer(server.CreateHandlers(sys, false))
 
 	err = <-done
 	if err != nil {

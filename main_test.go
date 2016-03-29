@@ -47,7 +47,7 @@ func (suite *LoggerTester) SetupSuite() {
 
 	suite.sys = sys
 
-	_ = sys.StartServer(server.CreateHandlers(sys))
+	_ = sys.StartServer(server.CreateHandlers(sys, true))
 
 	suite.logger, err = client.NewPzLoggerService(sys)
 	if err != nil {
@@ -89,16 +89,15 @@ func (suite *LoggerTester) TestElasticsearch() {
 	assert.Contains("1.5.2", version)
 }
 
-func (suite *LoggerTester) TestOkay() {
+// TODO: this test must come first (to preserve counts & ordering)
+func (suite *LoggerTester) TestAAAOne() {
 	t := suite.T()
-
 	logger := suite.logger
+	assert := assert.New(t)
 
 	var err error
 	var actualMssgs []client.LogMessage
 	var expectedMssgs []client.LogMessage
-
-	assert := assert.New(t)
 
 	////
 
@@ -141,16 +140,24 @@ func (suite *LoggerTester) TestOkay() {
 	assert.NoError(err, "GetFromAdminStats")
 	assert.Equal(2, stats.NumMessages, "stats check")
 	assert.WithinDuration(time.Now(), stats.StartTime, 10*time.Second, "service start time too long ago")
+}
 
-	////
+func (suite *LoggerTester) TestHelper() {
+	t := suite.T()
+	logger := suite.logger
+	assert := assert.New(t)
 
-	err = logger.Log("mocktest", "0.0.0.0", client.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
+	err := logger.Log("mocktest", "0.0.0.0", client.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
+}
 
-	////
+func (suite *LoggerTester) TestClogger() {
+	t := suite.T()
+	logger := suite.logger
+	assert := assert.New(t)
 
 	clogger := client.NewCustomLogger(&logger, "TestingService", "123 Main St.")
-	err = clogger.Debug("a DEBUG message")
+	err := clogger.Debug("a DEBUG message")
 	assert.NoError(err)
 	err = clogger.Info("a INFO message")
 	assert.NoError(err)
@@ -160,7 +167,12 @@ func (suite *LoggerTester) TestOkay() {
 	assert.NoError(err)
 	err = clogger.Fatal("a FATAL message")
 	assert.NoError(err)
-	////
+}
+
+func (suite *LoggerTester) TestAdmin() {
+	t := suite.T()
+	logger := suite.logger
+	assert := assert.New(t)
 
 	settings, err := logger.GetFromAdminSettings()
 	assert.NoError(err, "GetFromAdminSettings")
