@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	piazza "github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-logger/client"
 	"github.com/venicegeo/pz-logger/server"
 )
@@ -29,23 +30,26 @@ import (
 type LoggerTester struct {
 	suite.Suite
 
+	sys    *piazza.SystemConfig
 	logger client.ILoggerService
 }
 
 func (suite *LoggerTester) SetupSuite() {
-	config, err := piazza.NewConfig(piazza.PzLogger, piazza.ConfigModeTest)
+
+	endpoints := &piazza.ServicesMap{
+		piazza.PzElasticSearch: "https://search-venice-es-pjebjkdaueu2gukocyccj4r5m4.us-east-1.es.amazonaws.com",
+	}
+
+	sys, err := piazza.NewSystemConfig(piazza.PzLogger, endpoints)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	sys, err := piazza.NewSystem(config)
-	if err != nil {
-		log.Fatal(err)
-	}
+	suite.sys = sys
 
 	_ = sys.StartServer(server.CreateHandlers(sys))
 
-	suite.logger, err = client.NewPzLoggerService(sys, sys.Config.GetBindToAddress())
+	suite.logger, err = client.NewPzLoggerService(sys)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,7 +60,7 @@ func (suite *LoggerTester) TearDownSuite() {
 }
 
 func TestRunSuite(t *testing.T) {
-	s := new(LoggerTester)
+	s := &LoggerTester{}
 	suite.Run(t, s)
 }
 
@@ -71,6 +75,18 @@ func checkMessageArrays(t *testing.T, actualMssgs []client.LogMessage, expectedM
 		assert.EqualValues(t, expectedMssgs[i].Time.String(), actualMssgs[i].Time.String(), "message.time %d not equal", i)
 		assert.EqualValues(t, expectedMssgs[i].String(), actualMssgs[i].String(), "message.string %d not equal", i)
 	}
+}
+
+func (suite *LoggerTester) TestElasticsearch() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	client, err := elasticsearch.NewClient(suite.sys, true)
+	assert.NoError(err)
+
+	version, err := client.Version()
+	assert.NoError(err)
+	assert.Contains("1.5.2", version)
 }
 
 func (suite *LoggerTester) TestOkay() {
@@ -133,16 +149,16 @@ func (suite *LoggerTester) TestOkay() {
 
 	////
 
-	clogger := client.NewCustomLogger(&logger, "TesingService", "123 Main St.")
-	err = clogger.Debug("a %s message", "DEBUG")
+	clogger := client.NewCustomLogger(&logger, "TestingService", "123 Main St.")
+	err = clogger.Debug("a DEBUG message")
 	assert.NoError(err)
-	err = clogger.Info("a %s message", "INFO")
+	err = clogger.Info("a INFO message")
 	assert.NoError(err)
-	err = clogger.Warn("a %s message", "WARN")
+	err = clogger.Warn("a WARN message")
 	assert.NoError(err)
-	err = clogger.Error("a %s message", "ERROR")
+	err = clogger.Error("an ERROR message")
 	assert.NoError(err)
-	err = clogger.Fatal("a %s message", "FATAL")
+	err = clogger.Fatal("a FATAL message")
 	assert.NoError(err)
 	////
 

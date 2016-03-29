@@ -11,8 +11,14 @@ mkdir -p $GOPATH
 
 go get github.com/venicegeo/pz-logger
 
+go get gopkg.in/olivere/elastic.v2
 go get github.com/stretchr/testify/suite
 go get github.com/stretchr/testify/assert
+
+go test -v github.com/venicegeo/pz-gocommon
+go test -v github.com/venicegeo/pz-gocommon/elasticsearch
+
+
 go test -v github.com/venicegeo/pz-logger
 
 ###

@@ -3,9 +3,7 @@ applications:
   host: pz-logger
   command: ./pz-logger.bin
   buildpack: binary_buildpack
-  domain: stage.geointservices.io
+  domain: test.geointservices.io
   memory: 512M
   instances: 1
   timeout: 180
-  services:
-      - pz-elasticsearch

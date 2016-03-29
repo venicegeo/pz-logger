@@ -15,14 +15,15 @@
 package server
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/venicegeo/pz-gocommon"
-	"github.com/venicegeo/pz-logger/client"
 	"log"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-logger/client"
 )
 
 type LockedAdminSettings struct {
@@ -137,7 +138,7 @@ func handleGetMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, lines)
 }
 
-func CreateHandlers(sys *piazza.System) http.Handler {
+func CreateHandlers(sys *piazza.SystemConfig) http.Handler {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()

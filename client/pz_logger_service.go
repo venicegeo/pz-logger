@@ -19,11 +19,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	piazza "github.com/venicegeo/pz-gocommon"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
+
+	piazza "github.com/venicegeo/pz-gocommon"
 )
 
 type PzLoggerService struct {
@@ -32,11 +33,13 @@ type PzLoggerService struct {
 	address string
 }
 
-func NewPzLoggerService(sys *piazza.System, address string) (*PzLoggerService, error) {
+func NewPzLoggerService(sys *piazza.SystemConfig) (*PzLoggerService, error) {
 	var _ piazza.IService = new(PzLoggerService)
 	var _ ILoggerService = new(PzLoggerService)
 
 	var err error
+
+	address := sys.Endpoints[piazza.PzLogger]
 
 	service := &PzLoggerService{
 		url:     fmt.Sprintf("http://%s/v1", address),
@@ -44,12 +47,10 @@ func NewPzLoggerService(sys *piazza.System, address string) (*PzLoggerService, e
 		address: address,
 	}
 
-	err = sys.WaitForService(service)
+	err = piazza.WaitForService(piazza.PzLogger, address)
 	if err != nil {
 		return nil, err
 	}
-
-	sys.Services[piazza.PzLogger] = service
 
 	return service, nil
 }
