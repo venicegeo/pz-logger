@@ -15,20 +15,21 @@
 package client
 
 import (
-	piazza "github.com/venicegeo/pz-gocommon"
 	"errors"
 	"fmt"
 	"time"
+
+	piazza "github.com/venicegeo/pz-gocommon"
 )
 
 // LogMessage represents the contents of a messge for the logger service.
 // All fields are required.
 type LogMessage struct {
-	Service  piazza.ServiceName    `json:"service"`
-	Address  string    `json:"address"`
-	Time     time.Time `json:"time"`
-	Severity Severity  `json:"severity"`
-	Message  string    `json:"message"`
+	Service  piazza.ServiceName `json:"service"`
+	Address  string             `json:"address"`
+	Time     time.Time          `json:"time"`
+	Severity Severity           `json:"severity"`
+	Message  string             `json:"message"`
 }
 
 type ILoggerService interface {
@@ -50,7 +51,7 @@ type ILoggerService interface {
 
 // CustomLogger is for convenience, allowing the logger user to avoid passing all the other params.
 type CustomLogger struct {
-	iLogger    *ILoggerService
+	iLogger       *ILoggerService
 	myServiceName piazza.ServiceName
 	myAddress     string
 }

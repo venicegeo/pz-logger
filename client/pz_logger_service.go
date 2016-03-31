@@ -33,12 +33,11 @@ type PzLoggerService struct {
 }
 
 func NewPzLoggerService(sys *piazza.SystemConfig) (*PzLoggerService, error) {
-	var _ piazza.IService = new(PzLoggerService)
 	var _ ILoggerService = new(PzLoggerService)
 
 	var err error
 
-	address := sys.Endpoints[piazza.PzLogger]
+	address := sys.GetService(piazza.PzLogger)
 
 	service := &PzLoggerService{
 		url:     fmt.Sprintf("http://%s/v1", address),
