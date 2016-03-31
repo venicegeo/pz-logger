@@ -36,18 +36,16 @@ type LoggerTester struct {
 
 func (suite *LoggerTester) SetupSuite() {
 
-	endpoints := &piazza.ServicesMap{
-		piazza.PzElasticSearch: "https://search-venice-es-pjebjkdaueu2gukocyccj4r5m4.us-east-1.es.amazonaws.com",
-	}
+	required := []piazza.ServiceName{piazza.PzElasticSearch}
 
-	sys, err := piazza.NewSystemConfig(piazza.PzLogger, endpoints)
+	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required, true)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	suite.sys = sys
 
-	_ = sys.StartServer(server.CreateHandlers(sys, true))
+	_ = sys.StartServer(server.CreateHandlers(sys))
 
 	suite.logger, err = client.NewPzLoggerService(sys)
 	if err != nil {
@@ -81,12 +79,12 @@ func (suite *LoggerTester) TestElasticsearch() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	client, err := elasticsearch.NewClient(suite.sys, true)
+	client, err := elasticsearch.NewClient(suite.sys)
 	assert.NoError(err)
 
-	version, err := client.Version()
+	version := client.GetVersion()
 	assert.NoError(err)
-	assert.Contains("1.5.2", version)
+	assert.Contains("2.2.0", version)
 }
 
 // TODO: this test must come first (to preserve counts & ordering)

@@ -51,19 +51,10 @@ type LogData struct {
 
 var logData LogData
 
-func initServer(testMode bool) {
+func initServer(sys *piazza.SystemConfig) {
 	stats.StartTime = time.Now()
 
-	endpoints := &piazza.ServicesMap{
-		piazza.PzElasticSearch: "https://search-venice-es-pjebjkdaueu2gukocyccj4r5m4.us-east-1.es.amazonaws.com",
-	}
-
-	sys, err := piazza.NewSystemConfig(piazza.PzTest, endpoints)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	esClient, err := elasticsearch.NewClient(sys, testMode)
+	esClient, err := elasticsearch.NewClient(sys)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -114,7 +105,7 @@ func initServer(testMode bool) {
 }
 
 func handleGetRoot(c *gin.Context) {
-	log.Print("got health-check request")
+	//log.Print("got health-check request")
 	c.String(http.StatusOK, "Hi. I'm pz-logger.")
 }
 
@@ -231,8 +222,8 @@ func handleGetMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, lines)
 }
 
-func CreateHandlers(sys *piazza.SystemConfig, testMode bool) http.Handler {
-	initServer(testMode)
+func CreateHandlers(sys *piazza.SystemConfig) http.Handler {
+	initServer(sys)
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()

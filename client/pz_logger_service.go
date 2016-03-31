@@ -27,23 +27,18 @@ import (
 )
 
 type PzLoggerService struct {
-	url     string
-	name    piazza.ServiceName
-	address string
+	url string
 }
 
 func NewPzLoggerService(sys *piazza.SystemConfig) (*PzLoggerService, error) {
-	var _ piazza.IService = new(PzLoggerService)
 	var _ ILoggerService = new(PzLoggerService)
 
 	var err error
 
-	address := sys.Endpoints[piazza.PzLogger]
+	address := sys.GetService(piazza.PzLogger)
 
 	service := &PzLoggerService{
-		url:     fmt.Sprintf("http://%s/v1", address),
-		name:    piazza.PzLogger,
-		address: address,
+		url: fmt.Sprintf("http://%s/v1", address),
 	}
 
 	err = piazza.WaitForService(piazza.PzLogger, address)
@@ -52,14 +47,6 @@ func NewPzLoggerService(sys *piazza.SystemConfig) (*PzLoggerService, error) {
 	}
 
 	return service, nil
-}
-
-func (c PzLoggerService) GetName() piazza.ServiceName {
-	return c.name
-}
-
-func (c PzLoggerService) GetAddress() string {
-	return c.address
 }
 
 func (c *PzLoggerService) PostToMessages(mssg *LogMessage) error {
