@@ -35,13 +35,14 @@ func NewPzLoggerService(sys *piazza.SystemConfig) (*PzLoggerService, error) {
 
 	var err error
 
-	address := sys.GetService(piazza.PzLogger)
-
-	service := &PzLoggerService{
-		url: fmt.Sprintf("http://%s/v1", address),
+	url, err := sys.GetURL(piazza.PzLogger)
+	if err != nil {
+		return nil, err
 	}
 
-	err = piazza.WaitForService(piazza.PzLogger, address)
+	service := &PzLoggerService{url: url}
+
+	err = sys.WaitForService(piazza.PzLogger)
 	if err != nil {
 		return nil, err
 	}
