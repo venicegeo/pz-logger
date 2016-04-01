@@ -23,24 +23,14 @@ import (
 
 // implements Logger
 type MockLoggerService struct {
-	name    piazza.ServiceName
-	address string
 }
 
 func NewMockLoggerService(sys *piazza.SystemConfig) (ILoggerService, error) {
 	var _ ILoggerService = new(MockLoggerService)
 
-	service := &MockLoggerService{name: "piazza.PzLogger", address: "0.0.0.0"}
+	service := &MockLoggerService{}
 
 	return service, nil
-}
-
-func (m *MockLoggerService) GetName() piazza.ServiceName {
-	return m.name
-}
-
-func (m *MockLoggerService) GetAddress() string {
-	return m.address
 }
 
 func (*MockLoggerService) GetFromMessages() ([]LogMessage, error) {

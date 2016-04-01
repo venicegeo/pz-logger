@@ -23,12 +23,14 @@ import (
 
 func main() {
 
-	sys, err := piazza.NewSystemConfig(piazza.PzLogger, nil)
+	required := []piazza.ServiceName{piazza.PzElasticSearch}
+
+	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required, false)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	done := sys.StartServer(server.CreateHandlers(sys, false))
+	done := sys.StartServer(server.CreateHandlers(sys))
 
 	err = <-done
 	if err != nil {

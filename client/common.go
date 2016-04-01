@@ -33,9 +33,6 @@ type LogMessage struct {
 }
 
 type ILoggerService interface {
-	GetName() piazza.ServiceName
-	GetAddress() string
-
 	// low-level interfaces
 	GetFromMessages() ([]LogMessage, error)
 	GetFromAdminStats() (*LoggerAdminStats, error)
