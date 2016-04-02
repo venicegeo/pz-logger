@@ -18,6 +18,7 @@ import (
 	"log"
 
 	"github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-logger/server"
 )
 
@@ -30,7 +31,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	done := sys.StartServer(server.CreateHandlers(sys))
+	idx, err := elasticsearch.NewIndex(sys, "pzlogger")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var esi elasticsearch.IIndex = idx
+
+	done := sys.StartServer(server.CreateHandlers(sys, esi))
 
 	err = <-done
 	if err != nil {
