@@ -49,15 +49,8 @@ func (suite *LoggerTester) SetupSuite() {
 
 	suite.sys = sys
 
-	var esi elasticsearch.IIndex
-	if MOCKING {
-		idx := elasticsearch.NewMockIndex("test")
-		esi = idx
-	} else {
-		idx, err := elasticsearch.NewIndex(suite.sys, "test")
-		assert.NoError(err)
-		esi = idx
-	}
+	esi, err := elasticsearch.NewIndexInterface(suite.sys, "test", MOCKING)
+	assert.NoError(err)
 
 	_ = sys.StartServer(server.CreateHandlers(sys, esi))
 
