@@ -27,6 +27,8 @@ import (
 	"github.com/venicegeo/pz-logger/server"
 )
 
+const MOCKING = true
+
 type LoggerTester struct {
 	suite.Suite
 
@@ -35,17 +37,26 @@ type LoggerTester struct {
 }
 
 func (suite *LoggerTester) SetupSuite() {
+	t := suite.T()
+	assert := assert.New(t)
 
-	required := []piazza.ServiceName{piazza.PzElasticSearch}
-
-	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required, true)
+	var required []piazza.ServiceName
+	if MOCKING {
+		required = []piazza.ServiceName{}
+	} else {
+		required = []piazza.ServiceName{piazza.PzElasticSearch}
+	}
+	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	suite.sys = sys
 
-	_ = sys.StartServer(server.CreateHandlers(sys))
+	esi, err := elasticsearch.NewIndexInterface(suite.sys, "loggertest$", MOCKING)
+	assert.NoError(err)
+
+	_ = sys.StartServer(server.CreateHandlers(sys, esi))
 
 	suite.logger, err = client.NewPzLoggerService(sys)
 	if err != nil {
@@ -79,11 +90,10 @@ func (suite *LoggerTester) TestElasticsearch() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	client, err := elasticsearch.NewClient(suite.sys)
+	esi, err := elasticsearch.NewIndexInterface(suite.sys, "loggertest$", MOCKING)
 	assert.NoError(err)
 
-	version := client.GetVersion()
-	assert.NoError(err)
+	version := esi.GetVersion()
 	assert.Contains("2.2.0", version)
 }
 

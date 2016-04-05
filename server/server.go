@@ -44,22 +44,16 @@ var stats LockedAdminStats
 
 type LogData struct {
 	sync.Mutex
-	esClient *elasticsearch.Client
-	esIndex  *elasticsearch.Index
-	id       int
+	esIndex elasticsearch.IIndex
+	id      int
 }
 
 var logData LogData
 
-func initServer(sys *piazza.SystemConfig) {
+func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
+	var err error
+
 	stats.StartTime = time.Now()
-
-	esClient, err := elasticsearch.NewClient(sys)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	esIndex := elasticsearch.NewIndex(esClient, "pzlogger")
 
 	if !esIndex.IndexExists() {
 		err = esIndex.Create()
@@ -100,7 +94,6 @@ func initServer(sys *piazza.SystemConfig) {
 		}
 	}
 
-	logData.esClient = esClient
 	logData.esIndex = esIndex
 }
 
@@ -201,14 +194,15 @@ func handleGetMessages(c *gin.Context) {
 		return
 	}
 
-	l := len(searchResult.Hits.Hits)
+	// TODO: unsafe truncation
+	l := int(searchResult.TotalHits())
 	if count > l {
 		count = l
 	}
 	lines := make([]client.LogMessage, count)
 
 	i := 0
-	for _, hit := range searchResult.Hits.Hits {
+	for _, hit := range *searchResult.GetHits() {
 		var tmp client.LogMessage
 		err = json.Unmarshal(*hit.Source, &tmp)
 		if err != nil {
@@ -222,8 +216,8 @@ func handleGetMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, lines)
 }
 
-func CreateHandlers(sys *piazza.SystemConfig) http.Handler {
-	initServer(sys)
+func CreateHandlers(sys *piazza.SystemConfig, esi elasticsearch.IIndex) http.Handler {
+	initServer(sys, esi)
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
