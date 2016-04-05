@@ -1,7 +1,7 @@
 applications:
 - name: pz-logger
   host: pz-logger
-  command: ./pz-logger.bin
+  command: chmod 755 ./pz-logger.bin && ./pz-logger.bin
   buildpack: binary_buildpack
   domain: stage.geointservices.io
   memory: 512M
