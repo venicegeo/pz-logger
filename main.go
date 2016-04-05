@@ -26,7 +26,7 @@ func main() {
 
 	required := []piazza.ServiceName{piazza.PzElasticSearch}
 
-	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required, false)
+	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required)
 	if err != nil {
 		log.Fatal(err)
 	}

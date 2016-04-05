@@ -40,16 +40,20 @@ func (suite *LoggerTester) SetupSuite() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	required := []piazza.ServiceName{piazza.PzElasticSearch}
-
-	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required, true)
+	var required []piazza.ServiceName
+	if MOCKING {
+		required = []piazza.ServiceName{}
+	} else {
+		required = []piazza.ServiceName{piazza.PzElasticSearch}
+	}
+	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	suite.sys = sys
 
-	esi, err := elasticsearch.NewIndexInterface(suite.sys, "test", MOCKING)
+	esi, err := elasticsearch.NewIndexInterface(suite.sys, "loggertest$", MOCKING)
 	assert.NoError(err)
 
 	_ = sys.StartServer(server.CreateHandlers(sys, esi))
@@ -86,15 +90,8 @@ func (suite *LoggerTester) TestElasticsearch() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	var esi elasticsearch.IIndex
-	if MOCKING {
-		idx := elasticsearch.NewMockIndex("test")
-		esi = idx
-	} else {
-		idx, err := elasticsearch.NewIndex(suite.sys, "test")
-		assert.NoError(err)
-		esi = idx
-	}
+	esi, err := elasticsearch.NewIndexInterface(suite.sys, "loggertest$", MOCKING)
+	assert.NoError(err)
 
 	version := esi.GetVersion()
 	assert.Contains("2.2.0", version)
