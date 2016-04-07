@@ -205,14 +205,16 @@ func handleGetMessages(c *gin.Context) {
 
 	i := 0
 	for _, hit := range *searchResult.GetHits() {
-		var tmp client.LogMessage
-		err = json.Unmarshal(*hit.Source, &tmp)
+		tmp := &client.LogMessage{}
+		src := *hit.Source
+		log.Printf("source hit: %s", string(src))
+		err = json.Unmarshal(src, tmp)
 		if err != nil {
 			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
 			c.String(http.StatusBadRequest, "query unmarshal failed: %s", err)
 			return
 		}
-		lines[i] = tmp
+		lines[i] = *tmp
 		i++
 	}
 
