@@ -205,11 +205,11 @@ func handleGetMessages(c *gin.Context) {
 	i := 0
 	for _, hit := range *searchResult.GetHits() {
 		if hit == nil {
-			log.Printf("null source hit")
+			//log.Printf("null source hit")
 			continue
 		}
 		src := *hit.Source
-		log.Printf("source hit: %s", string(src))
+		//log.Printf("source hit: %s", string(src))
 
 		tmp := &Message{}
 		err = json.Unmarshal(src, tmp)

@@ -49,6 +49,9 @@ type IClient interface {
 	Warn(message string, v ...interface{}) error
 	Error(message string, v ...interface{}) error
 	Fatal(message string, v ...interface{}) error
+
+	// config support
+	SetService(name piazza.ServiceName, address string)
 }
 
 //---------------------------------------------------------------------------

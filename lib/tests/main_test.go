@@ -25,7 +25,7 @@ import (
 	pzlogger "github.com/venicegeo/pz-logger/lib"
 )
 
-const MOCKING = false
+const MOCKING = true
 
 type LoggerTester struct {
 	suite.Suite
@@ -55,9 +55,15 @@ func (suite *LoggerTester) setupFixture() {
 
 	_ = sys.StartServer(pzlogger.CreateHandlers(sys, esi))
 
-	logger, err := pzlogger.NewPzLoggerService(sys)
-	assert.NoError(err)
-	suite.logger = logger
+	if MOCKING {
+		logger, err := pzlogger.NewMockClient(sys)
+		assert.NoError(err)
+		suite.logger = logger
+	} else {
+		logger, err := pzlogger.NewClient(sys)
+		assert.NoError(err)
+		suite.logger = logger
+	}
 }
 
 func (suite *LoggerTester) teardownFixture() {
@@ -83,6 +89,19 @@ func checkMessageArrays(t *testing.T, actualMssgs []pzlogger.Message, expectedMs
 		assert.EqualValues(t, expectedMssgs[i].Time.String(), actualMssgs[i].Time.String(), "message.time %d not equal", i)
 		assert.EqualValues(t, expectedMssgs[i].String(), actualMssgs[i].String(), "message.string %d not equal", i)
 	}
+}
+
+func (suite *LoggerTester) getLastMessage() string {
+	t := suite.T()
+	assert := assert.New(t)
+
+	logger := suite.logger
+
+	ms, err := logger.GetFromMessages()
+	assert.NoError(err)
+	assert.True(len(ms) > 0)
+
+	return ms[0].String()
 }
 
 func (suite *LoggerTester) Test01Elasticsearch() {
@@ -131,11 +150,9 @@ func (suite *LoggerTester) Test02One() {
 	//	time.Sleep(1 * time.Second)
 
 	{
-		actualMssgs, err := logger.GetFromMessages()
-		assert.NoError(err, "GetFromMessages")
-		assert.Len(actualMssgs, 1)
-		expectedMssgs := []pzlogger.Message{data1}
-		checkMessageArrays(t, actualMssgs, expectedMssgs)
+		actualMssg := suite.getLastMessage()
+		expectedMssg := data1.String()
+		assert.EqualValues(actualMssg, expectedMssg)
 	}
 
 	{
@@ -146,11 +163,9 @@ func (suite *LoggerTester) Test02One() {
 	time.Sleep(4 * time.Second)
 
 	{
-		actualMssgs, err := logger.GetFromMessages()
-		assert.NoError(err, "GetFromMessages")
-
-		expectedMssgs := []pzlogger.Message{data1, data2}
-		checkMessageArrays(t, actualMssgs, expectedMssgs)
+		actualMssg := suite.getLastMessage()
+		expectedMssg := data2.String()
+		assert.EqualValues(actualMssg, expectedMssg)
 	}
 
 	{
@@ -169,7 +184,7 @@ func (suite *LoggerTester) Test03Help() {
 	assert.NoError(err, "pzService.Log()")
 }
 
-func (suite *LoggerTester) Test04Clogger() {
+func (suite *LoggerTester) Test04ConvenienceFunctions() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -178,17 +193,35 @@ func (suite *LoggerTester) Test04Clogger() {
 
 	logger := suite.logger
 
-	clogger := pzlogger.NewCustomLogger(&logger, "TestingService", "123 Main St.")
-	err := clogger.Debug("a DEBUG message")
+	logger.SetService("myservice", "1.2.3.4")
+
+	expectedPrefix := "[myservice, 1.2.3.4, 201"
+	//expectedSuffix := ", Debug, a DEBUG message]"
+
+	err := logger.Debug("a DEBUG message")
 	assert.NoError(err)
-	err = clogger.Info("a INFO message")
+	assert.Contains(suite.getLastMessage(), expectedPrefix)
+	assert.Contains(suite.getLastMessage(), ", Debug, a DEBUG message]")
+
+	err = logger.Info("an INFO message")
 	assert.NoError(err)
-	err = clogger.Warn("a WARN message")
+	assert.Contains(suite.getLastMessage(), expectedPrefix)
+	assert.Contains(suite.getLastMessage(), ", Info, an INFO message]")
+
+	err = logger.Warn("a WARN message")
 	assert.NoError(err)
-	err = clogger.Error("an ERROR message")
+	assert.Contains(suite.getLastMessage(), expectedPrefix)
+	assert.Contains(suite.getLastMessage(), ", Warning, a WARN message]")
+
+	err = logger.Error("an ERROR message")
 	assert.NoError(err)
-	err = clogger.Fatal("a FATAL message")
+	assert.Contains(suite.getLastMessage(), expectedPrefix)
+	assert.Contains(suite.getLastMessage(), ", Error, an ERROR message]")
+
+	err = logger.Fatal("a FATAL message")
 	assert.NoError(err)
+	assert.Contains(suite.getLastMessage(), expectedPrefix)
+	assert.Contains(suite.getLastMessage(), ", Fatal, a FATAL message]")
 }
 
 func (suite *LoggerTester) Test05Admin() {
