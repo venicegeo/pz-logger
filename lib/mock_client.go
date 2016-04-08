@@ -16,7 +16,6 @@ package lib
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	piazza "github.com/venicegeo/pz-gocommon"
@@ -60,8 +59,6 @@ func (logger *MockClient) PostToAdminSettings(settings *LoggerAdminSettings) err
 }
 
 func (logger *MockClient) LogMessage(mssg *Message) error {
-	//tim := mssg.Time.Format("Jan _2 15:04:05")
-	log.Printf("%s", *mssg)
 	logger.lastMessage = *mssg
 	logger.stats.NumMessages++
 	return nil
