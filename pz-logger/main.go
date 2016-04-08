@@ -19,7 +19,7 @@ import (
 
 	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
-	"github.com/venicegeo/pz-logger/server"
+	"github.com/venicegeo/pz-logger/lib"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 	}
 	var esi elasticsearch.IIndex = idx
 
-	done := sys.StartServer(server.CreateHandlers(sys, esi))
+	done := sys.StartServer(lib.CreateHandlers(sys, esi))
 
 	err = <-done
 	if err != nil {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package lib
 
 import (
 	"encoding/json"
@@ -25,19 +25,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
-	"github.com/venicegeo/pz-logger/client"
 )
 
 type LockedAdminSettings struct {
 	sync.Mutex
-	client.LoggerAdminSettings
+	LoggerAdminSettings
 }
 
 var settings LockedAdminSettings
 
 type LockedAdminStats struct {
 	sync.Mutex
-	client.LoggerAdminStats
+	LoggerAdminStats
 }
 
 var stats LockedAdminStats
@@ -75,7 +74,7 @@ func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
                         "store": true
     			    },
 				    "time":{
-					    "type": "string",
+					    "type": "date",
                         "store": true
     			    },
 				    "severity":{
@@ -105,7 +104,7 @@ func handleGetRoot(c *gin.Context) {
 }
 
 func handlePostMessages(c *gin.Context) {
-	var mssg client.LogMessage
+	var mssg Message
 	err := c.BindJSON(&mssg)
 	if err != nil {
 		c.String(http.StatusBadRequest, "%v", err)
@@ -160,7 +159,7 @@ func handleGetAdminSettings(c *gin.Context) {
 }
 
 func handlePostAdminSettings(c *gin.Context) {
-	t := client.LoggerAdminSettings{}
+	t := LoggerAdminSettings{}
 	err := c.BindJSON(&t)
 	if err != nil {
 		c.Error(err)
@@ -190,7 +189,7 @@ func handleGetMessages(c *gin.Context) {
 
 	// copy up to count elements from the end of the log array
 
-	searchResult, err := logData.esIndex.FilterByMatchAll(schema)
+	searchResult, err := logData.esIndex.FilterByMatchAll(schema, "time")
 	if err != nil {
 		c.String(http.StatusBadRequest, "query failed: %s", err)
 		return
@@ -201,23 +200,30 @@ func handleGetMessages(c *gin.Context) {
 	if count > l {
 		count = l
 	}
-	lines := make([]client.LogMessage, count)
+	lines := make([]Message, count)
 
 	i := 0
 	for _, hit := range *searchResult.GetHits() {
 		if hit == nil {
-			log.Printf("null source hit")
+			//log.Printf("null source hit")
 			continue
 		}
 		src := *hit.Source
-		log.Printf("source hit: %s", string(src))
+		//log.Printf("source hit: %s", string(src))
 
-		tmp := &client.LogMessage{}
+		tmp := &Message{}
 		err = json.Unmarshal(src, tmp)
 		if err != nil {
 			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
 			c.String(http.StatusBadRequest, "query unmarshal failed: %s", err)
 			return
+		}
+		err = tmp.Validate()
+		if err != nil {
+			log.Printf("UNABLE TO VALIDATE: %s", string(*hit.Source))
+			//c.String(http.StatusBadRequest, "query unmarshal failed to validate: %s", err)
+			//return
+			continue
 		}
 		lines[i] = *tmp
 		i++

@@ -9,8 +9,6 @@ mkdir -p $GOPATH
 
 ###
 
-go get github.com/venicegeo/pz-logger
-
 go get gopkg.in/olivere/elastic.v3
 go get github.com/stretchr/testify/suite
 go get github.com/stretchr/testify/assert
@@ -18,7 +16,8 @@ go get github.com/stretchr/testify/assert
 go test -v github.com/venicegeo/pz-gocommon
 go test -v github.com/venicegeo/pz-gocommon/elasticsearch
 
+go get github.com/venicegeo/pz-logger/lib
 
-go test -v github.com/venicegeo/pz-logger
+go test -v github.com/venicegeo/pz-logger/lib/test
 
 ###
