@@ -192,29 +192,61 @@ func handlePostAdminShutdown(c *gin.Context) {
 
 func handleGetMessages(c *gin.Context) {
 	var err error
-	count := 128
-	key := c.Query("count")
-	if key != "" {
-		count, err = strconv.Atoi(key)
-		if err != nil {
-			c.String(http.StatusBadRequest, "query argument invalid: %s", key)
-			return
+
+	//paramInt64 := func(param string, defalt int64) int64 {
+	//	str := c.Query(param)
+	//	if str == "" {
+	//		return defalt
+	//	}
+	//
+	//	value, err := strconv.ParseInt(str, 10, 64)
+	//	if err != nil {
+	//		c.String(http.StatusBadRequest, "query argument for '?%s' is invalid: %s", param, str)
+	//		return -1
+	//	}
+	//
+	//	return value
+	//}
+
+	paramInt := func(param string, defalt int) int {
+		str := c.Query(param)
+		if str == "" {
+			return defalt
 		}
+
+		value64, err := strconv.ParseInt(str, 10, 0)
+		if err != nil {
+			c.String(http.StatusBadRequest, "query argument for '?%s' is invalid: %s", param, str)
+			return -1
+		}
+		value := int(value64)
+
+		return value
 	}
+
+	//paramString := func(param string, defalt string) string {
+	//	str := c.Query(param)
+	//	value := str
+	//	return value
+	//}
+
+	size := paramInt("size", 10)
+	from := paramInt("from", 0)
+	//after := paramInt64("after", 0)
+	//before := paramInt64("before", math.MaxInt64)
+	//contains := paramString("contains", "")
+	//service := paramString("service", "")
 
 	// copy up to count elements from the end of the log array
 
-	searchResult, err := logData.esIndex.FilterByMatchAll(schema, "stamp")
+	searchResult, err := logData.esIndex.FilterByMatchAll(schema, "stamp", size, from)
 	if err != nil {
 		c.String(http.StatusBadRequest, "query failed: %s", err)
 		return
 	}
 
 	// TODO: unsafe truncation
-	l := int(searchResult.TotalHits())
-	if count > l {
-		count = l
-	}
+	count := int(searchResult.TotalHits())
 	lines := make([]Message, count)
 
 	i := 0

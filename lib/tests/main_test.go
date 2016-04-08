@@ -25,7 +25,7 @@ import (
 	pzlogger "github.com/venicegeo/pz-logger/lib"
 )
 
-const MOCKING = true
+const MOCKING = false
 
 type LoggerTester struct {
 	suite.Suite
@@ -84,7 +84,7 @@ func (suite *LoggerTester) getLastMessage() string {
 
 	logger := suite.logger
 
-	ms, err := logger.GetFromMessages()
+	ms, err := logger.GetFromMessages(100, 0)
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
 
@@ -235,4 +235,41 @@ func (suite *LoggerTester) Test05Admin() {
 	settings, err = logger.GetFromAdminSettings()
 	assert.NoError(err, "GetFromAdminSettings")
 	assert.True(settings.Debug, "settings.Debug")
+}
+
+func (suite *LoggerTester) Test06Pagination() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	suite.setupFixture()
+	defer suite.teardownFixture()
+
+	logger := suite.logger
+
+	logger.SetService("myservice", "1.2.3.4")
+
+	err := logger.Debug("d")
+	assert.NoError(err)
+	err = logger.Info("i")
+	assert.NoError(err)
+	err = logger.Warn("w")
+	assert.NoError(err)
+	err = logger.Error("e")
+	assert.NoError(err)
+	err = logger.Fatal("f")
+	assert.NoError(err)
+
+	time.Sleep(3 * time.Second)
+
+	ms, err := logger.GetFromMessages(2, 1)
+	assert.NoError(err)
+	assert.Len(ms, 2)
+	assert.EqualValues(pzlogger.SeverityInfo, ms[0].Severity)
+	assert.EqualValues(pzlogger.SeverityWarning, ms[1].Severity)
+	ms, err = logger.GetFromMessages(3, 2)
+	assert.NoError(err)
+	assert.Len(ms, 3)
+	assert.EqualValues(pzlogger.SeverityWarning, ms[0].Severity)
+	assert.EqualValues(pzlogger.SeverityError, ms[1].Severity)
+	assert.EqualValues(pzlogger.SeverityFatal, ms[2].Severity)
 }
