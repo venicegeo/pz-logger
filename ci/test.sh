@@ -22,6 +22,7 @@ go test -v github.com/venicegeo/pz-gocommon/elasticsearch
 
 # ourself
 go get github.com/venicegeo/pz-logger/lib
+go get github.com/venicegeo/pz-logger/lib/test
 go test -v github.com/venicegeo/pz-logger/lib/test
 
 ###
