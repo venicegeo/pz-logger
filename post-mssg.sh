@@ -4,7 +4,7 @@ cat > tmp <<foo
 {
     "service":  "noservice",
     "address":  "1.2.3.4",
-    "time":     "2015-01-01 12:10:30",
+    "stamp":    123456789,
     "severity": "Debug",
     "message":  "Yow!"
 }
