@@ -149,6 +149,11 @@ func (c *Client) PostToAdminSettings(settings *LoggerAdminSettings) error {
 
 func (pz *Client) LogMessage(mssg *Message) error {
 
+	err := mssg.Validate()
+	if err != nil {
+		return errors.New("message did not validate")
+	}
+
 	data, err := json.Marshal(mssg)
 	if err != nil {
 		return err
