@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package lib
 
 import (
 	"encoding/json"
@@ -104,7 +104,7 @@ func handleGetRoot(c *gin.Context) {
 }
 
 func handlePostMessages(c *gin.Context) {
-	var mssg LogMessage
+	var mssg Message
 	err := c.BindJSON(&mssg)
 	if err != nil {
 		c.String(http.StatusBadRequest, "%v", err)
@@ -200,7 +200,7 @@ func handleGetMessages(c *gin.Context) {
 	if count > l {
 		count = l
 	}
-	lines := make([]LogMessage, count)
+	lines := make([]Message, count)
 
 	i := 0
 	for _, hit := range *searchResult.GetHits() {
@@ -211,7 +211,7 @@ func handleGetMessages(c *gin.Context) {
 		src := *hit.Source
 		log.Printf("source hit: %s", string(src))
 
-		tmp := &client.LogMessage{}
+		tmp := &Message{}
 		err = json.Unmarshal(src, tmp)
 		if err != nil {
 			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))

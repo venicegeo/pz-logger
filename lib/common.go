@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package lib
 
 import (
 	"errors"
@@ -24,7 +24,7 @@ import (
 
 // LogMessage represents the contents of a messge for the logger service.
 // All fields are required.
-type LogMessage struct {
+type Message struct {
 	Service  piazza.ServiceName `json:"service"`
 	Address  string             `json:"address"`
 	Time     time.Time          `json:"time"`
@@ -32,59 +32,23 @@ type LogMessage struct {
 	Message  string             `json:"message"`
 }
 
-type ILoggerService interface {
-	// low-level interfaces
-	GetFromMessages() ([]LogMessage, error)
+type IClient interface {
+	// admin interfaces
 	GetFromAdminStats() (*LoggerAdminStats, error)
 	GetFromAdminSettings() (*LoggerAdminSettings, error)
 	PostToAdminSettings(*LoggerAdminSettings) error
 
-	// high-level interfaces
-	LogMessage(mssg *LogMessage) error
+	// read support
+	GetFromMessages() ([]Message, error)
+
+	// write support
+	LogMessage(mssg *Message) error
 	Log(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error
-}
-
-//---------------------------------------------------------------------------
-
-// CustomLogger is for convenience, allowing the logger user to avoid passing all the other params.
-type CustomLogger struct {
-	iLogger       *ILoggerService
-	myServiceName piazza.ServiceName
-	myAddress     string
-}
-
-func NewCustomLogger(logger *ILoggerService, serviceName piazza.ServiceName, address string) *CustomLogger {
-	return &CustomLogger{iLogger: logger, myServiceName: serviceName, myAddress: address}
-}
-
-func (logger *CustomLogger) post(severity Severity, message string, v ...interface{}) error {
-	str := fmt.Sprintf(message, v...)
-	return (*logger.iLogger).Log(logger.myServiceName, logger.myAddress, severity, time.Now(), str)
-}
-
-// Debug sends a Debug-level message to the logger.
-func (logger *CustomLogger) Debug(message string, v ...interface{}) error {
-	return logger.post(SeverityDebug, message, v...)
-}
-
-// Info sends an Info-level message to the logger.
-func (logger *CustomLogger) Info(message string, v ...interface{}) error {
-	return logger.post(SeverityInfo, message, v...)
-}
-
-// Warn sends a Waring-level message to the logger.
-func (logger *CustomLogger) Warn(message string, v ...interface{}) error {
-	return logger.post(SeverityWarning, message, v...)
-}
-
-// Error sends a Error-level message to the logger.
-func (logger *CustomLogger) Error(message string, v ...interface{}) error {
-	return logger.post(SeverityError, message, v...)
-}
-
-// Fatal sends a Fatal-level message to the logger.
-func (logger *CustomLogger) Fatal(message string, v ...interface{}) error {
-	return logger.post(SeverityFatal, message, v...)
+	Debug(message string, v ...interface{}) error
+	Info(message string, v ...interface{}) error
+	Warn(message string, v ...interface{}) error
+	Error(message string, v ...interface{}) error
+	Fatal(message string, v ...interface{}) error
 }
 
 //---------------------------------------------------------------------------
@@ -98,8 +62,8 @@ type LoggerAdminSettings struct {
 	Debug bool `json:"debug"`
 }
 
-// ToString returns a LogMessage as a formatted string.
-func (mssg *LogMessage) String() string {
+// ToString returns a Message as a formatted string.
+func (mssg *Message) String() string {
 	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",
 		mssg.Service, mssg.Address, mssg.Time, mssg.Severity, mssg.Message)
 	return s
@@ -124,8 +88,8 @@ const (
 	SeverityFatal Severity = "Fatal"
 )
 
-// Validate checks to make sure a LogMessage is properly filled out. If not, a non-nil error is returned.
-func (mssg *LogMessage) Validate() error {
+// Validate checks to make sure a Message is properly filled out. If not, a non-nil error is returned.
+func (mssg *Message) Validate() error {
 	if mssg.Service == "" {
 		return errors.New("required field 'service' not set")
 	}

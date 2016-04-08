@@ -22,17 +22,17 @@ import (
 	"github.com/stretchr/testify/suite"
 	piazza "github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
-	"github.com/venicegeo/pz-logger/server"
+	pzlogger "github.com/venicegeo/pz-logger/lib"
 )
 
-const MOCKING = true
+const MOCKING = false
 
 type LoggerTester struct {
 	suite.Suite
 
 	esi    elasticsearch.IIndex
 	sys    *piazza.SystemConfig
-	logger server.ILoggerService
+	logger pzlogger.IClient
 }
 
 func (suite *LoggerTester) setupFixture() {
@@ -53,9 +53,9 @@ func (suite *LoggerTester) setupFixture() {
 	assert.NoError(err)
 	suite.esi = esi
 
-	_ = sys.StartServer(server.CreateHandlers(sys, esi))
+	_ = sys.StartServer(pzlogger.CreateHandlers(sys, esi))
 
-	logger, err := client.NewPzLoggerService(sys)
+	logger, err := pzlogger.NewPzLoggerService(sys)
 	assert.NoError(err)
 	suite.logger = logger
 }
@@ -72,7 +72,7 @@ func TestRunSuite(t *testing.T) {
 	suite.Run(t, s)
 }
 
-func checkMessageArrays(t *testing.T, actualMssgs []server.LogMessage, expectedMssgs []server.LogMessage) {
+func checkMessageArrays(t *testing.T, actualMssgs []pzlogger.Message, expectedMssgs []pzlogger.Message) {
 	assert.Equal(t, len(expectedMssgs), len(actualMssgs), "wrong number of log messages")
 
 	for i := 0; i < len(actualMssgs); i++ {
@@ -96,7 +96,6 @@ func (suite *LoggerTester) Test01Elasticsearch() {
 	assert.Contains("2.2.0", version)
 }
 
-// TODO: this test must come first (to preserve counts & ordering)
 func (suite *LoggerTester) Test02One() {
 	t := suite.T()
 	assert := assert.New(t)
@@ -108,7 +107,7 @@ func (suite *LoggerTester) Test02One() {
 
 	var err error
 
-	data1 := server.LogMessage{
+	data1 := pzlogger.Message{
 		Service:  "log-tester",
 		Address:  "128.1.2.3",
 		Time:     time.Now(),
@@ -116,7 +115,7 @@ func (suite *LoggerTester) Test02One() {
 		Message:  "The quick brown fox",
 	}
 
-	data2 := server.LogMessage{
+	data2 := pzlogger.Message{
 		Service:  "log-tester",
 		Address:  "128.0.0.0",
 		Time:     time.Now(),
@@ -135,7 +134,7 @@ func (suite *LoggerTester) Test02One() {
 		actualMssgs, err := logger.GetFromMessages()
 		assert.NoError(err, "GetFromMessages")
 		assert.Len(actualMssgs, 1)
-		expectedMssgs := []client.LogMessage{data1}
+		expectedMssgs := []pzlogger.Message{data1}
 		checkMessageArrays(t, actualMssgs, expectedMssgs)
 	}
 
@@ -150,7 +149,7 @@ func (suite *LoggerTester) Test02One() {
 		actualMssgs, err := logger.GetFromMessages()
 		assert.NoError(err, "GetFromMessages")
 
-		expectedMssgs := []client.LogMessage{data1, data2}
+		expectedMssgs := []pzlogger.Message{data1, data2}
 		checkMessageArrays(t, actualMssgs, expectedMssgs)
 	}
 
@@ -166,7 +165,7 @@ func (suite *LoggerTester) Test03Help() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	err := logger.Log("mocktest", "0.0.0.0", server.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
+	err := suite.logger.Log("mocktest", "0.0.0.0", pzlogger.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 }
 
@@ -179,7 +178,7 @@ func (suite *LoggerTester) Test04Clogger() {
 
 	logger := suite.logger
 
-	clogger := client.NewCustomLogger(&logger, "TestingService", "123 Main St.")
+	clogger := pzlogger.NewCustomLogger(&logger, "TestingService", "123 Main St.")
 	err := clogger.Debug("a DEBUG message")
 	assert.NoError(err)
 	err = clogger.Info("a INFO message")

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package lib
 
 import (
 	"bytes"
@@ -27,11 +27,13 @@ import (
 )
 
 type PzLoggerService struct {
-	url string
+	url            string
+	serviceName    piazza.ServiceName
+	serviceAddress string
 }
 
 func NewPzLoggerService(sys *piazza.SystemConfig) (*PzLoggerService, error) {
-	var _ ILoggerService = new(PzLoggerService)
+	var _ IClient = new(PzLoggerService)
 
 	var err error
 
@@ -40,7 +42,11 @@ func NewPzLoggerService(sys *piazza.SystemConfig) (*PzLoggerService, error) {
 		return nil, err
 	}
 
-	service := &PzLoggerService{url: url}
+	service := &PzLoggerService{
+		url:            url,
+		serviceName:    "notset",
+		serviceAddress: "0.0.0.0",
+	}
 
 	err = sys.WaitForService(piazza.PzLogger)
 	if err != nil {
@@ -50,7 +56,7 @@ func NewPzLoggerService(sys *piazza.SystemConfig) (*PzLoggerService, error) {
 	return service, nil
 }
 
-func (c *PzLoggerService) GetFromMessages() ([]LogMessage, error) {
+func (c *PzLoggerService) GetFromMessages() ([]Message, error) {
 
 	resp, err := http.Get(c.url + "/messages")
 	if err != nil {
@@ -67,7 +73,7 @@ func (c *PzLoggerService) GetFromMessages() ([]LogMessage, error) {
 		return nil, err
 	}
 
-	var mssgs []LogMessage
+	var mssgs []Message
 	err = json.Unmarshal(data, &mssgs)
 	if err != nil {
 		return nil, err
@@ -141,7 +147,7 @@ func (c *PzLoggerService) PostToAdminSettings(settings *LoggerAdminSettings) err
 
 ///////////////////
 
-func (pz *PzLoggerService) LogMessage(mssg *LogMessage) error {
+func (pz *PzLoggerService) LogMessage(mssg *Message) error {
 
 	data, err := json.Marshal(mssg)
 	if err != nil {
@@ -169,7 +175,37 @@ func (pz *PzLoggerService) Log(
 	message string, v ...interface{}) error {
 
 	str := fmt.Sprintf(message, v...)
-	mssg := LogMessage{Service: service, Address: address, Severity: severity, Time: t, Message: str}
+	mssg := Message{Service: service, Address: address, Severity: severity, Time: t, Message: str}
 
 	return pz.LogMessage(&mssg)
+}
+
+func (logger *PzLoggerService) post(severity Severity, message string, v ...interface{}) error {
+	str := fmt.Sprintf(message, v...)
+	return logger.Log(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
+}
+
+// Debug sends a Debug-level message to the logger.
+func (logger *PzLoggerService) Debug(message string, v ...interface{}) error {
+	return logger.post(SeverityDebug, message, v...)
+}
+
+// Info sends an Info-level message to the logger.
+func (logger *PzLoggerService) Info(message string, v ...interface{}) error {
+	return logger.post(SeverityInfo, message, v...)
+}
+
+// Warn sends a Waring-level message to the logger.
+func (logger *PzLoggerService) Warn(message string, v ...interface{}) error {
+	return logger.post(SeverityWarning, message, v...)
+}
+
+// Error sends a Error-level message to the logger.
+func (logger *PzLoggerService) Error(message string, v ...interface{}) error {
+	return logger.post(SeverityError, message, v...)
+}
+
+// Fatal sends a Fatal-level message to the logger.
+func (logger *PzLoggerService) Fatal(message string, v ...interface{}) error {
+	return logger.post(SeverityFatal, message, v...)
 }
