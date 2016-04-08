@@ -93,6 +93,9 @@ const (
 
 // Validate checks to make sure a Message is properly filled out. If not, a non-nil error is returned.
 func (mssg *Message) Validate() error {
+	if mssg == nil {
+		return errors.New("message is nil")
+	}
 	if mssg.Service == "" {
 		return errors.New("required field 'service' not set")
 	}

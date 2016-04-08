@@ -74,7 +74,7 @@ func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
                         "store": true
     			    },
 				    "time":{
-					    "type": "string",
+					    "type": "date",
                         "store": true
     			    },
 				    "severity":{
@@ -189,7 +189,7 @@ func handleGetMessages(c *gin.Context) {
 
 	// copy up to count elements from the end of the log array
 
-	searchResult, err := logData.esIndex.FilterByMatchAll(schema)
+	searchResult, err := logData.esIndex.FilterByMatchAll(schema, "time")
 	if err != nil {
 		c.String(http.StatusBadRequest, "query failed: %s", err)
 		return
@@ -217,6 +217,13 @@ func handleGetMessages(c *gin.Context) {
 			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
 			c.String(http.StatusBadRequest, "query unmarshal failed: %s", err)
 			return
+		}
+		err = tmp.Validate()
+		if err != nil {
+			log.Printf("UNABLE TO VALIDATE: %s", string(*hit.Source))
+			//c.String(http.StatusBadRequest, "query unmarshal failed to validate: %s", err)
+			//return
+			continue
 		}
 		lines[i] = *tmp
 		i++

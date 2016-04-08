@@ -78,19 +78,6 @@ func TestRunSuite(t *testing.T) {
 	suite.Run(t, s)
 }
 
-func checkMessageArrays(t *testing.T, actualMssgs []pzlogger.Message, expectedMssgs []pzlogger.Message) {
-	assert.Equal(t, len(expectedMssgs), len(actualMssgs), "wrong number of log messages")
-
-	for i := 0; i < len(actualMssgs); i++ {
-		assert.EqualValues(t, expectedMssgs[i].Address, actualMssgs[i].Address, "message.address %d not equal", i)
-		assert.EqualValues(t, expectedMssgs[i].Message, actualMssgs[i].Message, "message.message %d not equal", i)
-		assert.EqualValues(t, expectedMssgs[i].Service, actualMssgs[i].Service, "message.service %d not equal", i)
-		assert.EqualValues(t, expectedMssgs[i].Severity, actualMssgs[i].Severity, "message.severity %d not equal", i)
-		assert.EqualValues(t, expectedMssgs[i].Time.String(), actualMssgs[i].Time.String(), "message.time %d not equal", i)
-		assert.EqualValues(t, expectedMssgs[i].String(), actualMssgs[i].String(), "message.string %d not equal", i)
-	}
-}
-
 func (suite *LoggerTester) getLastMessage() string {
 	t := suite.T()
 	assert := assert.New(t)
@@ -101,7 +88,7 @@ func (suite *LoggerTester) getLastMessage() string {
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
 
-	return ms[0].String()
+	return ms[len(ms)-1].String()
 }
 
 func (suite *LoggerTester) Test01Elasticsearch() {
@@ -196,30 +183,34 @@ func (suite *LoggerTester) Test04ConvenienceFunctions() {
 	logger.SetService("myservice", "1.2.3.4")
 
 	expectedPrefix := "[myservice, 1.2.3.4, 201"
-	//expectedSuffix := ", Debug, a DEBUG message]"
 
 	err := logger.Debug("a DEBUG message")
 	assert.NoError(err)
+	//time.Sleep(3 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Debug, a DEBUG message]")
 
 	err = logger.Info("an INFO message")
 	assert.NoError(err)
+	//time.Sleep(3 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Info, an INFO message]")
 
 	err = logger.Warn("a WARN message")
 	assert.NoError(err)
+	//time.Sleep(3 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Warning, a WARN message]")
 
 	err = logger.Error("an ERROR message")
 	assert.NoError(err)
+	//time.Sleep(3 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Error, an ERROR message]")
 
 	err = logger.Fatal("a FATAL message")
 	assert.NoError(err)
+	//time.Sleep(3 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Fatal, a FATAL message]")
 }
