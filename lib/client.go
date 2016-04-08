@@ -179,8 +179,10 @@ func (pz *Client) Log(
 	t time.Time,
 	message string, v ...interface{}) error {
 
+	var secs int64 = t.Unix()
+
 	str := fmt.Sprintf(message, v...)
-	mssg := Message{Service: service, Address: address, Severity: severity, Time: t, Message: str}
+	mssg := Message{Service: service, Address: address, Severity: severity, Stamp: secs, Message: str}
 
 	return pz.LogMessage(&mssg)
 }

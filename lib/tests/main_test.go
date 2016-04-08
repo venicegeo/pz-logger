@@ -116,7 +116,7 @@ func (suite *LoggerTester) Test02One() {
 	data1 := pzlogger.Message{
 		Service:  "log-tester",
 		Address:  "128.1.2.3",
-		Time:     time.Now(),
+		Stamp:    time.Now().Unix(),
 		Severity: "Info",
 		Message:  "The quick brown fox",
 	}
@@ -124,7 +124,7 @@ func (suite *LoggerTester) Test02One() {
 	data2 := pzlogger.Message{
 		Service:  "log-tester",
 		Address:  "128.0.0.0",
-		Time:     time.Now(),
+		Stamp:    time.Now().Unix(),
 		Severity: "Fatal",
 		Message:  "The quick brown fox",
 	}

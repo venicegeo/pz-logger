@@ -24,10 +24,11 @@ import (
 
 // LogMessage represents the contents of a messge for the logger service.
 // All fields are required.
+// Stamp is seconds since the epoch.
 type Message struct {
 	Service  piazza.ServiceName `json:"service"`
 	Address  string             `json:"address"`
-	Time     time.Time          `json:"time"`
+	Stamp    int64              `json:"stamp"`
 	Severity Severity           `json:"severity"`
 	Message  string             `json:"message"`
 }
@@ -67,8 +68,9 @@ type LoggerAdminSettings struct {
 
 // ToString returns a Message as a formatted string.
 func (mssg *Message) String() string {
+	t := time.Unix(mssg.Stamp, 0)
 	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",
-		mssg.Service, mssg.Address, mssg.Time, mssg.Severity, mssg.Message)
+		mssg.Service, mssg.Address, t, mssg.Severity, mssg.Message)
 	return s
 }
 
@@ -102,7 +104,7 @@ func (mssg *Message) Validate() error {
 	if mssg.Address == "" {
 		return errors.New("required field 'address' not set")
 	}
-	if mssg.Time.IsZero() {
+	if mssg.Stamp == 0 {
 		return errors.New("required field 'time' not set")
 	}
 	if mssg.Severity == "" {
