@@ -56,18 +56,25 @@ func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 
 	stats.StartTime = time.Now()
 
-	err = esIndex.Delete()
+	/*err = esIndex.Delete()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if esIndex.IndexExists() {
 		log.Fatal("index still exists")
 	}
+	err = esIndex.Create()
+	if err != nil {
+		log.Fatal(err)
+	}*/
+
 	if !esIndex.IndexExists() {
 		err = esIndex.Create()
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		//2006-01-02 15:04:05.999999999 -0700 MST
 		mapping :=
 			`{
 		    "LogData":{
@@ -82,7 +89,8 @@ func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
     			    },
 				    "time":{
 					    "type": "date",
-                        "store": true
+                        "store": true,
+                        "format": "dateOptionalTime"
     			    },
 				    "severity":{
 					    "type": "string",
