@@ -10,6 +10,7 @@ mkdir -p $GOPATH
 ###
 
 go get github.com/venicegeo/pz-logger
+go get github.com/venicegeo/pz-logger/server
 
 go install github.com/venicegeo/pz-logger
 

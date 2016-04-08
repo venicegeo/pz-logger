@@ -25,19 +25,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
-	"github.com/venicegeo/pz-logger/client"
 )
 
 type LockedAdminSettings struct {
 	sync.Mutex
-	client.LoggerAdminSettings
+	LoggerAdminSettings
 }
 
 var settings LockedAdminSettings
 
 type LockedAdminStats struct {
 	sync.Mutex
-	client.LoggerAdminStats
+	LoggerAdminStats
 }
 
 var stats LockedAdminStats
@@ -103,7 +102,7 @@ func handleGetRoot(c *gin.Context) {
 }
 
 func handlePostMessages(c *gin.Context) {
-	var mssg client.LogMessage
+	var mssg LogMessage
 	err := c.BindJSON(&mssg)
 	if err != nil {
 		c.String(http.StatusBadRequest, "%v", err)
@@ -158,7 +157,7 @@ func handleGetAdminSettings(c *gin.Context) {
 }
 
 func handlePostAdminSettings(c *gin.Context) {
-	t := client.LoggerAdminSettings{}
+	t := LoggerAdminSettings{}
 	err := c.BindJSON(&t)
 	if err != nil {
 		c.Error(err)
@@ -199,11 +198,11 @@ func handleGetMessages(c *gin.Context) {
 	if count > l {
 		count = l
 	}
-	lines := make([]client.LogMessage, count)
+	lines := make([]LogMessage, count)
 
 	i := 0
 	for _, hit := range *searchResult.GetHits() {
-		var tmp client.LogMessage
+		var tmp LogMessage
 		err = json.Unmarshal(*hit.Source, &tmp)
 		if err != nil {
 			c.String(http.StatusBadRequest, "query unmarshal failed: %s", err)

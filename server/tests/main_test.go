@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package tests
 
 import (
 	"log"
@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	piazza "github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
-	"github.com/venicegeo/pz-logger/client"
 	"github.com/venicegeo/pz-logger/server"
 )
 
@@ -33,7 +32,7 @@ type LoggerTester struct {
 	suite.Suite
 
 	sys    *piazza.SystemConfig
-	logger client.ILoggerService
+	logger server.ILoggerService
 }
 
 func (suite *LoggerTester) SetupSuite() {
@@ -58,7 +57,7 @@ func (suite *LoggerTester) SetupSuite() {
 
 	_ = sys.StartServer(server.CreateHandlers(sys, esi))
 
-	suite.logger, err = client.NewPzLoggerService(sys)
+	suite.logger, err = server.NewPzLoggerService(sys)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,7 +72,7 @@ func TestRunSuite(t *testing.T) {
 	suite.Run(t, s)
 }
 
-func checkMessageArrays(t *testing.T, actualMssgs []client.LogMessage, expectedMssgs []client.LogMessage) {
+func checkMessageArrays(t *testing.T, actualMssgs []server.LogMessage, expectedMssgs []server.LogMessage) {
 	assert.Equal(t, len(expectedMssgs), len(actualMssgs), "wrong number of log messages")
 
 	for i := 0; i < len(actualMssgs); i++ {
@@ -104,12 +103,12 @@ func (suite *LoggerTester) TestAAAOne() {
 	assert := assert.New(t)
 
 	var err error
-	var actualMssgs []client.LogMessage
-	var expectedMssgs []client.LogMessage
+	var actualMssgs []server.LogMessage
+	var expectedMssgs []server.LogMessage
 
 	////
 
-	data1 := client.LogMessage{
+	data1 := server.LogMessage{
 		Service:  "log-tester",
 		Address:  "128.1.2.3",
 		Time:     time.Now(),
@@ -122,12 +121,12 @@ func (suite *LoggerTester) TestAAAOne() {
 	actualMssgs, err = logger.GetFromMessages()
 	assert.NoError(err, "GetFromMessages")
 
-	expectedMssgs = []client.LogMessage{data1}
+	expectedMssgs = []server.LogMessage{data1}
 	checkMessageArrays(t, actualMssgs, expectedMssgs)
 
 	////
 
-	data2 := client.LogMessage{
+	data2 := server.LogMessage{
 		Service:  "log-tester",
 		Address:  "128.0.0.0",
 		Time:     time.Now(),
@@ -141,7 +140,7 @@ func (suite *LoggerTester) TestAAAOne() {
 	actualMssgs, err = logger.GetFromMessages()
 	assert.NoError(err, "GetFromMessages")
 
-	expectedMssgs = []client.LogMessage{data1, data2}
+	expectedMssgs = []server.LogMessage{data1, data2}
 	checkMessageArrays(t, actualMssgs, expectedMssgs)
 
 	stats, err := logger.GetFromAdminStats()
@@ -155,7 +154,7 @@ func (suite *LoggerTester) TestHelper() {
 	logger := suite.logger
 	assert := assert.New(t)
 
-	err := logger.Log("mocktest", "0.0.0.0", client.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
+	err := logger.Log("mocktest", "0.0.0.0", server.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 }
 
@@ -164,7 +163,7 @@ func (suite *LoggerTester) TestClogger() {
 	logger := suite.logger
 	assert := assert.New(t)
 
-	clogger := client.NewCustomLogger(&logger, "TestingService", "123 Main St.")
+	clogger := server.NewCustomLogger(&logger, "TestingService", "123 Main St.")
 	err := clogger.Debug("a DEBUG message")
 	assert.NoError(err)
 	err = clogger.Info("a INFO message")
