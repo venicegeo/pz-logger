@@ -15,7 +15,6 @@
 package tests
 
 import (
-	"log"
 	"testing"
 	"time"
 
@@ -31,11 +30,12 @@ const MOCKING = true
 type LoggerTester struct {
 	suite.Suite
 
+	esi    elasticsearch.IIndex
 	sys    *piazza.SystemConfig
 	logger server.ILoggerService
 }
 
-func (suite *LoggerTester) SetupSuite() {
+func (suite *LoggerTester) setupFixture() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -46,25 +46,25 @@ func (suite *LoggerTester) SetupSuite() {
 		required = []piazza.ServiceName{piazza.PzElasticSearch}
 	}
 	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	assert.NoError(err)
 	suite.sys = sys
 
-	esi, err := elasticsearch.NewIndexInterface(suite.sys, "loggertest$", MOCKING)
+	esi, err := elasticsearch.NewIndexInterface(sys, "loggertest$", MOCKING)
 	assert.NoError(err)
+	suite.esi = esi
 
 	_ = sys.StartServer(server.CreateHandlers(sys, esi))
 
-	suite.logger, err = server.NewPzLoggerService(sys)
-	if err != nil {
-		log.Fatal(err)
-	}
+	logger, err := client.NewPzLoggerService(sys)
+	assert.NoError(err)
+	suite.logger = logger
 }
 
-func (suite *LoggerTester) TearDownSuite() {
+func (suite *LoggerTester) teardownFixture() {
 	//TODO: kill the go routine running the server
+
+	suite.esi.Close()
+	suite.esi.Delete()
 }
 
 func TestRunSuite(t *testing.T) {
@@ -85,28 +85,28 @@ func checkMessageArrays(t *testing.T, actualMssgs []server.LogMessage, expectedM
 	}
 }
 
-func (suite *LoggerTester) TestElasticsearch() {
+func (suite *LoggerTester) Test01Elasticsearch() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	esi, err := elasticsearch.NewIndexInterface(suite.sys, "loggertest$", MOCKING)
-	assert.NoError(err)
+	suite.setupFixture()
+	defer suite.teardownFixture()
 
-	version := esi.GetVersion()
+	version := suite.esi.GetVersion()
 	assert.Contains("2.2.0", version)
 }
 
 // TODO: this test must come first (to preserve counts & ordering)
-func (suite *LoggerTester) TestAAAOne() {
+func (suite *LoggerTester) Test02One() {
 	t := suite.T()
-	logger := suite.logger
 	assert := assert.New(t)
 
-	var err error
-	var actualMssgs []server.LogMessage
-	var expectedMssgs []server.LogMessage
+	suite.setupFixture()
+	defer suite.teardownFixture()
 
-	////
+	logger := suite.logger
+
+	var err error
 
 	data1 := server.LogMessage{
 		Service:  "log-tester",
@@ -115,16 +115,6 @@ func (suite *LoggerTester) TestAAAOne() {
 		Severity: "Info",
 		Message:  "The quick brown fox",
 	}
-	err = logger.LogMessage(&data1)
-	assert.NoError(err, "PostToMessages")
-
-	actualMssgs, err = logger.GetFromMessages()
-	assert.NoError(err, "GetFromMessages")
-
-	expectedMssgs = []server.LogMessage{data1}
-	checkMessageArrays(t, actualMssgs, expectedMssgs)
-
-	////
 
 	data2 := server.LogMessage{
 		Service:  "log-tester",
@@ -134,36 +124,62 @@ func (suite *LoggerTester) TestAAAOne() {
 		Message:  "The quick brown fox",
 	}
 
-	err = logger.LogMessage(&data2)
-	assert.NoError(err, "PostToMessages")
+	{
+		err = logger.LogMessage(&data1)
+		assert.NoError(err, "PostToMessages")
+	}
 
-	actualMssgs, err = logger.GetFromMessages()
-	assert.NoError(err, "GetFromMessages")
+	//	time.Sleep(1 * time.Second)
 
-	expectedMssgs = []server.LogMessage{data1, data2}
-	checkMessageArrays(t, actualMssgs, expectedMssgs)
+	{
+		actualMssgs, err := logger.GetFromMessages()
+		assert.NoError(err, "GetFromMessages")
+		assert.Len(actualMssgs, 1)
+		expectedMssgs := []client.LogMessage{data1}
+		checkMessageArrays(t, actualMssgs, expectedMssgs)
+	}
 
-	stats, err := logger.GetFromAdminStats()
-	assert.NoError(err, "GetFromAdminStats")
-	assert.Equal(2, stats.NumMessages, "stats check")
-	assert.WithinDuration(time.Now(), stats.StartTime, 10*time.Second, "service start time too long ago")
+	{
+		err = logger.LogMessage(&data2)
+		assert.NoError(err, "PostToMessages")
+	}
+
+	time.Sleep(4 * time.Second)
+
+	{
+		actualMssgs, err := logger.GetFromMessages()
+		assert.NoError(err, "GetFromMessages")
+
+		expectedMssgs := []client.LogMessage{data1, data2}
+		checkMessageArrays(t, actualMssgs, expectedMssgs)
+	}
+
+	{
+		stats, err := logger.GetFromAdminStats()
+		assert.NoError(err, "GetFromAdminStats")
+		assert.Equal(2, stats.NumMessages, "stats check")
+		assert.WithinDuration(time.Now(), stats.StartTime, 30*time.Second, "service start time too long ago")
+	}
 }
 
-func (suite *LoggerTester) TestHelper() {
+func (suite *LoggerTester) Test03Help() {
 	t := suite.T()
-	logger := suite.logger
 	assert := assert.New(t)
 
 	err := logger.Log("mocktest", "0.0.0.0", server.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 }
 
-func (suite *LoggerTester) TestClogger() {
+func (suite *LoggerTester) Test04Clogger() {
 	t := suite.T()
-	logger := suite.logger
 	assert := assert.New(t)
 
-	clogger := server.NewCustomLogger(&logger, "TestingService", "123 Main St.")
+	suite.setupFixture()
+	defer suite.teardownFixture()
+
+	logger := suite.logger
+
+	clogger := client.NewCustomLogger(&logger, "TestingService", "123 Main St.")
 	err := clogger.Debug("a DEBUG message")
 	assert.NoError(err)
 	err = clogger.Info("a INFO message")
@@ -176,10 +192,14 @@ func (suite *LoggerTester) TestClogger() {
 	assert.NoError(err)
 }
 
-func (suite *LoggerTester) TestAdmin() {
+func (suite *LoggerTester) Test05Admin() {
 	t := suite.T()
-	logger := suite.logger
 	assert := assert.New(t)
+
+	suite.setupFixture()
+	defer suite.teardownFixture()
+
+	logger := suite.logger
 
 	settings, err := logger.GetFromAdminSettings()
 	assert.NoError(err, "GetFromAdminSettings")

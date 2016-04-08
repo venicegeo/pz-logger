@@ -50,25 +50,6 @@ func NewPzLoggerService(sys *piazza.SystemConfig) (*PzLoggerService, error) {
 	return service, nil
 }
 
-func (c *PzLoggerService) PostToMessages(mssg *LogMessage) error {
-
-	mssgData, err := json.Marshal(mssg)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.Post(c.url+"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(mssgData))
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.New(resp.Status)
-	}
-
-	return nil
-}
-
 func (c *PzLoggerService) GetFromMessages() ([]LogMessage, error) {
 
 	resp, err := http.Get(c.url + "/messages")

@@ -49,6 +49,8 @@ type LogData struct {
 
 var logData LogData
 
+var schema = "LogData"
+
 func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	var err error
 
@@ -87,7 +89,7 @@ func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	        }
         }`
 
-		err = esIndex.SetMapping("LogData", piazza.JsonString(mapping))
+		err = esIndex.SetMapping(schema, piazza.JsonString(mapping))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -121,7 +123,7 @@ func handlePostMessages(c *gin.Context) {
 	idStr := strconv.Itoa(logData.id)
 	logData.id++
 	logData.Unlock()
-	indexResult, err := logData.esIndex.PostData("LogData", idStr, mssg)
+	indexResult, err := logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
 		c.String(http.StatusBadRequest, "%v", err)
 		return
@@ -187,7 +189,7 @@ func handleGetMessages(c *gin.Context) {
 
 	// copy up to count elements from the end of the log array
 
-	searchResult, err := logData.esIndex.FilterByMatchAll("LogData")
+	searchResult, err := logData.esIndex.FilterByMatchAll(schema)
 	if err != nil {
 		c.String(http.StatusBadRequest, "query failed: %s", err)
 		return
@@ -202,13 +204,21 @@ func handleGetMessages(c *gin.Context) {
 
 	i := 0
 	for _, hit := range *searchResult.GetHits() {
-		var tmp LogMessage
-		err = json.Unmarshal(*hit.Source, &tmp)
+		if hit == nil {
+			log.Printf("null source hit")
+			continue
+		}
+		src := *hit.Source
+		log.Printf("source hit: %s", string(src))
+
+		tmp := &client.LogMessage{}
+		err = json.Unmarshal(src, tmp)
 		if err != nil {
+			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
 			c.String(http.StatusBadRequest, "query unmarshal failed: %s", err)
 			return
 		}
-		lines[i] = tmp
+		lines[i] = *tmp
 		i++
 	}
 
