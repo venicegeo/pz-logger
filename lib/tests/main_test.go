@@ -25,7 +25,7 @@ import (
 	pzlogger "github.com/venicegeo/pz-logger/lib"
 )
 
-const MOCKING = false
+const MOCKING = true
 
 type LoggerTester struct {
 	suite.Suite
@@ -186,31 +186,31 @@ func (suite *LoggerTester) Test04ConvenienceFunctions() {
 
 	err := logger.Debug("a DEBUG message")
 	assert.NoError(err)
-	//time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Debug, a DEBUG message]")
 
 	err = logger.Info("an INFO message")
 	assert.NoError(err)
-	//time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Info, an INFO message]")
 
 	err = logger.Warn("a WARN message")
 	assert.NoError(err)
-	//time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Warning, a WARN message]")
 
 	err = logger.Error("an ERROR message")
 	assert.NoError(err)
-	//time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Error, an ERROR message]")
 
 	err = logger.Fatal("a FATAL message")
 	assert.NoError(err)
-	//time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	assert.Contains(suite.getLastMessage(), expectedPrefix)
 	assert.Contains(suite.getLastMessage(), ", Fatal, a FATAL message]")
 }
@@ -241,6 +241,10 @@ func (suite *LoggerTester) Test06Pagination() {
 	t := suite.T()
 	assert := assert.New(t)
 
+	if MOCKING {
+		t.Skip("Skipping test, because mocking.")
+	}
+
 	suite.setupFixture()
 	defer suite.teardownFixture()
 
@@ -250,26 +254,29 @@ func (suite *LoggerTester) Test06Pagination() {
 
 	err := logger.Debug("d")
 	assert.NoError(err)
+	time.Sleep(1 * time.Second)
 	err = logger.Info("i")
 	assert.NoError(err)
+	time.Sleep(1 * time.Second)
 	err = logger.Warn("w")
 	assert.NoError(err)
+	time.Sleep(1 * time.Second)
 	err = logger.Error("e")
 	assert.NoError(err)
+	time.Sleep(1 * time.Second)
 	err = logger.Fatal("f")
 	assert.NoError(err)
+	time.Sleep(1 * time.Second)
 
-	time.Sleep(3 * time.Second)
-
-	ms, err := logger.GetFromMessages(2, 1)
+	ms, err := logger.GetFromMessages(1, 0)
 	assert.NoError(err)
-	assert.Len(ms, 2)
-	assert.EqualValues(pzlogger.SeverityInfo, ms[0].Severity)
-	assert.EqualValues(pzlogger.SeverityWarning, ms[1].Severity)
+	assert.Len(ms, 1)
+	assert.EqualValues(pzlogger.SeverityFatal, ms[0].Severity)
+	//assert.EqualValues(pzlogger.SeverityWarning, ms[1].Severity)
 	ms, err = logger.GetFromMessages(3, 2)
 	assert.NoError(err)
 	assert.Len(ms, 3)
 	assert.EqualValues(pzlogger.SeverityWarning, ms[0].Severity)
-	assert.EqualValues(pzlogger.SeverityError, ms[1].Severity)
-	assert.EqualValues(pzlogger.SeverityFatal, ms[2].Severity)
+	assert.EqualValues(pzlogger.SeverityInfo, ms[1].Severity)
+	assert.EqualValues(pzlogger.SeverityDebug, ms[2].Severity)
 }
