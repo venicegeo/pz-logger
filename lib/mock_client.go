@@ -25,7 +25,7 @@ import (
 type MockClient struct {
 	serviceName    piazza.ServiceName
 	serviceAddress string
-	lastMessage    Message
+	messages       []Message
 	stats          LoggerAdminStats
 	settings       LoggerAdminSettings
 }
@@ -40,8 +40,16 @@ func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
 	return service, nil
 }
 
-func (logger *MockClient) GetFromMessages() ([]Message, error) {
-	ms := []Message{logger.lastMessage}
+func (logger *MockClient) GetFromMessages(size int, from int) ([]Message, error) {
+	l := len(logger.messages)
+	if from > l {
+		m := make([]Message, 0)
+		return m, nil
+	}
+	if from+size > l {
+		size = l - from
+	}
+	ms := logger.messages[from : from+size]
 	return ms, nil
 }
 
@@ -59,7 +67,7 @@ func (logger *MockClient) PostToAdminSettings(settings *LoggerAdminSettings) err
 }
 
 func (logger *MockClient) LogMessage(mssg *Message) error {
-	logger.lastMessage = *mssg
+	logger.messages = append(logger.messages, *mssg)
 	logger.stats.NumMessages++
 	return nil
 }

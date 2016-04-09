@@ -40,7 +40,7 @@ type IClient interface {
 	PostToAdminSettings(*LoggerAdminSettings) error
 
 	// read support
-	GetFromMessages() ([]Message, error)
+	GetFromMessages(size int, from int) ([]Message, error)
 
 	// write support
 	LogMessage(mssg *Message) error

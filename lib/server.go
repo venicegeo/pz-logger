@@ -192,35 +192,42 @@ func handlePostAdminShutdown(c *gin.Context) {
 
 func handleGetMessages(c *gin.Context) {
 	var err error
-	count := 128
-	key := c.Query("count")
-	if key != "" {
-		count, err = strconv.Atoi(key)
-		if err != nil {
-			c.String(http.StatusBadRequest, "query argument invalid: %s", key)
-			return
+
+	paramInt := func(param string, defalt int) int {
+		str := c.Query(param)
+		if str == "" {
+			return defalt
 		}
+
+		value64, err := strconv.ParseInt(str, 10, 0)
+		if err != nil {
+			c.String(http.StatusBadRequest, "query argument for '?%s' is invalid: %s", param, str)
+			return -1
+		}
+		value := int(value64)
+
+		return value
 	}
 
-	// copy up to count elements from the end of the log array
+	size := paramInt("size", 10)
+	from := paramInt("from", 0)
 
-	searchResult, err := logData.esIndex.FilterByMatchAll(schema, "stamp")
+	//log.Printf("size %d from %d", size, from)
+
+	searchResult, err := logData.esIndex.FilterByMatchAll(schema, "stamp", size, from)
 	if err != nil {
 		c.String(http.StatusBadRequest, "query failed: %s", err)
 		return
 	}
 
 	// TODO: unsafe truncation
-	l := int(searchResult.TotalHits())
-	if count > l {
-		count = l
-	}
+	count := int(searchResult.TotalHits())
 	lines := make([]Message, count)
 
 	i := 0
 	for _, hit := range *searchResult.GetHits() {
 		if hit == nil {
-			//log.Printf("null source hit")
+			log.Printf("null source hit")
 			continue
 		}
 		src := *hit.Source

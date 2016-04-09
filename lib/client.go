@@ -56,9 +56,10 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 	return service, nil
 }
 
-func (c *Client) GetFromMessages() ([]Message, error) {
+func (c *Client) GetFromMessages(size int, from int) ([]Message, error) {
 
-	resp, err := http.Get(c.url + "/messages")
+	url := fmt.Sprintf("%s/messages?size=%d&from=%d", c.url, size, from)
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
