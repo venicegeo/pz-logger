@@ -193,21 +193,6 @@ func handlePostAdminShutdown(c *gin.Context) {
 func handleGetMessages(c *gin.Context) {
 	var err error
 
-	//paramInt64 := func(param string, defalt int64) int64 {
-	//	str := c.Query(param)
-	//	if str == "" {
-	//		return defalt
-	//	}
-	//
-	//	value, err := strconv.ParseInt(str, 10, 64)
-	//	if err != nil {
-	//		c.String(http.StatusBadRequest, "query argument for '?%s' is invalid: %s", param, str)
-	//		return -1
-	//	}
-	//
-	//	return value
-	//}
-
 	paramInt := func(param string, defalt int) int {
 		str := c.Query(param)
 		if str == "" {
@@ -224,20 +209,10 @@ func handleGetMessages(c *gin.Context) {
 		return value
 	}
 
-	//paramString := func(param string, defalt string) string {
-	//	str := c.Query(param)
-	//	value := str
-	//	return value
-	//}
-
 	size := paramInt("size", 10)
 	from := paramInt("from", 0)
-	//after := paramInt64("after", 0)
-	//before := paramInt64("before", math.MaxInt64)
-	//contains := paramString("contains", "")
-	//service := paramString("service", "")
 
-	// copy up to count elements from the end of the log array
+	//log.Printf("size %d from %d", size, from)
 
 	searchResult, err := logData.esIndex.FilterByMatchAll(schema, "stamp", size, from)
 	if err != nil {
@@ -252,7 +227,7 @@ func handleGetMessages(c *gin.Context) {
 	i := 0
 	for _, hit := range *searchResult.GetHits() {
 		if hit == nil {
-			//log.Printf("null source hit")
+			log.Printf("null source hit")
 			continue
 		}
 		src := *hit.Source
