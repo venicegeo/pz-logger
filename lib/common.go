@@ -20,6 +20,7 @@ import (
 	"time"
 
 	piazza "github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-gocommon/elasticsearch"
 )
 
 // LogMessage represents the contents of a messge for the logger service.
@@ -40,7 +41,7 @@ type IClient interface {
 	PostToAdminSettings(*LoggerAdminSettings) error
 
 	// read support
-	GetFromMessages(size int, from int) ([]Message, error)
+	GetFromMessages(format elasticsearch.QueryFormat) ([]Message, error)
 
 	// write support
 	LogMessage(mssg *Message) error

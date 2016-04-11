@@ -84,7 +84,8 @@ func (suite *LoggerTester) getLastMessage() string {
 
 	logger := suite.logger
 
-	ms, err := logger.GetFromMessages(100, 0)
+	format := elasticsearch.QueryFormat{Size: 100, From: 0, Order: elasticsearch.SortDescending, Key: "stamp"}
+	ms, err := logger.GetFromMessages(format)
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
 
@@ -171,51 +172,7 @@ func (suite *LoggerTester) Test03Help() {
 	assert.NoError(err, "pzService.Log()")
 }
 
-func (suite *LoggerTester) Test04ConvenienceFunctions() {
-	t := suite.T()
-	assert := assert.New(t)
-
-	suite.setupFixture()
-	defer suite.teardownFixture()
-
-	logger := suite.logger
-
-	logger.SetService("myservice", "1.2.3.4")
-
-	expectedPrefix := "[myservice, 1.2.3.4, 201"
-
-	err := logger.Debug("a DEBUG message")
-	assert.NoError(err)
-	time.Sleep(1 * time.Second)
-	assert.Contains(suite.getLastMessage(), expectedPrefix)
-	assert.Contains(suite.getLastMessage(), ", Debug, a DEBUG message]")
-
-	err = logger.Info("an INFO message")
-	assert.NoError(err)
-	time.Sleep(1 * time.Second)
-	assert.Contains(suite.getLastMessage(), expectedPrefix)
-	assert.Contains(suite.getLastMessage(), ", Info, an INFO message]")
-
-	err = logger.Warn("a WARN message")
-	assert.NoError(err)
-	time.Sleep(1 * time.Second)
-	assert.Contains(suite.getLastMessage(), expectedPrefix)
-	assert.Contains(suite.getLastMessage(), ", Warning, a WARN message]")
-
-	err = logger.Error("an ERROR message")
-	assert.NoError(err)
-	time.Sleep(1 * time.Second)
-	assert.Contains(suite.getLastMessage(), expectedPrefix)
-	assert.Contains(suite.getLastMessage(), ", Error, an ERROR message]")
-
-	err = logger.Fatal("a FATAL message")
-	assert.NoError(err)
-	time.Sleep(1 * time.Second)
-	assert.Contains(suite.getLastMessage(), expectedPrefix)
-	assert.Contains(suite.getLastMessage(), ", Fatal, a FATAL message]")
-}
-
-func (suite *LoggerTester) Test05Admin() {
+func (suite *LoggerTester) Test04Admin() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -237,7 +194,7 @@ func (suite *LoggerTester) Test05Admin() {
 	assert.True(settings.Debug, "settings.Debug")
 }
 
-func (suite *LoggerTester) Test06Pagination() {
+func (suite *LoggerTester) Test05Pagination() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -268,12 +225,14 @@ func (suite *LoggerTester) Test06Pagination() {
 	assert.NoError(err)
 	time.Sleep(1 * time.Second)
 
-	ms, err := logger.GetFromMessages(1, 0)
+	format := elasticsearch.QueryFormat{Size: 1, From: 0, Key: "stamp", Order: elasticsearch.SortDescending}
+	ms, err := logger.GetFromMessages(format)
 	assert.NoError(err)
 	assert.Len(ms, 1)
 	assert.EqualValues(pzlogger.SeverityFatal, ms[0].Severity)
-	//assert.EqualValues(pzlogger.SeverityWarning, ms[1].Severity)
-	ms, err = logger.GetFromMessages(3, 2)
+
+	format = elasticsearch.QueryFormat{Size: 3, From: 2, Key: "stamp", Order: elasticsearch.SortDescending}
+	ms, err = logger.GetFromMessages(format)
 	assert.NoError(err)
 	assert.Len(ms, 3)
 	assert.EqualValues(pzlogger.SeverityWarning, ms[0].Severity)

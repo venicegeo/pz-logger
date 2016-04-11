@@ -193,28 +193,12 @@ func handlePostAdminShutdown(c *gin.Context) {
 func handleGetMessages(c *gin.Context) {
 	var err error
 
-	paramInt := func(param string, defalt int) int {
-		str := c.Query(param)
-		if str == "" {
-			return defalt
-		}
+	format := elasticsearch.GetFormatParams(c, 10, 0, "stamp", elasticsearch.SortDescending)
 
-		value64, err := strconv.ParseInt(str, 10, 0)
-		if err != nil {
-			c.String(http.StatusBadRequest, "query argument for '?%s' is invalid: %s", param, str)
-			return -1
-		}
-		value := int(value64)
+	//log.Printf("size %d, from %d, key %s, format %v",
+	//	format.Size, format.From, format.Key, format.Order)
 
-		return value
-	}
-
-	size := paramInt("size", 10)
-	from := paramInt("from", 0)
-
-	//log.Printf("size %d from %d", size, from)
-
-	searchResult, err := logData.esIndex.FilterByMatchAll(schema, "stamp", size, from)
+	searchResult, err := logData.esIndex.FilterByMatchAll(schema, format)
 	if err != nil {
 		c.String(http.StatusBadRequest, "query failed: %s", err)
 		return

@@ -24,6 +24,7 @@ import (
 	"time"
 
 	piazza "github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-gocommon/elasticsearch"
 )
 
 type Client struct {
@@ -56,9 +57,9 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 	return service, nil
 }
 
-func (c *Client) GetFromMessages(size int, from int) ([]Message, error) {
+func (c *Client) GetFromMessages(format elasticsearch.QueryFormat) ([]Message, error) {
 
-	url := fmt.Sprintf("%s/messages?size=%d&from=%d", c.url, size, from)
+	url := fmt.Sprintf("%s/messages?size=%d&from=%d&key=%s&order=%t", c.url, format.Size, format.From, format.Key, format.Order)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	piazza "github.com/venicegeo/pz-gocommon"
+	"github.com/venicegeo/pz-gocommon/elasticsearch"
 )
 
 // implements Logger
@@ -40,7 +41,10 @@ func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
 	return service, nil
 }
 
-func (logger *MockClient) GetFromMessages(size int, from int) ([]Message, error) {
+func (logger *MockClient) GetFromMessages(format elasticsearch.QueryFormat) ([]Message, error) {
+	size := format.Size
+	from := format.From
+
 	l := len(logger.messages)
 	if from > l {
 		m := make([]Message, 0)
