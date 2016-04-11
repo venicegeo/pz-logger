@@ -25,7 +25,7 @@ import (
 	pzlogger "github.com/venicegeo/pz-logger/lib"
 )
 
-const MOCKING = !true
+const MOCKING = true
 
 type LoggerTester struct {
 	suite.Suite
