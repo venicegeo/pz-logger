@@ -28,7 +28,6 @@ type MockClient struct {
 	serviceAddress string
 	messages       []Message
 	stats          LoggerAdminStats
-	settings       LoggerAdminSettings
 }
 
 func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
@@ -59,15 +58,6 @@ func (logger *MockClient) GetFromMessages(format elasticsearch.QueryFormat) ([]M
 
 func (logger *MockClient) GetFromAdminStats() (*LoggerAdminStats, error) {
 	return &logger.stats, nil
-}
-
-func (logger *MockClient) GetFromAdminSettings() (*LoggerAdminSettings, error) {
-	return &logger.settings, nil
-}
-
-func (logger *MockClient) PostToAdminSettings(settings *LoggerAdminSettings) error {
-	logger.settings = *settings
-	return nil
 }
 
 func (logger *MockClient) LogMessage(mssg *Message) error {
