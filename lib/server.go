@@ -159,10 +159,6 @@ func handleGetAdminStats(c *gin.Context) {
 	c.JSON(http.StatusOK, t)
 }
 
-// func handlePostAdminShutdown(c *gin.Context) {
-// 	piazza.HandlePostAdminShutdown(c)
-// }
-
 func handleGetMessages(c *gin.Context) {
 	var err error
 
@@ -225,8 +221,6 @@ func CreateHandlers(sys *piazza.SystemConfig, esi elasticsearch.IIndex) http.Han
 	router.GET("/v1/messages", func(c *gin.Context) { handleGetMessages(c) })
 
 	router.GET("/v1/admin/stats", func(c *gin.Context) { handleGetAdminStats(c) })
-
-	// router.POST("/v1/admin/shutdown", func(c *gin.Context) { handlePostAdminShutdown(c) })
 
 	return router
 }
