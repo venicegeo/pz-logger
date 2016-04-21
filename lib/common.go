@@ -37,8 +37,6 @@ type Message struct {
 type IClient interface {
 	// admin interfaces
 	GetFromAdminStats() (*LoggerAdminStats, error)
-	GetFromAdminSettings() (*LoggerAdminSettings, error)
-	PostToAdminSettings(*LoggerAdminSettings) error
 
 	// read support
 	GetFromMessages(format elasticsearch.QueryFormat) ([]Message, error)
@@ -61,10 +59,6 @@ type IClient interface {
 type LoggerAdminStats struct {
 	StartTime   time.Time `json:"starttime"`
 	NumMessages int       `json:"num_messages"`
-}
-
-type LoggerAdminSettings struct {
-	Debug bool `json:"debug"`
 }
 
 // ToString returns a Message as a formatted string.

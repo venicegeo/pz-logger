@@ -181,17 +181,8 @@ func (suite *LoggerTester) Test04Admin() {
 
 	logger := suite.logger
 
-	settings, err := logger.GetFromAdminSettings()
-	assert.NoError(err, "GetFromAdminSettings")
-	assert.False(settings.Debug, "settings.Debug")
-
-	settings.Debug = true
-	err = logger.PostToAdminSettings(settings)
-	assert.NoError(err, "PostToAdminSettings")
-
-	settings, err = logger.GetFromAdminSettings()
-	assert.NoError(err, "GetFromAdminSettings")
-	assert.True(settings.Debug, "settings.Debug")
+	_, err := logger.GetFromAdminStats()
+	assert.NoError(err, "GetFromAdminStats")
 }
 
 func (suite *LoggerTester) Test05Pagination() {

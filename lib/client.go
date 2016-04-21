@@ -106,47 +106,6 @@ func (c *Client) GetFromAdminStats() (*LoggerAdminStats, error) {
 	return stats, nil
 }
 
-func (c *Client) GetFromAdminSettings() (*LoggerAdminSettings, error) {
-
-	resp, err := http.Get(c.url + "/admin/settings")
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	settings := new(LoggerAdminSettings)
-	err = json.Unmarshal(data, settings)
-	if err != nil {
-		return nil, err
-	}
-
-	return settings, nil
-}
-
-func (c *Client) PostToAdminSettings(settings *LoggerAdminSettings) error {
-
-	data, err := json.Marshal(settings)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.Post(c.url+"/admin/settings", piazza.ContentTypeJSON, bytes.NewBuffer(data))
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.New(resp.Status)
-	}
-
-	return nil
-}
-
 ///////////////////
 
 func (pz *Client) LogMessage(mssg *Message) error {

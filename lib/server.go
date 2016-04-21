@@ -27,13 +27,6 @@ import (
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
 )
 
-type LockedAdminSettings struct {
-	sync.Mutex
-	LoggerAdminSettings
-}
-
-var settings LockedAdminSettings
-
 type LockedAdminStats struct {
 	sync.Mutex
 	LoggerAdminStats
@@ -166,26 +159,6 @@ func handleGetAdminStats(c *gin.Context) {
 	c.JSON(http.StatusOK, t)
 }
 
-func handleGetAdminSettings(c *gin.Context) {
-	settings.Lock()
-	t := settings.LoggerAdminSettings
-	settings.Unlock()
-	c.JSON(http.StatusOK, t)
-}
-
-func handlePostAdminSettings(c *gin.Context) {
-	t := LoggerAdminSettings{}
-	err := c.BindJSON(&t)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	settings.Lock()
-	settings.LoggerAdminSettings = t
-	settings.Unlock()
-	c.String(http.StatusOK, "")
-}
-
 // func handlePostAdminShutdown(c *gin.Context) {
 // 	piazza.HandlePostAdminShutdown(c)
 // }
@@ -252,9 +225,6 @@ func CreateHandlers(sys *piazza.SystemConfig, esi elasticsearch.IIndex) http.Han
 	router.GET("/v1/messages", func(c *gin.Context) { handleGetMessages(c) })
 
 	router.GET("/v1/admin/stats", func(c *gin.Context) { handleGetAdminStats(c) })
-
-	router.GET("/v1/admin/settings", func(c *gin.Context) { handleGetAdminSettings(c) })
-	router.POST("/v1/admin/settings", func(c *gin.Context) { handlePostAdminSettings(c) })
 
 	// router.POST("/v1/admin/shutdown", func(c *gin.Context) { handlePostAdminShutdown(c) })
 
