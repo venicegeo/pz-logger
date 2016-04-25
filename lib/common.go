@@ -39,7 +39,7 @@ type IClient interface {
 	GetFromAdminStats() (*LoggerAdminStats, error)
 
 	// read support
-	GetFromMessages(format elasticsearch.QueryFormat) ([]Message, error)
+	GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error)
 
 	// write support
 	LogMessage(mssg *Message) error

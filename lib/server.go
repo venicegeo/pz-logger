@@ -16,6 +16,7 @@ package lib
 
 import (
 	"encoding/json"
+_	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -163,11 +164,22 @@ func handleGetMessages(c *gin.Context) {
 	var err error
 
 	format := elasticsearch.GetFormatParams(c, 10, 0, "stamp", elasticsearch.SortDescending)
+	filterParams := parseFilterParams(c)
 
 	//log.Printf("size %d, from %d, key %s, format %v",
 	//	format.Size, format.From, format.Key, format.Order)
 
-	searchResult, err := logData.esIndex.FilterByMatchAll(schema, format)
+	log.Printf("filterParams: %v\n", filterParams)
+
+	var searchResult *elasticsearch.SearchResult
+		
+	if len(filterParams) == 0 {
+		searchResult, err = logData.esIndex.FilterByMatchAll(schema, format)		
+	} else  {
+		var jsonString = createQueryDslAsString(format, filterParams)	
+		searchResult, err = logData.esIndex.SearchByJSON(schema, jsonString)
+	}
+	
 	if err != nil {
 		c.String(http.StatusBadRequest, "query failed: %s", err)
 		return
@@ -224,3 +236,114 @@ func CreateHandlers(sys *piazza.SystemConfig, esi elasticsearch.IIndex) http.Han
 
 	return router
 }
+
+func parseFilterParams(c *gin.Context) map[string]interface{} {
+	
+	var filterParams = map[string]interface{}{}
+		
+	before, beforeExists := c.GetQuery("before")
+
+	if beforeExists && before != "" {
+		num, err := strconv.Atoi(before)
+		if err == nil {
+			filterParams["before"] =  num					
+		}
+	}	
+							
+	after, afterExists := c.GetQuery("after")
+	
+	if afterExists && after != "" {
+		num, err := strconv.Atoi(after)
+		if err == nil {
+			filterParams["after"] =  num					
+		}
+	}
+
+	service, serviceExists := c.GetQuery("service")
+
+	if serviceExists && service != "" {
+		filterParams["service"] = service		
+	}
+	
+	contains, containsExists := c.GetQuery("contains")
+	
+	if containsExists && contains != "" {
+		filterParams["contains"] = contains
+	}
+
+	return filterParams
+}
+
+func createQueryDslAsString(
+    format elasticsearch.QueryFormat, 
+    params map[string]interface{},
+) string {    
+    // fmt.Printf("%d\n", len(params))
+    
+    must := []map[string]interface{}{}
+    
+    
+    if params["service"] != nil {
+        must = append(must, map[string]interface{} {
+            "match": map[string]interface{} {
+                "service": params["service"],    
+            },    
+        })        
+    }
+    
+    if params["contains"] != nil {
+        must = append(must, map[string]interface{} {
+            "multi_match": map[string]interface{} {
+                "query": params["contains"],
+                "fields": []string {"address", "message", "service", "serverity"},     
+            },    
+        })                
+    }
+    
+    if params["after"] != nil || params["before"] != nil {
+        rangeParams := map[string]int {}
+
+        if params["after"] != nil {
+            rangeParams["gte"] = params["after"].(int)
+        }        
+        
+        if params["before"] != nil {
+            rangeParams["lte"] = params["before"].(int)                
+        }        
+
+        must = append(must, map[string]interface{} {
+            "range": map[string]interface{} {
+                "stamp": rangeParams,    
+            },    
+        })        
+    }
+    
+    dsl := map[string]interface{} {
+        "query": map[string]interface{} {
+            "filtered": map[string]interface{} {
+                "query": map[string]interface{} {
+                    "bool": map[string]interface{} {
+                        "must": must,
+                    },   
+                },
+            },    
+        },
+        "size": format.Size,
+        "from": format.From,             
+    }
+	
+	var sortOrder string
+	
+	if format.Order {
+		sortOrder = "desc"		
+	} else {
+		sortOrder = "asc"
+	}
+	
+	dsl["sort"] = map[string]string {
+		format.Key: sortOrder,                
+	}  
+    
+    output, _ := json.Marshal(dsl)
+    return string(output)    
+}    
