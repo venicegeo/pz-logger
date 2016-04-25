@@ -40,7 +40,7 @@ func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
 	return service, nil
 }
 
-func (logger *MockClient) GetFromMessages(format elasticsearch.QueryFormat) ([]Message, error) {
+func (logger *MockClient) GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
 	size := format.Size
 	from := format.From
 
