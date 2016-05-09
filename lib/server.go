@@ -219,6 +219,93 @@ func handleGetMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, lines)
 }
 
+func handleGetMessagesV2(c *gin.Context) {
+	var err error
+
+	format := elasticsearch.GetFormatParamsV2(c, 10, 0, "stamp", elasticsearch.SortDescending)
+	filterParams := parseFilterParams(c)
+
+	//log.Printf("size %d, from %d, key %s, format %v",
+	//	format.Size, format.From, format.Key, format.Order)
+
+	log.Printf("filterParams: %v\n", filterParams)
+
+	var searchResult *elasticsearch.SearchResult
+		
+	if len(filterParams) == 0 {
+		searchResult, err = logData.esIndex.FilterByMatchAll(schema, format)		
+	} else  {
+		var jsonString = createQueryDslAsString(format, filterParams)	
+		searchResult, err = logData.esIndex.SearchByJSON(schema, jsonString)
+	}
+	
+	if err != nil {
+		c.String(http.StatusBadRequest, "query failed: %s", err)
+		return
+	}
+
+	// TODO: unsafe truncation
+	count := searchResult.TotalHits()
+	matched := searchResult.NumberMatched()
+	lines := make([]Message, count)
+
+	i := 0
+	for _, hit := range *searchResult.GetHits() {
+		if hit == nil {
+			log.Printf("null source hit")
+			continue
+		}
+		src := *hit.Source
+		//log.Printf("source hit: %s", string(src))
+
+		tmp := &Message{}
+		err = json.Unmarshal(src, tmp)
+		if err != nil {
+			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
+			c.String(http.StatusBadRequest, "query unmarshal failed: %s", err)
+			return
+		}
+		err = tmp.Validate()
+		if err != nil {
+			log.Printf("UNABLE TO VALIDATE: %s", string(*hit.Source))
+			//c.String(http.StatusBadRequest, "query unmarshal failed to validate: %s", err)
+			//return
+			continue
+		}
+		lines[i] = *tmp
+		i++
+	}
+
+	bar := make([]interface{}, len(lines))
+	
+	for i, e := range lines {
+		bar[i] = e
+	}
+	
+	var order string
+			
+	if format.Order {
+		order = "desc"	
+	} else {
+		order = "asc"			
+	}
+	
+	foo := &piazza.Common18FListResponse{
+		Data: bar,
+		Pagination: piazza.Pagination {
+			Page: format.From,
+			PerPage: format.Size,
+			Count: matched,
+			SortBy: format.Key,
+			Order: order,
+		},	
+	}	
+
+	// c.JSON(http.StatusOK, lines)
+	c.JSON(http.StatusOK, foo)	
+}
+
+
 func CreateHandlers(sys *piazza.SystemConfig, esi elasticsearch.IIndex) http.Handler {
 	initServer(sys, esi)
 
@@ -231,6 +318,10 @@ func CreateHandlers(sys *piazza.SystemConfig, esi elasticsearch.IIndex) http.Han
 
 	router.POST("/v1/messages", func(c *gin.Context) { handlePostMessages(c) })
 	router.GET("/v1/messages", func(c *gin.Context) { handleGetMessages(c) })
+
+
+	router.POST("/v2/message", func(c *gin.Context) { handlePostMessages(c) })
+	router.GET("/v2/message", func(c *gin.Context) { handleGetMessagesV2(c) })
 
 	router.GET("/v1/admin/stats", func(c *gin.Context) { handleGetAdminStats(c) })
 
