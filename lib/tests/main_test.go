@@ -26,7 +26,7 @@ import (
 	pzlogger "github.com/venicegeo/pz-logger/lib"
 )
 
-const MOCKING = true
+const MOCKING = !true
 
 type LoggerTester struct {
 	suite.Suite
@@ -86,7 +86,7 @@ func (suite *LoggerTester) getLastMessage() string {
 	logger := suite.logger
 
 	format := elasticsearch.QueryFormat{Size: 100, From: 0, Order: elasticsearch.SortDescending, Key: "stamp"}
-	ms, err := logger.GetFromMessages(format, map[string]string{} )
+	ms, err := logger.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
 
@@ -98,12 +98,11 @@ func (suite *LoggerTester) Test01Elasticsearch() {
 	assert := assert.New(t)
 
 	suite.setupFixture()
-	defer suite.teardownFixture()  
+	defer suite.teardownFixture()
 
 	version := suite.esi.GetVersion()
 	assert.Contains("2.2.0", version)
 }
-
 
 func (suite *LoggerTester) Test02One() {
 	t := suite.T()
@@ -166,7 +165,6 @@ func (suite *LoggerTester) Test02One() {
 	}
 }
 
-
 func (suite *LoggerTester) Test03Help() {
 	t := suite.T()
 	assert := assert.New(t)
@@ -174,7 +172,6 @@ func (suite *LoggerTester) Test03Help() {
 	err := suite.logger.Log("mocktest", "0.0.0.0", pzlogger.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 }
-
 
 func (suite *LoggerTester) Test04Admin() {
 	t := suite.T()
@@ -250,37 +247,37 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	logger.SetService("myservice", "1.2.3.4")
 
-	var testData = []pzlogger.Message {
-		 {
-			Address: "gnemud7smfv/10.254.0.66",
-			Message: "Received Message to Relay on topic Request-Job with key f3b63085-b482-4ae8-8297-3c7d1fcfff7d",
-			Service: "Dispatcher",
+	var testData = []pzlogger.Message{
+		{
+			Address:  "gnemud7smfv/10.254.0.66",
+			Message:  "Received Message to Relay on topic Request-Job with key f3b63085-b482-4ae8-8297-3c7d1fcfff7d",
+			Service:  "Dispatcher",
 			Severity: "Info",
-			Stamp: 1461181461,
+			Stamp:    1461181461,
 		}, {
-			Address: "gnfbnqsn5m9/10.254.0.14",
-			Message: "Processed Update Status for Job 6d0ea538-4382-4ea5-9669-56519b8c8f58 with Status Success",
-			Service: "JobManager",
+			Address:  "gnfbnqsn5m9/10.254.0.14",
+			Message:  "Processed Update Status for Job 6d0ea538-4382-4ea5-9669-56519b8c8f58 with Status Success",
+			Service:  "JobManager",
 			Severity: "Info",
-			Stamp: 1461181378,
-		},  {
-			Address: "0.0.0.0",
-			Message: "generated 1: 09d4ec60-ea61-4066-8697-5568a47f84bf",
-			Service: "pz-uuidgen",
-			Severity: "Info",
-			Stamp: 1461181362,
+			Stamp:    1461181378,
 		}, {
-			Address: "gnfbnqsn5m9/10.254.0.14",
-			Message: "Handling Job with Topic Create-Job for Job ID 09d4ec60-ea61-4066-8697-5568a47f84bf",
-			Service: "JobManager",
+			Address:  "0.0.0.0",
+			Message:  "generated 1: 09d4ec60-ea61-4066-8697-5568a47f84bf",
+			Service:  "pz-uuidgen",
 			Severity: "Info",
-			Stamp: 1461181362,
+			Stamp:    1461181362,
 		}, {
-			Address: "gnfbnqsn5m9/10.254.0.14",
-			Message: "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
-			Service: "JobManager",
+			Address:  "gnfbnqsn5m9/10.254.0.14",
+			Message:  "Handling Job with Topic Create-Job for Job ID 09d4ec60-ea61-4066-8697-5568a47f84bf",
+			Service:  "JobManager",
 			Severity: "Info",
-			Stamp: 1461181283,
+			Stamp:    1461181362,
+		}, {
+			Address:  "gnfbnqsn5m9/10.254.0.14",
+			Message:  "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
+			Service:  "JobManager",
+			Severity: "Info",
+			Stamp:    1461181283,
 		},
 	}
 
@@ -289,39 +286,37 @@ func (suite *LoggerTester) Test06OtherParams() {
 		err := logger.LogMessage(&e)
 		assert.NoError(err)
 	}
-	
+
 	time.Sleep(1 * time.Second)
-	
-	
+
 	format := elasticsearch.QueryFormat{
-		Size: 100, From: 0, 
-		Order: elasticsearch.SortDescending, 
-		Key: "stamp"}
-		
-			
-	msgs, err := logger.GetFromMessages(format, 
+		Size: 100, From: 0,
+		Order: elasticsearch.SortDescending,
+		Key:   "stamp"}
+
+	msgs, err := logger.GetFromMessages(format,
 		map[string]string{
-			"service": "JobManager",
+			"service":  "JobManager",
 			"contains": "Success",
-		} )	
+		})
 	assert.NoError(err)
 	assert.Len(msgs, 1)
-	
+
 	for _, msg := range msgs {
 		log.Printf("%v\n", msg)
 	}
-	
-	msgs, err = logger.GetFromMessages(format, 
-		map[string]string {
+
+	msgs, err = logger.GetFromMessages(format,
+		map[string]string{
 			"before": "1461181461",
-			"after": "1461181362",
-		} )
-	
+			"after":  "1461181362",
+		})
+
 	assert.NoError(err)
 	assert.Len(msgs, 4)
-	
+
 	for _, msg := range msgs {
 		log.Printf("%v\n", msg)
 	}
-		
+
 }
