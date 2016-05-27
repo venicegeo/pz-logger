@@ -28,6 +28,10 @@ import (
 
 const MOCKING = true
 
+func sleep() {
+	time.Sleep(1 * time.Second)
+}
+
 type LoggerTester struct {
 	suite.Suite
 
@@ -136,7 +140,7 @@ func (suite *LoggerTester) Test02One() {
 		assert.NoError(err, "PostToMessages")
 	}
 
-	//	time.Sleep(1 * time.Second)
+	sleep()
 
 	{
 		actualMssg := suite.getLastMessage()
@@ -149,7 +153,7 @@ func (suite *LoggerTester) Test02One() {
 		assert.NoError(err, "PostToMessages")
 	}
 
-	time.Sleep(4 * time.Second)
+	sleep()
 
 	{
 		actualMssg := suite.getLastMessage()
@@ -203,19 +207,19 @@ func (suite *LoggerTester) Test05Pagination() {
 
 	err := logger.Debug("d")
 	assert.NoError(err)
-	time.Sleep(1 * time.Second)
+	sleep()
 	err = logger.Info("i")
 	assert.NoError(err)
-	time.Sleep(1 * time.Second)
+	sleep()
 	err = logger.Warn("w")
 	assert.NoError(err)
-	time.Sleep(1 * time.Second)
+	sleep()
 	err = logger.Error("e")
 	assert.NoError(err)
-	time.Sleep(1 * time.Second)
+	sleep()
 	err = logger.Fatal("f")
 	assert.NoError(err)
-	time.Sleep(1 * time.Second)
+	sleep()
 
 	format := elasticsearch.QueryFormat{Size: 1, From: 0, Key: "stamp", Order: elasticsearch.SortDescending}
 	ms, err := logger.GetFromMessages(format, map[string]string{})
@@ -287,7 +291,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 		assert.NoError(err)
 	}
 
-	time.Sleep(1 * time.Second)
+	sleep()
 
 	format := elasticsearch.QueryFormat{
 		Size: 100, From: 0,
