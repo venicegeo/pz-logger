@@ -17,8 +17,6 @@ go get github.com/stretchr/testify/assert
 # our gocommon pkgs
 go get github.com/venicegeo/pz-gocommon
 go get github.com/venicegeo/pz-gocommon/elasticsearch
-go test -v github.com/venicegeo/pz-gocommon
-go test -v github.com/venicegeo/pz-gocommon/elasticsearch
 
 # ourself
 go get github.com/venicegeo/pz-logger/lib
