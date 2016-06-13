@@ -20,6 +20,6 @@ go get github.com/venicegeo/pz-gocommon/elasticsearch
 
 # ourself
 go get github.com/venicegeo/pz-logger/lib
-go test -v -coverprofile=logger.cov github.com/venicegeo/pz-logger/lib/tests
+go test -v -coverprofile=logger.cov -coverpkg github.com/venicegeo/pz-logger/lib github.com/venicegeo/pz-logger/lib/tests
 
 ###
