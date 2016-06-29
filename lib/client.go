@@ -61,18 +61,18 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
 
 	url := fmt.Sprintf("%s/messages?size=%d&from=%d&key=%s&order=%t", c.url, format.Size, format.From, format.Key, format.Order)
-	
-	var names = []string {"before", "after", "service", "contains"}
-	
+
+	var names = []string{"before", "after", "service", "contains"}
+
 	for _, name := range names {
 		if value, ok := params[name]; ok {
-    		//do something here
+			//do something here
 			url = fmt.Sprintf("%s&%s=%s", url, name, value)
-		}	
+		}
 	}
-	
+
 	log.Printf("%s\n", url)
-	
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 cat > tmp <<foo
 {
@@ -10,15 +10,15 @@ cat > tmp <<foo
 }
 foo
 
-json=`cat tmp`
+json=$(cat tmp)
 
 url="https://pz-logger.stage.geointservices.io/v1/messages"
 echo
 echo POST $url
 echo "$json"
 
-ret=`curl -S -s -XPOST -d "$json" $url`
+ret=$(curl -S -s -XPOST -d "$json" "$url")
 
 echo RETURN:
-echo $ret
+echo "$ret"
 echo
