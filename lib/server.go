@@ -299,17 +299,13 @@ func handleGetMessagesV2(c *gin.Context) {
 	c.JSON(http.StatusOK, foo)
 }
 
-var Routes = &piazza.RouteData{
-	Get: map[string]gin.HandlerFunc{
-		"/":               handleGetRoot,
-		"/v1/messages":    handleGetMessages,
-		"/v2/message":     handleGetMessagesV2,
-		"/v1/admin/stats": handleGetAdminStats,
-	},
-	Post: map[string]gin.HandlerFunc{
-		"/v1/messages": handlePostMessages,
-		"/v2/message":  handlePostMessages,
-	},
+var Routes = []piazza.RouteData{
+	{"GET", "/", handleGetRoot},
+	{"GET", "/v1/messages", handleGetMessages},
+	{"GET", "/v2/message", handleGetMessagesV2},
+	{"GET", "/v1/admin/stats", handleGetAdminStats},
+	{"POST", "/v1/messages", handlePostMessages},
+	{"POST", "/v2/message", handlePostMessages},
 }
 
 func parseFilterParams(c *gin.Context) map[string]interface{} {
