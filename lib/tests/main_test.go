@@ -38,6 +38,8 @@ type LoggerTester struct {
 	esi    elasticsearch.IIndex
 	sys    *piazza.SystemConfig
 	logger pzlogger.IClient
+
+	server *piazza.GenericServer
 }
 
 func (suite *LoggerTester) setupFixture() {
@@ -58,8 +60,6 @@ func (suite *LoggerTester) setupFixture() {
 	assert.NoError(err)
 	suite.esi = esi
 
-	_ = sys.StartServer(pzlogger.CreateHandlers(sys, esi))
-
 	if MOCKING {
 		logger, err := pzlogger.NewMockClient(sys)
 		assert.NoError(err)
@@ -69,10 +69,23 @@ func (suite *LoggerTester) setupFixture() {
 		assert.NoError(err)
 		suite.logger = logger
 	}
+
+	pzlogger.Init(sys, esi)
+
+	suite.server = &piazza.GenericServer{Sys: sys}
+
+	err = suite.server.Configure(pzlogger.Routes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_ = suite.server.Start()
 }
 
 func (suite *LoggerTester) teardownFixture() {
 	//TODO: kill the go routine running the server
+
+	suite.server.Stop()
 
 	suite.esi.Close()
 	suite.esi.Delete()
