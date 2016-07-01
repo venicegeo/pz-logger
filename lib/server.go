@@ -65,7 +65,7 @@ func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	***/
 
 	if !esIndex.IndexExists() {
-		err = esIndex.Create()
+		err = esIndex.Create("")
 		if err != nil {
 			log.Fatal(err)
 		}
