@@ -15,11 +15,11 @@ go get github.com/stretchr/testify/suite
 go get github.com/stretchr/testify/assert
 
 # our gocommon pkgs
-go get github.com/venicegeo/pz-gocommon
+go get github.com/venicegeo/pz-gocommon/gocommon
 go get github.com/venicegeo/pz-gocommon/elasticsearch
 
 # ourself
-go get github.com/venicegeo/pz-logger/lib
-go test -v -coverprofile=logger.cov -coverpkg github.com/venicegeo/pz-logger/lib github.com/venicegeo/pz-logger/lib/tests
+go get github.com/venicegeo/pz-logger/logger
+go test -v -coverprofile=logger.cov -coverpkg github.com/venicegeo/pz-logger/logger github.com/venicegeo/pz-logger/logger
 
 ###

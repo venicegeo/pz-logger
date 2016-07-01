@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lib
+package logger
 
 import (
 	"errors"
 	"fmt"
 	"time"
 
-	piazza "github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
+	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
 // LogMessage represents the contents of a messge for the logger service.

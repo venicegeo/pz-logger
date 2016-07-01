@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lib
+package logger
 
 import (
 	"encoding/json"
@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
+	"github.com/venicegeo/pz-gocommon/gocommon"
 )
 
 type LockedAdminStats struct {
