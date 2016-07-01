@@ -19,7 +19,7 @@ import (
 
 	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
-	"github.com/venicegeo/pz-logger/lib"
+	pzlogger "github.com/venicegeo/pz-logger/lib"
 )
 
 func main() {
@@ -37,7 +37,19 @@ func main() {
 	}
 	var esi elasticsearch.IIndex = idx
 
-	done := sys.StartServer(lib.CreateHandlers(sys, esi))
+	pzlogger.Init(sys, esi)
+
+	server := piazza.GenericServer{Sys: sys}
+
+	err = server.Configure(pzlogger.Routes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	done, err := server.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = <-done
 	if err != nil {

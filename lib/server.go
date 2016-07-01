@@ -45,7 +45,7 @@ var logData LogData
 
 var schema = "LogData"
 
-func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
+func Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	var err error
 
 	stats.StartTime = time.Now()
@@ -94,7 +94,7 @@ func initServer(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 					    "type": "string",
                         "store": true
     			    }
-	    	    }
+	    	    } 
 	        }
         }`
 
@@ -299,25 +299,13 @@ func handleGetMessagesV2(c *gin.Context) {
 	c.JSON(http.StatusOK, foo)
 }
 
-func CreateHandlers(sys *piazza.SystemConfig, esi elasticsearch.IIndex) http.Handler {
-	initServer(sys, esi)
-
-	gin.SetMode(gin.ReleaseMode)
-	router := gin.New()
-	//router.Use(gin.Logger())
-	//router.Use(gin.Recovery())
-
-	router.GET("/", func(c *gin.Context) { handleGetRoot(c) })
-
-	router.POST("/v1/messages", func(c *gin.Context) { handlePostMessages(c) })
-	router.GET("/v1/messages", func(c *gin.Context) { handleGetMessages(c) })
-
-	router.POST("/v2/message", func(c *gin.Context) { handlePostMessages(c) })
-	router.GET("/v2/message", func(c *gin.Context) { handleGetMessagesV2(c) })
-
-	router.GET("/v1/admin/stats", func(c *gin.Context) { handleGetAdminStats(c) })
-
-	return router
+var Routes = []piazza.RouteData{
+	{"GET", "/", handleGetRoot},
+	{"GET", "/v1/messages", handleGetMessages},
+	{"GET", "/v2/message", handleGetMessagesV2},
+	{"GET", "/v1/admin/stats", handleGetAdminStats},
+	{"POST", "/v1/messages", handlePostMessages},
+	{"POST", "/v2/message", handlePostMessages},
 }
 
 func parseFilterParams(c *gin.Context) map[string]interface{} {
