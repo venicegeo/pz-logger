@@ -79,7 +79,8 @@ func (suite *LoggerTester) setupFixture() {
 		log.Fatal(err)
 	}
 
-	_ = suite.server.Start()
+	_, err = suite.server.Start()
+	assert.NoError(err)
 }
 
 func (suite *LoggerTester) teardownFixture() {

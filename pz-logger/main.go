@@ -46,7 +46,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	done := server.Start()
+	done, err := server.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = <-done
 	if err != nil {
