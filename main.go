@@ -17,9 +17,9 @@ package main
 import (
 	"log"
 
-	"github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
-	pzlogger "github.com/venicegeo/pz-logger/lib"
+	"github.com/venicegeo/pz-gocommon/gocommon"
+	pzlogger "github.com/venicegeo/pz-logger/logger"
 )
 
 func main() {

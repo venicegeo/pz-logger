@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tests
+package logger
 
 import (
 	"log"
@@ -21,9 +21,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	piazza "github.com/venicegeo/pz-gocommon"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
-	pzlogger "github.com/venicegeo/pz-logger/lib"
+	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
 const MOCKING = true
@@ -37,7 +36,7 @@ type LoggerTester struct {
 
 	esi    elasticsearch.IIndex
 	sys    *piazza.SystemConfig
-	logger pzlogger.IClient
+	logger IClient
 
 	server *piazza.GenericServer
 }
@@ -61,20 +60,20 @@ func (suite *LoggerTester) setupFixture() {
 	suite.esi = esi
 
 	if MOCKING {
-		logger, err := pzlogger.NewMockClient(sys)
+		logger, err := NewMockClient(sys)
 		assert.NoError(err)
 		suite.logger = logger
 	} else {
-		logger, err := pzlogger.NewClient(sys)
+		logger, err := NewClient(sys)
 		assert.NoError(err)
 		suite.logger = logger
 	}
 
-	pzlogger.Init(sys, esi)
+	Init(sys, esi)
 
 	suite.server = &piazza.GenericServer{Sys: sys}
 
-	err = suite.server.Configure(pzlogger.Routes)
+	err = suite.server.Configure(Routes)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -133,7 +132,7 @@ func (suite *LoggerTester) Test02One() {
 
 	var err error
 
-	data1 := pzlogger.Message{
+	data1 := Message{
 		Service:  "log-tester",
 		Address:  "128.1.2.3",
 		Stamp:    time.Now().Unix(),
@@ -141,7 +140,7 @@ func (suite *LoggerTester) Test02One() {
 		Message:  "The quick brown fox",
 	}
 
-	data2 := pzlogger.Message{
+	data2 := Message{
 		Service:  "log-tester",
 		Address:  "128.0.0.0",
 		Stamp:    time.Now().Unix(),
@@ -187,7 +186,7 @@ func (suite *LoggerTester) Test03Help() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	err := suite.logger.Log("mocktest", "0.0.0.0", pzlogger.SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
+	err := suite.logger.Log("mocktest", "0.0.0.0", SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 }
 
@@ -239,15 +238,15 @@ func (suite *LoggerTester) Test05Pagination() {
 	ms, err := logger.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 1)
-	assert.EqualValues(pzlogger.SeverityFatal, ms[0].Severity)
+	assert.EqualValues(SeverityFatal, ms[0].Severity)
 
 	format = elasticsearch.QueryFormat{Size: 3, From: 2, Key: "stamp", Order: elasticsearch.SortDescending}
 	ms, err = logger.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 3)
-	assert.EqualValues(pzlogger.SeverityWarning, ms[0].Severity)
-	assert.EqualValues(pzlogger.SeverityInfo, ms[1].Severity)
-	assert.EqualValues(pzlogger.SeverityDebug, ms[2].Severity)
+	assert.EqualValues(SeverityWarning, ms[0].Severity)
+	assert.EqualValues(SeverityInfo, ms[1].Severity)
+	assert.EqualValues(SeverityDebug, ms[2].Severity)
 }
 
 func (suite *LoggerTester) Test06OtherParams() {
@@ -265,7 +264,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	logger.SetService("myservice", "1.2.3.4")
 
-	var testData = []pzlogger.Message{
+	var testData = []Message{
 		{
 			Address:  "gnemud7smfv/10.254.0.66",
 			Message:  "Received Message to Relay on topic Request-Job with key f3b63085-b482-4ae8-8297-3c7d1fcfff7d",
