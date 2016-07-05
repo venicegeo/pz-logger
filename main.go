@@ -37,7 +37,8 @@ func main() {
 	}
 	var esi elasticsearch.IIndex = idx
 
-	pzlogger.Init(sys, esi)
+	logger := pzlogger.Logger{}
+	logger.Init(sys, esi)
 
 	server := piazza.GenericServer{Sys: sys}
 

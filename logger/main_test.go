@@ -69,7 +69,9 @@ func (suite *LoggerTester) setupFixture() {
 		suite.logger = logger
 	}
 
-	Init(sys, esi)
+	logger := &Logger{}
+
+	logger.Init(sys, esi)
 
 	suite.server = &piazza.GenericServer{Sys: sys}
 

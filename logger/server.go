@@ -16,45 +16,36 @@ package logger
 
 import (
 	_ "fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon/gocommon"
 )
 
 func handleGetRoot(c *gin.Context) {
-	resp, err := GetRoot(c)
-	if err != nil {
-		c.JSON(resp.StatusCode, resp)
-	} else {
-		c.JSON(resp.StatusCode, resp)
-	}
+	resp := GetRoot()
+	c.JSON(resp.StatusCode, resp)
 }
 
 func handlePostMessages(c *gin.Context) {
-	resp, err := PostMessages(c)
+	var mssg Message
+	err := c.BindJSON(&mssg)
 	if err != nil {
-		c.JSON(err.StatusCode, err)
-	} else {
+		resp := &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 		c.JSON(resp.StatusCode, resp)
 	}
+	resp := PostMessage(&mssg)
+	c.JSON(resp.StatusCode, resp)
 }
 
 func handleGetAdminStats(c *gin.Context) {
-	resp, err := GetAdminStats(c)
-	if err != nil {
-		c.JSON(err.StatusCode, err)
-	} else {
-		c.JSON(resp.StatusCode, resp)
-	}
+	resp := GetAdminStats()
+	c.JSON(resp.StatusCode, resp)
 }
 
 func handleGetMessages(c *gin.Context) {
-	resp, err := GetMessages(c)
-	if err != nil {
-		c.JSON(err.StatusCode, err)
-	} else {
-		c.JSON(resp.StatusCode, resp)
-	}
+	resp := GetMessages(c.Query, c.GetQuery)
+	c.JSON(resp.StatusCode, resp)
 }
 
 var Routes = []piazza.RouteData{

@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-gocommon/gocommon"
 )
@@ -45,7 +44,10 @@ var logData LogData
 
 var schema = "LogData"
 
-func Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
+type Logger struct {
+}
+
+func (logger *Logger) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	var err error
 
 	stats.StartTime = time.Now()
@@ -107,32 +109,18 @@ func Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	logData.esIndex = esIndex
 }
 
-func GetRoot(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorResponse) {
+func GetRoot() *piazza.JsonResponse {
 	resp := &piazza.JsonResponse{
 		StatusCode: 200,
 		Data:       "Hi. I'm pz-logger.",
 	}
-	return resp, nil
+	return resp
 }
 
-func PostMessages(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorResponse) {
-	var mssg Message
-	err := c.BindJSON(&mssg)
+func PostMessage(mssg *Message) *piazza.JsonResponse {
+	err := mssg.Validate()
 	if err != nil {
-		resp := &piazza.JsonErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
-		}
-		return nil, resp
-	}
-
-	err = mssg.Validate()
-	if err != nil {
-		resp := &piazza.JsonErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
-		}
-		return nil, resp
+		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
 
 	log.Printf("PZLOG: %s\n", mssg.String())
@@ -143,18 +131,17 @@ func PostMessages(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorRespon
 	logData.Unlock()
 	indexResult, err := logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
-		resp := &piazza.JsonErrorResponse{
-			StatusCode: http.StatusBadRequest,
+		return &piazza.JsonResponse{
+			StatusCode: http.StatusInternalServerError,
 			Message:    err.Error(),
 		}
-		return nil, resp
 	}
 	if !indexResult.Created {
-		resp := &piazza.JsonErrorResponse{
+		resp := &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "POST of log data failed",
 		}
-		return nil, resp
+		return resp
 	}
 
 	stats.LoggerAdminStats.NumMessages++
@@ -163,10 +150,11 @@ func PostMessages(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorRespon
 		StatusCode: http.StatusOK,
 		Data:       mssg,
 	}
-	return resp, nil
+
+	return resp
 }
 
-func GetAdminStats(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorResponse) {
+func GetAdminStats() *piazza.JsonResponse {
 	logData.Lock()
 	t := stats.LoggerAdminStats
 	logData.Unlock()
@@ -174,14 +162,18 @@ func GetAdminStats(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorRespo
 		StatusCode: http.StatusOK,
 		Data:       t,
 	}
-	return resp, nil
+	return resp
 }
 
-func GetMessages(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorResponse) {
+func GetMessages(queryFunc piazza.QueryFunc,
+	getQueryFunc piazza.GetQueryFunc) *piazza.JsonResponse {
 	var err error
 
-	format := elasticsearch.GetFormatParamsV2(c, 10, 0, "stamp", elasticsearch.SortDescending)
-	filterParams := parseFilterParams(c)
+	format, err := elasticsearch.GetFormatParamsV2(queryFunc, 10, 0, "stamp", elasticsearch.SortDescending)
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
+	}
+	filterParams := parseFilterParams(getQueryFunc)
 
 	//log.Printf("size %d, from %d, key %s, format %v",
 	//	format.Size, format.From, format.Key, format.Order)
@@ -198,11 +190,11 @@ func GetMessages(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorRespons
 	}
 
 	if err != nil {
-		resp := &piazza.JsonErrorResponse{
+		resp := &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "query failed: " + err.Error(),
 		}
-		return nil, resp
+		return resp
 	}
 
 	// TODO: unsafe truncation
@@ -223,11 +215,11 @@ func GetMessages(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorRespons
 		err = json.Unmarshal(src, tmp)
 		if err != nil {
 			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
-			resp := &piazza.JsonErrorResponse{
+			resp := &piazza.JsonResponse{
 				StatusCode: http.StatusInternalServerError,
 				Message:    "unmarshall failed: " + err.Error(),
 			}
-			return nil, resp
+			return resp
 		}
 
 		// still needed?
@@ -267,14 +259,14 @@ func GetMessages(c *gin.Context) (*piazza.JsonResponse, *piazza.JsonErrorRespons
 		},
 	}
 
-	return resp, nil
+	return resp
 }
 
-func parseFilterParams(c *gin.Context) map[string]interface{} {
+func parseFilterParams(getQueryFunc piazza.GetQueryFunc) map[string]interface{} {
 
 	var filterParams = map[string]interface{}{}
 
-	before, beforeExists := c.GetQuery("before")
+	before, beforeExists := getQueryFunc("before")
 
 	if beforeExists && before != "" {
 		num, err := strconv.Atoi(before)
@@ -283,7 +275,7 @@ func parseFilterParams(c *gin.Context) map[string]interface{} {
 		}
 	}
 
-	after, afterExists := c.GetQuery("after")
+	after, afterExists := getQueryFunc("after")
 
 	if afterExists && after != "" {
 		num, err := strconv.Atoi(after)
@@ -292,13 +284,13 @@ func parseFilterParams(c *gin.Context) map[string]interface{} {
 		}
 	}
 
-	service, serviceExists := c.GetQuery("service")
+	service, serviceExists := getQueryFunc("service")
 
 	if serviceExists && service != "" {
 		filterParams["service"] = service
 	}
 
-	contains, containsExists := c.GetQuery("contains")
+	contains, containsExists := getQueryFunc("contains")
 
 	if containsExists && contains != "" {
 		filterParams["contains"] = contains
