@@ -248,7 +248,7 @@ func (logger *LoggerService) GetMessages(queryFunc piazza.QueryFunc,
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       bar,
-		Pagination: piazza.JsonPaginationResponse{
+		Pagination: &piazza.JsonPaginationResponse{
 			Page:    format.From,
 			PerPage: format.Size,
 			Count:   matched,
