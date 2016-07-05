@@ -8,6 +8,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	  logger.vm.provision :shell, path: "bootstrap.sh"
 	  logger.vm.network :private_network, ip:"192.168.46.46"
 	  logger.vm.network :forwarded_port, host: 8092, guest: 8092
+	  logger.vm.synced_folder "../", "/vagrant/logger"
 	  logger.vm.provider "virtualbox" do |v|
 		v.memory = 2048
 		v.cpus = 1
