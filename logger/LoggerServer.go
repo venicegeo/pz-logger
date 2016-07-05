@@ -22,35 +22,44 @@ import (
 	"github.com/venicegeo/pz-gocommon/gocommon"
 )
 
-func handleGetRoot(c *gin.Context) {
-	resp := GetRoot()
+type LoggerServer struct {
+	logger *LoggerService
+	Routes []piazza.RouteData
+}
+
+func (server *LoggerServer) handleGetRoot(c *gin.Context) {
+	resp := server.logger.GetRoot()
 	c.JSON(resp.StatusCode, resp)
 }
 
-func handlePostMessages(c *gin.Context) {
+func (server *LoggerServer) handlePostMessages(c *gin.Context) {
 	var mssg Message
 	err := c.BindJSON(&mssg)
 	if err != nil {
 		resp := &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 		c.JSON(resp.StatusCode, resp)
 	}
-	resp := PostMessage(&mssg)
+	resp := server.logger.PostMessage(&mssg)
 	c.JSON(resp.StatusCode, resp)
 }
 
-func handleGetAdminStats(c *gin.Context) {
-	resp := GetAdminStats()
+func (server *LoggerServer) handleGetAdminStats(c *gin.Context) {
+	resp := server.logger.GetAdminStats()
 	c.JSON(resp.StatusCode, resp)
 }
 
-func handleGetMessages(c *gin.Context) {
-	resp := GetMessages(c.Query, c.GetQuery)
+func (server *LoggerServer) handleGetMessages(c *gin.Context) {
+	resp := server.logger.GetMessages(c.Query, c.GetQuery)
 	c.JSON(resp.StatusCode, resp)
 }
 
-var Routes = []piazza.RouteData{
-	{"GET", "/", handleGetRoot},
-	{"GET", "/message", handleGetMessages},
-	{"GET", "/admin/stats", handleGetAdminStats},
-	{"POST", "message", handlePostMessages},
+func (server *LoggerServer) Init(logger *LoggerService) {
+	server.logger = logger
+
+	server.Routes = []piazza.RouteData{
+		{"GET", "/", server.handleGetRoot},
+		{"GET", "/message", server.handleGetMessages},
+		{"GET", "/admin/stats", server.handleGetAdminStats},
+		{"POST", "message", server.handlePostMessages},
+	}
 }

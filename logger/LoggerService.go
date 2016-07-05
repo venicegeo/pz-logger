@@ -32,25 +32,23 @@ type LockedAdminStats struct {
 	LoggerAdminStats
 }
 
-var stats LockedAdminStats
-
 type LogData struct {
 	sync.Mutex
 	esIndex elasticsearch.IIndex
 	id      int
 }
 
-var logData LogData
+const schema = "LogData"
 
-var schema = "LogData"
-
-type Logger struct {
+type LoggerService struct {
+	stats   LockedAdminStats
+	logData LogData
 }
 
-func (logger *Logger) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
+func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	var err error
 
-	stats.StartTime = time.Now()
+	logger.stats.StartTime = time.Now()
 
 	/***
 	err = esIndex.Delete()
@@ -106,10 +104,10 @@ func (logger *Logger) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IInde
 		}
 	}
 
-	logData.esIndex = esIndex
+	logger.logData.esIndex = esIndex
 }
 
-func GetRoot() *piazza.JsonResponse {
+func (logger *LoggerService) GetRoot() *piazza.JsonResponse {
 	resp := &piazza.JsonResponse{
 		StatusCode: 200,
 		Data:       "Hi. I'm pz-logger.",
@@ -117,7 +115,7 @@ func GetRoot() *piazza.JsonResponse {
 	return resp
 }
 
-func PostMessage(mssg *Message) *piazza.JsonResponse {
+func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 	err := mssg.Validate()
 	if err != nil {
 		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
@@ -125,11 +123,11 @@ func PostMessage(mssg *Message) *piazza.JsonResponse {
 
 	log.Printf("PZLOG: %s\n", mssg.String())
 
-	logData.Lock()
-	idStr := strconv.Itoa(logData.id)
-	logData.id++
-	logData.Unlock()
-	indexResult, err := logData.esIndex.PostData(schema, idStr, mssg)
+	logger.logData.Lock()
+	idStr := strconv.Itoa(logger.logData.id)
+	logger.logData.id++
+	logger.logData.Unlock()
+	indexResult, err := logger.logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
 		return &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -144,7 +142,7 @@ func PostMessage(mssg *Message) *piazza.JsonResponse {
 		return resp
 	}
 
-	stats.LoggerAdminStats.NumMessages++
+	logger.stats.LoggerAdminStats.NumMessages++
 
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
@@ -154,10 +152,10 @@ func PostMessage(mssg *Message) *piazza.JsonResponse {
 	return resp
 }
 
-func GetAdminStats() *piazza.JsonResponse {
-	logData.Lock()
-	t := stats.LoggerAdminStats
-	logData.Unlock()
+func (logger *LoggerService) GetAdminStats() *piazza.JsonResponse {
+	logger.logData.Lock()
+	t := logger.stats.LoggerAdminStats
+	logger.logData.Unlock()
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       t,
@@ -165,7 +163,7 @@ func GetAdminStats() *piazza.JsonResponse {
 	return resp
 }
 
-func GetMessages(queryFunc piazza.QueryFunc,
+func (logger *LoggerService) GetMessages(queryFunc piazza.QueryFunc,
 	getQueryFunc piazza.GetQueryFunc) *piazza.JsonResponse {
 	var err error
 
@@ -173,7 +171,7 @@ func GetMessages(queryFunc piazza.QueryFunc,
 	if err != nil {
 		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
-	filterParams := parseFilterParams(getQueryFunc)
+	filterParams := logger.parseFilterParams(getQueryFunc)
 
 	//log.Printf("size %d, from %d, key %s, format %v",
 	//	format.Size, format.From, format.Key, format.Order)
@@ -183,10 +181,10 @@ func GetMessages(queryFunc piazza.QueryFunc,
 	var searchResult *elasticsearch.SearchResult
 
 	if len(filterParams) == 0 {
-		searchResult, err = logData.esIndex.FilterByMatchAll(schema, format)
+		searchResult, err = logger.logData.esIndex.FilterByMatchAll(schema, format)
 	} else {
-		var jsonString = createQueryDslAsString(format, filterParams)
-		searchResult, err = logData.esIndex.SearchByJSON(schema, jsonString)
+		var jsonString = logger.createQueryDslAsString(format, filterParams)
+		searchResult, err = logger.logData.esIndex.SearchByJSON(schema, jsonString)
 	}
 
 	if err != nil {
@@ -262,7 +260,7 @@ func GetMessages(queryFunc piazza.QueryFunc,
 	return resp
 }
 
-func parseFilterParams(getQueryFunc piazza.GetQueryFunc) map[string]interface{} {
+func (logger *LoggerService) parseFilterParams(getQueryFunc piazza.GetQueryFunc) map[string]interface{} {
 
 	var filterParams = map[string]interface{}{}
 
@@ -299,7 +297,7 @@ func parseFilterParams(getQueryFunc piazza.GetQueryFunc) map[string]interface{} 
 	return filterParams
 }
 
-func createQueryDslAsString(
+func (logger *LoggerService) createQueryDslAsString(
 	format elasticsearch.QueryFormat,
 	params map[string]interface{},
 ) string {
