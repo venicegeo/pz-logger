@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-gocommon/gocommon"
 )
@@ -33,22 +32,23 @@ type LockedAdminStats struct {
 	LoggerAdminStats
 }
 
-var stats LockedAdminStats
-
 type LogData struct {
 	sync.Mutex
 	esIndex elasticsearch.IIndex
 	id      int
 }
 
-var logData LogData
+const schema = "LogData"
 
-var schema = "LogData"
+type LoggerService struct {
+	stats   LockedAdminStats
+	logData LogData
+}
 
-func Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
+func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	var err error
 
-	stats.StartTime = time.Now()
+	logger.stats.StartTime = time.Now()
 
 	/***
 	err = esIndex.Delete()
@@ -104,61 +104,74 @@ func Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 		}
 	}
 
-	logData.esIndex = esIndex
+	logger.logData.esIndex = esIndex
 }
 
-func handleGetRoot(c *gin.Context) {
-	//log.Print("got health-check request")
-	c.String(http.StatusOK, "Hi. I'm pz-logger.")
-}
-
-func handlePostMessages(c *gin.Context) {
-	var mssg Message
-	err := c.BindJSON(&mssg)
-	if err != nil {
-		c.String(http.StatusBadRequest, "%v", err)
-		return
+func (logger *LoggerService) GetRoot() *piazza.JsonResponse {
+	resp := &piazza.JsonResponse{
+		StatusCode: 200,
+		Data:       "Hi. I'm pz-logger.",
 	}
+	return resp
+}
 
-	err = mssg.Validate()
+func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
+	err := mssg.Validate()
 	if err != nil {
-		c.String(http.StatusBadRequest, "%v", err)
-		return
+		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
 
 	log.Printf("PZLOG: %s\n", mssg.String())
 
-	logData.Lock()
-	idStr := strconv.Itoa(logData.id)
-	logData.id++
-	logData.Unlock()
-	indexResult, err := logData.esIndex.PostData(schema, idStr, mssg)
+	logger.logData.Lock()
+	idStr := strconv.Itoa(logger.logData.id)
+	logger.logData.id++
+	logger.logData.Unlock()
+	indexResult, err := logger.logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
-		c.String(http.StatusBadRequest, "%v", err)
-		return
+		return &piazza.JsonResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		}
 	}
 	if !indexResult.Created {
-		c.String(http.StatusBadRequest, "POST of log data failed")
-		return
+		resp := &piazza.JsonResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    "POST of log data failed",
+		}
+		return resp
 	}
 
-	stats.LoggerAdminStats.NumMessages++
+	logger.stats.LoggerAdminStats.NumMessages++
 
-	c.JSON(http.StatusOK, nil)
+	resp := &piazza.JsonResponse{
+		StatusCode: http.StatusOK,
+		Data:       mssg,
+	}
+
+	return resp
 }
 
-func handleGetAdminStats(c *gin.Context) {
-	logData.Lock()
-	t := stats.LoggerAdminStats
-	logData.Unlock()
-	c.JSON(http.StatusOK, t)
+func (logger *LoggerService) GetAdminStats() *piazza.JsonResponse {
+	logger.logData.Lock()
+	t := logger.stats.LoggerAdminStats
+	logger.logData.Unlock()
+	resp := &piazza.JsonResponse{
+		StatusCode: http.StatusOK,
+		Data:       t,
+	}
+	return resp
 }
 
-func handleGetMessages(c *gin.Context) {
+func (logger *LoggerService) GetMessages(queryFunc piazza.QueryFunc,
+	getQueryFunc piazza.GetQueryFunc) *piazza.JsonResponse {
 	var err error
 
-	format := elasticsearch.GetFormatParams(c, 10, 0, "stamp", elasticsearch.SortDescending)
-	filterParams := parseFilterParams(c)
+	format, err := elasticsearch.GetFormatParamsV2(queryFunc, 10, 0, "stamp", elasticsearch.SortDescending)
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
+	}
+	filterParams := logger.parseFilterParams(getQueryFunc)
 
 	//log.Printf("size %d, from %d, key %s, format %v",
 	//	format.Size, format.From, format.Key, format.Order)
@@ -168,19 +181,23 @@ func handleGetMessages(c *gin.Context) {
 	var searchResult *elasticsearch.SearchResult
 
 	if len(filterParams) == 0 {
-		searchResult, err = logData.esIndex.FilterByMatchAll(schema, format)
+		searchResult, err = logger.logData.esIndex.FilterByMatchAll(schema, format)
 	} else {
-		var jsonString = createQueryDslAsString(format, filterParams)
-		searchResult, err = logData.esIndex.SearchByJSON(schema, jsonString)
+		var jsonString = logger.createQueryDslAsString(format, filterParams)
+		searchResult, err = logger.logData.esIndex.SearchByJSON(schema, jsonString)
 	}
 
 	if err != nil {
-		c.String(http.StatusBadRequest, "query failed: %s", err)
-		return
+		resp := &piazza.JsonResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    "query failed: " + err.Error(),
+		}
+		return resp
 	}
 
 	// TODO: unsafe truncation
 	count := int(searchResult.TotalHits())
+	matched := int(searchResult.NumberMatched())
 	lines := make([]Message, count)
 
 	i := 0
@@ -196,76 +213,20 @@ func handleGetMessages(c *gin.Context) {
 		err = json.Unmarshal(src, tmp)
 		if err != nil {
 			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
-			c.String(http.StatusBadRequest, "query unmarshal failed: %s", err)
-			return
+			resp := &piazza.JsonResponse{
+				StatusCode: http.StatusInternalServerError,
+				Message:    "unmarshall failed: " + err.Error(),
+			}
+			return resp
 		}
+
+		// still needed?
 		err = tmp.Validate()
 		if err != nil {
 			log.Printf("UNABLE TO VALIDATE: %s", string(*hit.Source))
-			//c.String(http.StatusBadRequest, "query unmarshal failed to validate: %s", err)
-			//return
 			continue
 		}
-		lines[i] = *tmp
-		i++
-	}
 
-	c.JSON(http.StatusOK, lines)
-}
-
-func handleGetMessagesV2(c *gin.Context) {
-	var err error
-
-	format := elasticsearch.GetFormatParamsV2(c, 10, 0, "stamp", elasticsearch.SortDescending)
-	filterParams := parseFilterParams(c)
-
-	//log.Printf("size %d, from %d, key %s, format %v",
-	//	format.Size, format.From, format.Key, format.Order)
-
-	log.Printf("filterParams: %v\n", filterParams)
-
-	var searchResult *elasticsearch.SearchResult
-
-	if len(filterParams) == 0 {
-		searchResult, err = logData.esIndex.FilterByMatchAll(schema, format)
-	} else {
-		var jsonString = createQueryDslAsString(format, filterParams)
-		searchResult, err = logData.esIndex.SearchByJSON(schema, jsonString)
-	}
-
-	if err != nil {
-		c.String(http.StatusBadRequest, "query failed: %s", err)
-		return
-	}
-
-	// TODO: unsafe truncation
-	count := searchResult.TotalHits()
-	matched := searchResult.NumberMatched()
-	lines := make([]Message, count)
-
-	i := 0
-	for _, hit := range *searchResult.GetHits() {
-		if hit == nil {
-			log.Printf("null source hit")
-			continue
-		}
-		src := *hit.Source
-		//log.Printf("source hit: %s", string(src))
-
-		tmp := &Message{}
-		err = json.Unmarshal(src, tmp)
-		if err != nil {
-			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
-			c.String(http.StatusBadRequest, "query unmarshal failed: %s", err)
-			return
-		}
-		err = tmp.Validate()
-		if err != nil {
-			log.Printf("UNABLE TO VALIDATE: %s", string(*hit.Source))
-			//c.String(http.StatusBadRequest, "query unmarshal failed to validate: %s", err)
-			//return
-			continue
-		}
 		lines[i] = *tmp
 		i++
 	}
@@ -284,9 +245,10 @@ func handleGetMessagesV2(c *gin.Context) {
 		order = "asc"
 	}
 
-	foo := &piazza.Common18FListResponse{
-		Data: bar,
-		Pagination: piazza.Pagination{
+	resp := &piazza.JsonResponse{
+		StatusCode: http.StatusOK,
+		Data:       bar,
+		Pagination: &piazza.JsonPaginationResponse{
 			Page:    format.From,
 			PerPage: format.Size,
 			Count:   matched,
@@ -295,24 +257,14 @@ func handleGetMessagesV2(c *gin.Context) {
 		},
 	}
 
-	// c.JSON(http.StatusOK, lines)
-	c.JSON(http.StatusOK, foo)
+	return resp
 }
 
-var Routes = []piazza.RouteData{
-	{"GET", "/", handleGetRoot},
-	{"GET", "/v1/messages", handleGetMessages},
-	{"GET", "/v2/message", handleGetMessagesV2},
-	{"GET", "/v1/admin/stats", handleGetAdminStats},
-	{"POST", "/v1/messages", handlePostMessages},
-	{"POST", "/v2/message", handlePostMessages},
-}
-
-func parseFilterParams(c *gin.Context) map[string]interface{} {
+func (logger *LoggerService) parseFilterParams(getQueryFunc piazza.GetQueryFunc) map[string]interface{} {
 
 	var filterParams = map[string]interface{}{}
 
-	before, beforeExists := c.GetQuery("before")
+	before, beforeExists := getQueryFunc("before")
 
 	if beforeExists && before != "" {
 		num, err := strconv.Atoi(before)
@@ -321,7 +273,7 @@ func parseFilterParams(c *gin.Context) map[string]interface{} {
 		}
 	}
 
-	after, afterExists := c.GetQuery("after")
+	after, afterExists := getQueryFunc("after")
 
 	if afterExists && after != "" {
 		num, err := strconv.Atoi(after)
@@ -330,13 +282,13 @@ func parseFilterParams(c *gin.Context) map[string]interface{} {
 		}
 	}
 
-	service, serviceExists := c.GetQuery("service")
+	service, serviceExists := getQueryFunc("service")
 
 	if serviceExists && service != "" {
 		filterParams["service"] = service
 	}
 
-	contains, containsExists := c.GetQuery("contains")
+	contains, containsExists := getQueryFunc("contains")
 
 	if containsExists && contains != "" {
 		filterParams["contains"] = contains
@@ -345,7 +297,7 @@ func parseFilterParams(c *gin.Context) map[string]interface{} {
 	return filterParams
 }
 
-func createQueryDslAsString(
+func (logger *LoggerService) createQueryDslAsString(
 	format elasticsearch.QueryFormat,
 	params map[string]interface{},
 ) string {
