@@ -36,9 +36,9 @@ type LoggerTester struct {
 
 	esi    elasticsearch.IIndex
 	sys    *piazza.SystemConfig
-	logger IClient
+	client IClient
 
-	server *piazza.GenericServer
+	genericServer *piazza.GenericServer
 }
 
 func (suite *LoggerTester) setupFixture() {
@@ -60,32 +60,36 @@ func (suite *LoggerTester) setupFixture() {
 	suite.esi = esi
 
 	if MOCKING {
-		logger, err := NewMockClient(sys)
+		client, err := NewMockClient(sys)
 		assert.NoError(err)
-		suite.logger = logger
+		suite.client = client
 	} else {
-		logger, err := NewClient(sys)
+		client, err := NewClient(sys)
 		assert.NoError(err)
-		suite.logger = logger
+		suite.client = client
 	}
 
-	Init(sys, esi)
+	loggerService := &LoggerService{}
+	loggerService.Init(sys, esi)
 
-	suite.server = &piazza.GenericServer{Sys: sys}
+	loggerServer := &LoggerServer{}
+	loggerServer.Init(loggerService)
 
-	err = suite.server.Configure(Routes)
+	suite.genericServer = &piazza.GenericServer{Sys: sys}
+
+	err = suite.genericServer.Configure(loggerServer.Routes)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = suite.server.Start()
+	_, err = suite.genericServer.Start()
 	assert.NoError(err)
 }
 
 func (suite *LoggerTester) teardownFixture() {
 	//TODO: kill the go routine running the server
 
-	suite.server.Stop()
+	suite.genericServer.Stop()
 
 	suite.esi.Close()
 	suite.esi.Delete()
@@ -100,10 +104,10 @@ func (suite *LoggerTester) getLastMessage() string {
 	t := suite.T()
 	assert := assert.New(t)
 
-	logger := suite.logger
+	client := suite.client
 
 	format := elasticsearch.QueryFormat{Size: 100, From: 0, Order: elasticsearch.SortDescending, Key: "stamp"}
-	ms, err := logger.GetFromMessages(format, map[string]string{})
+	ms, err := client.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
 
@@ -128,7 +132,7 @@ func (suite *LoggerTester) Test02One() {
 	suite.setupFixture()
 	defer suite.teardownFixture()
 
-	logger := suite.logger
+	client := suite.client
 
 	var err error
 
@@ -149,7 +153,7 @@ func (suite *LoggerTester) Test02One() {
 	}
 
 	{
-		err = logger.LogMessage(&data1)
+		err = client.LogMessage(&data1)
 		assert.NoError(err, "PostToMessages")
 	}
 
@@ -162,7 +166,7 @@ func (suite *LoggerTester) Test02One() {
 	}
 
 	{
-		err = logger.LogMessage(&data2)
+		err = client.LogMessage(&data2)
 		assert.NoError(err, "PostToMessages")
 	}
 
@@ -175,7 +179,7 @@ func (suite *LoggerTester) Test02One() {
 	}
 
 	{
-		stats, err := logger.GetFromAdminStats()
+		stats, err := client.GetFromAdminStats()
 		assert.NoError(err, "GetFromAdminStats")
 		assert.Equal(2, stats.NumMessages, "stats check")
 		assert.WithinDuration(time.Now(), stats.StartTime, 30*time.Second, "service start time too long ago")
@@ -186,7 +190,7 @@ func (suite *LoggerTester) Test03Help() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	err := suite.logger.Log("mocktest", "0.0.0.0", SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
+	err := suite.client.Log("mocktest", "0.0.0.0", SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 }
 
@@ -197,9 +201,9 @@ func (suite *LoggerTester) Test04Admin() {
 	suite.setupFixture()
 	defer suite.teardownFixture()
 
-	logger := suite.logger
+	client := suite.client
 
-	_, err := logger.GetFromAdminStats()
+	_, err := client.GetFromAdminStats()
 	assert.NoError(err, "GetFromAdminStats")
 }
 
@@ -214,34 +218,34 @@ func (suite *LoggerTester) Test05Pagination() {
 	suite.setupFixture()
 	defer suite.teardownFixture()
 
-	logger := suite.logger
+	client := suite.client
 
-	logger.SetService("myservice", "1.2.3.4")
+	client.SetService("myservice", "1.2.3.4")
 
-	err := logger.Debug("d")
+	err := client.Debug("d")
 	assert.NoError(err)
 	sleep()
-	err = logger.Info("i")
+	err = client.Info("i")
 	assert.NoError(err)
 	sleep()
-	err = logger.Warn("w")
+	err = client.Warn("w")
 	assert.NoError(err)
 	sleep()
-	err = logger.Error("e")
+	err = client.Error("e")
 	assert.NoError(err)
 	sleep()
-	err = logger.Fatal("f")
+	err = client.Fatal("f")
 	assert.NoError(err)
 	sleep()
 
 	format := elasticsearch.QueryFormat{Size: 1, From: 0, Key: "stamp", Order: elasticsearch.SortDescending}
-	ms, err := logger.GetFromMessages(format, map[string]string{})
+	ms, err := client.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 1)
 	assert.EqualValues(SeverityFatal, ms[0].Severity)
 
 	format = elasticsearch.QueryFormat{Size: 3, From: 2, Key: "stamp", Order: elasticsearch.SortDescending}
-	ms, err = logger.GetFromMessages(format, map[string]string{})
+	ms, err = client.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 3)
 	assert.EqualValues(SeverityWarning, ms[0].Severity)
@@ -260,9 +264,9 @@ func (suite *LoggerTester) Test06OtherParams() {
 	suite.setupFixture()
 	defer suite.teardownFixture()
 
-	logger := suite.logger
+	client := suite.client
 
-	logger.SetService("myservice", "1.2.3.4")
+	client.SetService("myservice", "1.2.3.4")
 
 	var testData = []Message{
 		{
@@ -300,7 +304,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	for _, e := range testData {
 		// log.Printf("%d, %v\n", i, e)
-		err := logger.LogMessage(&e)
+		err := client.LogMessage(&e)
 		assert.NoError(err)
 	}
 
@@ -311,7 +315,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 		Order: elasticsearch.SortDescending,
 		Key:   "stamp"}
 
-	msgs, err := logger.GetFromMessages(format,
+	msgs, err := client.GetFromMessages(format,
 		map[string]string{
 			"service":  "JobManager",
 			"contains": "Success",
@@ -323,7 +327,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 		log.Printf("%v\n", msg)
 	}
 
-	msgs, err = logger.GetFromMessages(format,
+	msgs, err = client.GetFromMessages(format,
 		map[string]string{
 			"before": "1461181461",
 			"after":  "1461181362",

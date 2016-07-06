@@ -37,16 +37,20 @@ func main() {
 	}
 	var esi elasticsearch.IIndex = idx
 
-	pzlogger.Init(sys, esi)
+	loggerService := &pzlogger.LoggerService{}
+	loggerService.Init(sys, esi)
 
-	server := piazza.GenericServer{Sys: sys}
+	loggerServer := &pzlogger.LoggerServer{}
+	loggerServer.Init(loggerService)
 
-	err = server.Configure(pzlogger.Routes)
+	genericServer := piazza.GenericServer{Sys: sys}
+
+	err = genericServer.Configure(loggerServer.Routes)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	done, err := server.Start()
+	done, err := genericServer.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
