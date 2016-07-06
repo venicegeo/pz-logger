@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-gocommon/gocommon"
@@ -35,7 +34,7 @@ type LockedAdminStats struct {
 type LogData struct {
 	sync.Mutex
 	esIndex elasticsearch.IIndex
-	logId      int
+	id      int
 }
 
 const schema = "LogData"
@@ -47,8 +46,6 @@ type LoggerService struct {
 
 func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	var err error
-
-	logger.stats.StartTime = time.Now().Format(time.RFC3339)
 
 	/***
 	err = esIndex.Delete()
@@ -65,7 +62,7 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 	***/
 
 	if !esIndex.IndexExists() {
-		err = esIndex.Create("")
+		err = esIndex.Create()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -120,16 +117,6 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 	if err != nil {
 		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
-
-	// Convert mssg to ESMessage
-	// Only difference is that the timestamp is in Unix time since epoch,
-	// for easier Elasticsearch searching
-	var esmssg ESMessage
-	esmssg.CreatedOn = mssg.CreatedOn.Unix()
-	esmssg.Service = mssg.Service
-	esmssg.Address = mssg.Address
-	esmssg.Severity = mssg.Severity
-	esmssg.Message = mssg.Message
 
 	log.Printf("PZLOG: %s\n", mssg.String())
 

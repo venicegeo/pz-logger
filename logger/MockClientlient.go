@@ -35,8 +35,6 @@ func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
 
 	service := &MockClient{}
 
-	service.stats.StartTime = time.Now()
-
 	return service, nil
 }
 
@@ -67,8 +65,7 @@ func (logger *MockClient) LogMessage(mssg *Message) error {
 }
 
 func (mock *MockClient) Log(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error {
-	secs := t.Unix()
-	mssg := Message{Service: service, Address: address, Severity: severity, Message: message, Stamp: secs}
+	mssg := Message{Service: service, Address: address, Severity: severity, Message: message, CreatedOn: t.Unix()}
 	return mock.LogMessage(&mssg)
 }
 

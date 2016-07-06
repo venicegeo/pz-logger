@@ -30,14 +30,6 @@ import (
 type Message struct {
 	Service   piazza.ServiceName `json:"service"`
 	Address   string             `json:"address"`
-	CreatedOn string             `json:"createdOn"`
-	Severity  Severity           `json:"severity"`
-	Message   string             `json:"message"`
-}
-
-type ESMessage struct {
-	Service   piazza.ServiceName `json:"service"`
-	Address   string             `json:"address"`
 	CreatedOn int64              `json:"createdOn"`
 	Severity  Severity           `json:"severity"`
 	Message   string             `json:"message"`
@@ -73,7 +65,7 @@ type LoggerAdminStats struct {
 // ToString returns a Message as a formatted string.
 func (mssg *Message) String() string {
 	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",
-		mssg.Service, mssg.Address, mssg.CreatedOn.Unix().String(), mssg.Severity, mssg.Message)
+		mssg.Service, mssg.Address, mssg.CreatedOn, mssg.Severity, mssg.Message)
 	return s
 }
 
