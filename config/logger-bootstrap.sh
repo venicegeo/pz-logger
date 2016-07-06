@@ -20,14 +20,14 @@ echo 'export PATH=$PATH:/usr/local/go/bin' >>/home/vagrant/.bash_profile
 export PATH=$PATH:/usr/local/go/bin
 #echo $PATH
 
-echo go help..........................................
+echo go help.
 go help
 
 #apt-get install git-all
 #apt-get install git htop -y -q
 apt-get -y install git
 
-echo PRINT USER ..................................
+echo PRINT USER
 whoami
 
 #su - vagrant
@@ -69,7 +69,5 @@ go get github.com/venicegeo/pz-logger
 go install github.com/venicegeo/pz-logger
 
 #start pz-logger app
-./home/vagrant/workspace/gostuff/bin/pz-logger
-
-echo Done building pz-logger
-echo Done creating instance...
+cd /home/vagrant/workspace/gostuff/bin
+./pz-logger
