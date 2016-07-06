@@ -35,7 +35,7 @@ type LockedAdminStats struct {
 type LogData struct {
 	sync.Mutex
 	esIndex elasticsearch.IIndex
-	id      int
+	logId      int
 }
 
 const schema = "LogData"
@@ -48,7 +48,7 @@ type LoggerService struct {
 func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	var err error
 
-	logger.stats.StartTime = time.Now()
+	logger.stats.StartTime = time.Now().Format(time.RFC3339)
 
 	/***
 	err = esIndex.Delete()
@@ -72,31 +72,31 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 
 		mapping :=
 			`{
-		    "LogData":{
-			    "properties":{
-				    "service":{
-					    "type": "string",
-                        "store": true
-    			    },
-				    "address":{
-					    "type": "string",
-                        "store": true
-    			    },
-				    "stamp":{
-					    "type": "long",
-                        "store": true
-    			    },
-				    "severity":{
-					    "type": "string",
-                        "store": true
-    			    },
-				    "message":{
-					    "type": "string",
-                        "store": true
-    			    }
-	    	    } 
-	        }
-        }`
+			"LogData":{
+				"properties":{
+					"service":{
+						"type": "string",
+						"store": true
+					},
+					"address":{
+						"type": "string",
+						"store": true
+					},
+					"stamp":{
+						"type": "long",
+						"store": true
+					},
+					"severity":{
+						"type": "string",
+						"store": true
+					},
+					"message":{
+						"type": "string",
+						"store": true
+					}
+				}
+			}
+		}`
 
 		err = esIndex.SetMapping(schema, piazza.JsonString(mapping))
 		if err != nil {
@@ -120,6 +120,16 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 	if err != nil {
 		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
+
+	// Convert mssg to ESMessage
+	// Only difference is that the timestamp is in Unix time since epoch,
+	// for easier Elasticsearch searching
+	var esmssg ESMessage
+	esmssg.CreatedOn = mssg.CreatedOn.Unix()
+	esmssg.Service = mssg.Service
+	esmssg.Address = mssg.Address
+	esmssg.Severity = mssg.Severity
+	esmssg.Message = mssg.Message
 
 	log.Printf("PZLOG: %s\n", mssg.String())
 
@@ -167,7 +177,7 @@ func (logger *LoggerService) GetMessages(queryFunc piazza.QueryFunc,
 	getQueryFunc piazza.GetQueryFunc) *piazza.JsonResponse {
 	var err error
 
-	format, err := elasticsearch.GetFormatParamsV2(queryFunc, 10, 0, "stamp", elasticsearch.SortDescending)
+	format, err := elasticsearch.GetFormatParamsV2(queryFunc, 10, 0, "createdOn", elasticsearch.SortDescending)
 	if err != nil {
 		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
@@ -317,7 +327,7 @@ func (logger *LoggerService) createQueryDslAsString(
 		must = append(must, map[string]interface{}{
 			"multi_match": map[string]interface{}{
 				"query":  params["contains"],
-				"fields": []string{"address", "message", "service", "serverity"},
+				"fields": []string{"address", "message", "service", "severity"},
 			},
 		})
 	}

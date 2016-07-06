@@ -121,6 +121,9 @@ func (c *Client) GetFromAdminStats() (*LoggerAdminStats, error) {
 
 ///////////////////
 
+// LogMessage puts a new message into Elasticsearch.
+// The `createdOn` field is changed to a Unix timestamp to allow for
+// easier searching in Elasticsearch.
 func (pz *Client) LogMessage(mssg *Message) error {
 
 	err := mssg.Validate()
@@ -153,10 +156,8 @@ func (pz *Client) Log(
 	t time.Time,
 	message string, v ...interface{}) error {
 
-	var secs int64 = t.Unix()
-
 	str := fmt.Sprintf(message, v...)
-	mssg := Message{Service: service, Address: address, Severity: severity, Stamp: secs, Message: str}
+	mssg := Message{Service: service, Address: address, Severity: severity, createdOn: t, Message: str}
 
 	return pz.LogMessage(&mssg)
 }
@@ -168,7 +169,7 @@ func (logger *Client) SetService(name piazza.ServiceName, address string) {
 
 func (logger *Client) post(severity Severity, message string, v ...interface{}) error {
 	str := fmt.Sprintf(message, v...)
-	return logger.Log(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
+	return logger.Log(logger.serviceName, logger.serviceAddress, severity, time.Now().Format(time.RFC3339), str)
 }
 
 // Debug sends a Debug-level message to the logger.
