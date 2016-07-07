@@ -104,7 +104,7 @@ func (suite *LoggerTester) getLastMessage() string {
 
 	client := suite.client
 
-	format := elasticsearch.QueryFormat{Size: 100, From: 0, Order: elasticsearch.SortDescending, Key: "stamp"}
+	format := elasticsearch.QueryFormat{Size: 100, From: 0, Order: elasticsearch.SortAscending, Key: "CreatedOn"}
 	ms, err := client.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
@@ -235,19 +235,25 @@ func (suite *LoggerTester) Test05Pagination() {
 	assert.NoError(err)
 	sleep()
 
-	format := elasticsearch.QueryFormat{Size: 1, From: 0, Key: "stamp", Order: elasticsearch.SortDescending}
+	format := elasticsearch.QueryFormat{Size: 1, From: 0, Key: "CreatedOn", Order: elasticsearch.SortAscending}
 	ms, err := client.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 1)
-	assert.EqualValues(SeverityFatal, ms[0].Severity)
+	assert.EqualValues(SeverityDebug, ms[0].Severity)
 
-	format = elasticsearch.QueryFormat{Size: 3, From: 2, Key: "stamp", Order: elasticsearch.SortDescending}
+	format = elasticsearch.QueryFormat{Size: 5, From: 0, Key: "CreatedOn", Order: elasticsearch.SortAscending}
+	ms, err = client.GetFromMessages(format, map[string]string{})
+	assert.NoError(err)
+	assert.Len(ms, 5)
+	assert.EqualValues(SeverityFatal, ms[4].Severity)
+
+	format = elasticsearch.QueryFormat{Size: 3, From: 2, Key: "CreatedOn", Order: elasticsearch.SortDescending}
 	ms, err = client.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 3)
-	assert.EqualValues(SeverityWarning, ms[0].Severity)
-	assert.EqualValues(SeverityInfo, ms[1].Severity)
-	assert.EqualValues(SeverityDebug, ms[2].Severity)
+	assert.EqualValues(SeverityWarning, ms[2].Severity)
+	assert.EqualValues(SeverityError, ms[1].Severity)
+	assert.EqualValues(SeverityFatal, ms[0].Severity)
 }
 
 func (suite *LoggerTester) Test06OtherParams() {
@@ -310,7 +316,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 	format := elasticsearch.QueryFormat{
 		Size: 100, From: 0,
 		Order: elasticsearch.SortDescending,
-		Key:   "stamp"}
+		Key:   "CreatedOn"}
 
 	msgs, err := client.GetFromMessages(format,
 		map[string]string{
