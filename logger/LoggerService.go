@@ -126,6 +126,9 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 	idStr := strconv.Itoa(logger.logData.id)
 	logger.logData.id++
 	logger.logData.Unlock()
+
+	log.Printf("schema=%s, idStr=%s, mssg=%s", schema, idStr, mssg)
+
 	indexResult, err := logger.logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
 		log.Printf("POST failed (1): %#v %#v", err, indexResult)
