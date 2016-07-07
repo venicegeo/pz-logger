@@ -120,7 +120,7 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
 
-	log.Printf("PZLOG: %s\n", mssg.String())
+	log.Printf("PostMessage started: %s\n", mssg.String())
 
 	logger.logData.Lock()
 	idStr := strconv.Itoa(logger.logData.id)
@@ -128,13 +128,14 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 	logger.logData.Unlock()
 	indexResult, err := logger.logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
+		log.Printf("POST failed (1): %#v %#v", err, indexResult)
 		return &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    err.Error(),
 		}
 	}
 	if !indexResult.Created {
-		log.Printf("POST failed: %#v", *indexResult)
+		log.Printf("POST failed (2): %#v", *indexResult)
 		resp := &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "POST of log data failed",
@@ -148,6 +149,8 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 		StatusCode: http.StatusOK,
 		Data:       mssg,
 	}
+
+	log.Printf("PostMessage completed")
 
 	return resp
 }
