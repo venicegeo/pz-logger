@@ -121,6 +121,7 @@ func (c *Client) GetFromAdminStats() (*LoggerAdminStats, error) {
 
 ///////////////////
 
+// LogMessage puts a new message into Elasticsearch.
 func (pz *Client) LogMessage(mssg *Message) error {
 
 	err := mssg.Validate()
@@ -133,7 +134,7 @@ func (pz *Client) LogMessage(mssg *Message) error {
 		return err
 	}
 
-	resp, err := http.Post(pz.url+"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(data))
+	resp, err := http.Post(pz.url + "/messages", piazza.ContentTypeJSON, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
@@ -153,10 +154,8 @@ func (pz *Client) Log(
 	t time.Time,
 	message string, v ...interface{}) error {
 
-	var secs int64 = t.Unix()
-
 	str := fmt.Sprintf(message, v...)
-	mssg := Message{Service: service, Address: address, Severity: severity, Stamp: secs, Message: str}
+	mssg := Message{Service: service, Address: address, Severity: severity, CreatedOn: t.Unix(), Message: str}
 
 	return pz.LogMessage(&mssg)
 }
