@@ -1,12 +1,13 @@
 #!/bin/bash
 
-d=`date`
+d=`date "+%s"`
+echo $d
 
 cat > tmp.1 <<foo
 {
     "service":  "noservice",
     "address":  "1.2.3.4",
-    "createdOn": 123456789,
+    "createdOn": $d,
     "severity": "Debug",
     "message":  "1111 $d"
 }
@@ -16,7 +17,7 @@ cat > tmp.2 <<foo
 {
     "service":  "noservice",
     "address":  "1.2.3.4",
-    "createdOn": 123456789,
+    "createdOn": $d,
     "severity": "Debug",
     "message":  "2222 $d"
 }
@@ -26,7 +27,7 @@ cat > tmp.3 <<foo
 {
     "service":  "noservice",
     "address":  "1.2.3.4",
-    "createdOn": 123456789,
+    "createdOn": $d,
     "severity": "Debug",
     "message":  "3333 $d"
 }
@@ -36,7 +37,7 @@ cat > tmp.4 <<foo
 {
     "service":  "noservice",
     "address":  "1.2.3.4",
-    "createdOn": 123456789,
+    "createdOn": $d,
     "severity": "Debug",
     "message":  "4444 $d"
 }
@@ -46,7 +47,7 @@ cat > tmp.5 <<foo
 {
     "service":  "noservice",
     "address":  "1.2.3.4",
-    "createdOn": 123456789,
+    "createdOn": $d,
     "severity": "Debug",
     "message":  "5555 $d"
 }

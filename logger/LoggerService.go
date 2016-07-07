@@ -137,14 +137,14 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 			Message:    err.Error(),
 		}
 	}
-	if !indexResult.Created {
+	/*	if !indexResult.Created {
 		log.Printf("POST failed (2): %#v", *indexResult)
 		resp := &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "POST of log data failed",
 		}
 		return resp
-	}
+	}*/
 
 	logger.stats.LoggerAdminStats.NumMessages++
 
