@@ -58,8 +58,16 @@ func (server *LoggerServer) Init(logger *LoggerService) {
 
 	server.Routes = []piazza.RouteData{
 		{"GET", "/", server.handleGetRoot},
+
 		{"GET", "/message", server.handleGetMessages},
+		{"GET", "/v1/messages", server.handleGetMessages},
+		{"GET", "/v2/message", server.handleGetMessages},
+
 		{"GET", "/admin/stats", server.handleGetAdminStats},
-		{"POST", "message", server.handlePostMessages},
+		{"GET", "/v1/admin/stats", server.handleGetAdminStats},
+
+		{"POST", "/message", server.handlePostMessages},
+		{"POST", "/v1/messages", server.handlePostMessages},
+		{"POST", "/v2/message", server.handlePostMessages},
 	}
 }
