@@ -25,8 +25,6 @@ import (
 
 // LogMessage represents the contents of a message for the logger service.
 // All fields are required.
-// CreatedOn is an RFC3339 formatted date string that is converted into a Unix timestamp
-// when entered into Elasticsearch.
 type Message struct {
 	Service   piazza.ServiceName `json:"service"`
 	Address   string             `json:"address"`
@@ -64,8 +62,9 @@ type LoggerAdminStats struct {
 
 // ToString returns a Message as a formatted string.
 func (mssg *Message) String() string {
+	t := time.Unix(mssg.CreatedOn, 0)
 	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",
-		mssg.Service, mssg.Address, mssg.CreatedOn, mssg.Severity, mssg.Message)
+		mssg.Service, mssg.Address, t, mssg.Severity, mssg.Message)
 	return s
 }
 

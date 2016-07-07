@@ -35,6 +35,8 @@ func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
 
 	service := &MockClient{}
 
+	service.stats.CreatedOn = time.Now()
+
 	return service, nil
 }
 

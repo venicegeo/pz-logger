@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-gocommon/gocommon"
@@ -47,6 +48,7 @@ type LoggerService struct {
 func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	var err error
 
+	logger.stats.CreatedOn = time.Now()
 	/***
 	err = esIndex.Delete()
 	if err != nil {
