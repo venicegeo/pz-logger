@@ -23,15 +23,14 @@ import (
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
-// LogMessage represents the contents of a messge for the logger service.
+// LogMessage represents the contents of a message for the logger service.
 // All fields are required.
-// Stamp is seconds since the epoch.
 type Message struct {
-	Service  piazza.ServiceName `json:"service"`
-	Address  string             `json:"address"`
-	Stamp    int64              `json:"stamp"`
-	Severity Severity           `json:"severity"`
-	Message  string             `json:"message"`
+	Service   piazza.ServiceName `json:"service"`
+	Address   string             `json:"address"`
+	CreatedOn int64              `json:"createdOn"`
+	Severity  Severity           `json:"severity"`
+	Message   string             `json:"message"`
 }
 
 type IClient interface {
@@ -57,13 +56,13 @@ type IClient interface {
 //---------------------------------------------------------------------------
 
 type LoggerAdminStats struct {
-	StartTime   time.Time `json:"starttime"`
+	CreatedOn   time.Time `json:"createdOn"`
 	NumMessages int       `json:"num_messages"`
 }
 
 // ToString returns a Message as a formatted string.
 func (mssg *Message) String() string {
-	t := time.Unix(mssg.Stamp, 0)
+	t := time.Unix(mssg.CreatedOn, 0)
 	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",
 		mssg.Service, mssg.Address, t, mssg.Severity, mssg.Message)
 	return s
@@ -99,8 +98,8 @@ func (mssg *Message) Validate() error {
 	if mssg.Address == "" {
 		return errors.New("required field 'address' not set")
 	}
-	if mssg.Stamp == 0 {
-		return errors.New("required field 'time' not set")
+	if mssg.CreatedOn == 0 {
+		return errors.New("required field 'createdOn' not set")
 	}
 	if mssg.Severity == "" {
 		return errors.New("required field 'severity' not set")

@@ -137,19 +137,19 @@ func (suite *LoggerTester) Test02One() {
 	var err error
 
 	data1 := Message{
-		Service:  "log-tester",
-		Address:  "128.1.2.3",
-		Stamp:    time.Now().Unix(),
-		Severity: "Info",
-		Message:  "The quick brown fox",
+		Service:   "log-tester",
+		Address:   "128.1.2.3",
+		CreatedOn: time.Now().Unix(),
+		Severity:  "Info",
+		Message:   "The quick brown fox",
 	}
 
 	data2 := Message{
-		Service:  "log-tester",
-		Address:  "128.0.0.0",
-		Stamp:    time.Now().Unix(),
-		Severity: "Fatal",
-		Message:  "The quick brown fox",
+		Service:   "log-tester",
+		Address:   "128.0.0.0",
+		CreatedOn: time.Now().Unix(),
+		Severity:  "Fatal",
+		Message:   "The quick brown fox",
 	}
 
 	{
@@ -182,7 +182,6 @@ func (suite *LoggerTester) Test02One() {
 		stats, err := client.GetFromAdminStats()
 		assert.NoError(err, "GetFromAdminStats")
 		assert.Equal(2, stats.NumMessages, "stats check")
-		assert.WithinDuration(time.Now(), stats.StartTime, 30*time.Second, "service start time too long ago")
 	}
 }
 
@@ -270,35 +269,35 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	var testData = []Message{
 		{
-			Address:  "gnemud7smfv/10.254.0.66",
-			Message:  "Received Message to Relay on topic Request-Job with key f3b63085-b482-4ae8-8297-3c7d1fcfff7d",
-			Service:  "Dispatcher",
-			Severity: "Info",
-			Stamp:    1461181461,
+			Address:   "gnemud7smfv/10.254.0.66",
+			Message:   "Received Message to Relay on topic Request-Job with key f3b63085-b482-4ae8-8297-3c7d1fcfff7d",
+			Service:   "Dispatcher",
+			Severity:  "Info",
+			CreatedOn: 1461181461,
 		}, {
-			Address:  "gnfbnqsn5m9/10.254.0.14",
-			Message:  "Processed Update Status for Job 6d0ea538-4382-4ea5-9669-56519b8c8f58 with Status Success",
-			Service:  "JobManager",
-			Severity: "Info",
-			Stamp:    1461181378,
+			Address:   "gnfbnqsn5m9/10.254.0.14",
+			Message:   "Processed Update Status for Job 6d0ea538-4382-4ea5-9669-56519b8c8f58 with Status Success",
+			Service:   "JobManager",
+			Severity:  "Info",
+			CreatedOn: 1461181378,
 		}, {
-			Address:  "0.0.0.0",
-			Message:  "generated 1: 09d4ec60-ea61-4066-8697-5568a47f84bf",
-			Service:  "pz-uuidgen",
-			Severity: "Info",
-			Stamp:    1461181362,
+			Address:   "0.0.0.0",
+			Message:   "generated 1: 09d4ec60-ea61-4066-8697-5568a47f84bf",
+			Service:   "pz-uuidgen",
+			Severity:  "Info",
+			CreatedOn: 1461181362,
 		}, {
-			Address:  "gnfbnqsn5m9/10.254.0.14",
-			Message:  "Handling Job with Topic Create-Job for Job ID 09d4ec60-ea61-4066-8697-5568a47f84bf",
-			Service:  "JobManager",
-			Severity: "Info",
-			Stamp:    1461181362,
+			Address:   "gnfbnqsn5m9/10.254.0.14",
+			Message:   "Handling Job with Topic Create-Job for Job ID 09d4ec60-ea61-4066-8697-5568a47f84bf",
+			Service:   "JobManager",
+			Severity:  "Info",
+			CreatedOn: 1461181362,
 		}, {
-			Address:  "gnfbnqsn5m9/10.254.0.14",
-			Message:  "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
-			Service:  "JobManager",
-			Severity: "Info",
-			Stamp:    1461181283,
+			Address:   "gnfbnqsn5m9/10.254.0.14",
+			Message:   "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
+			Service:   "JobManager",
+			Severity:  "Info",
+			CreatedOn: 1461181283,
 		},
 	}
 
