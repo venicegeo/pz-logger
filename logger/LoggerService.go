@@ -81,7 +81,7 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 						"type": "string",
 						"store": true
 					},
-					"stamp":{
+					"createdOn":{
 						"type": "long",
 						"store": true
 					},
