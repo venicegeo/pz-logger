@@ -1,12 +1,14 @@
 #!/bin/bash
 
+d=`date`
+
 cat > tmp <<foo
 {
     "service":  "noservice",
     "address":  "1.2.3.4",
     "createdOn": 123456789,
     "severity": "Debug",
-    "message":  "Yow!"
+    "message":  "Yow! $d"
 }
 foo
 
