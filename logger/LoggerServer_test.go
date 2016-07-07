@@ -87,8 +87,6 @@ func (suite *LoggerTester) setupFixture() {
 }
 
 func (suite *LoggerTester) teardownFixture() {
-	//TODO: kill the go routine running the server
-
 	suite.genericServer.Stop()
 
 	suite.esi.Close()
@@ -211,7 +209,7 @@ func (suite *LoggerTester) Test05Pagination() {
 	assert := assert.New(t)
 
 	if MOCKING {
-		t.Skip("Skipping test, because mocking.")
+		//t.Skip("Skipping test, because mocking.")
 	}
 
 	suite.setupFixture()

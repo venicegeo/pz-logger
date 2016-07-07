@@ -134,6 +134,7 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 		}
 	}
 	if !indexResult.Created {
+		log.Printf("POST failed: %#v", *indexResult)
 		resp := &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "POST of log data failed",
@@ -151,7 +152,7 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 	return resp
 }
 
-func (logger *LoggerService) GetAdminStats() *piazza.JsonResponse {
+func (logger *LoggerService) GetStats() *piazza.JsonResponse {
 	logger.logData.Lock()
 	t := logger.stats.LoggerAdminStats
 	logger.logData.Unlock()
@@ -162,7 +163,7 @@ func (logger *LoggerService) GetAdminStats() *piazza.JsonResponse {
 	return resp
 }
 
-func (logger *LoggerService) GetMessages(queryFunc piazza.QueryFunc,
+func (logger *LoggerService) GetMessage(queryFunc piazza.QueryFunc,
 	getQueryFunc piazza.GetQueryFunc) *piazza.JsonResponse {
 	var err error
 

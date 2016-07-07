@@ -32,7 +32,7 @@ func (server *LoggerServer) handleGetRoot(c *gin.Context) {
 	c.JSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) handlePostMessages(c *gin.Context) {
+func (server *LoggerServer) handlePostMessage(c *gin.Context) {
 	var mssg Message
 	err := c.BindJSON(&mssg)
 	if err != nil {
@@ -43,13 +43,13 @@ func (server *LoggerServer) handlePostMessages(c *gin.Context) {
 	c.JSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) handleGetAdminStats(c *gin.Context) {
-	resp := server.logger.GetAdminStats()
+func (server *LoggerServer) handleGetStats(c *gin.Context) {
+	resp := server.logger.GetStats()
 	c.JSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) handleGetMessages(c *gin.Context) {
-	resp := server.logger.GetMessages(c.Query, c.GetQuery)
+func (server *LoggerServer) handleGetMessage(c *gin.Context) {
+	resp := server.logger.GetMessage(c.Query, c.GetQuery)
 	c.JSON(resp.StatusCode, resp)
 }
 
@@ -58,16 +58,8 @@ func (server *LoggerServer) Init(logger *LoggerService) {
 
 	server.Routes = []piazza.RouteData{
 		{"GET", "/", server.handleGetRoot},
-
-		{"GET", "/message", server.handleGetMessages},
-		{"GET", "/v1/messages", server.handleGetMessages},
-		{"GET", "/v2/message", server.handleGetMessages},
-
-		{"GET", "/admin/stats", server.handleGetAdminStats},
-		{"GET", "/v1/admin/stats", server.handleGetAdminStats},
-
-		{"POST", "/message", server.handlePostMessages},
-		{"POST", "/v1/messages", server.handlePostMessages},
-		{"POST", "/v2/message", server.handlePostMessages},
+		{"GET", "/message", server.handleGetMessage},
+		{"POST", "/message", server.handlePostMessage},
+		{"GET", "/admin/stats", server.handleGetStats},
 	}
 }
