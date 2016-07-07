@@ -29,7 +29,7 @@ type LoggerServer struct {
 
 func (server *LoggerServer) handleGetRoot(c *gin.Context) {
 	resp := server.logger.GetRoot()
-	c.JSON(resp.StatusCode, resp)
+	c.IndentedJSON(resp.StatusCode, resp)
 }
 
 func (server *LoggerServer) handlePostMessage(c *gin.Context) {
@@ -37,20 +37,20 @@ func (server *LoggerServer) handlePostMessage(c *gin.Context) {
 	err := c.BindJSON(&mssg)
 	if err != nil {
 		resp := &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
-		c.JSON(resp.StatusCode, resp)
+		c.IndentedJSON(resp.StatusCode, resp)
 	}
 	resp := server.logger.PostMessage(&mssg)
-	c.JSON(resp.StatusCode, resp)
+	c.IndentedJSON(resp.StatusCode, resp)
 }
 
 func (server *LoggerServer) handleGetStats(c *gin.Context) {
 	resp := server.logger.GetStats()
-	c.JSON(resp.StatusCode, resp)
+	c.IndentedJSON(resp.StatusCode, resp)
 }
 
 func (server *LoggerServer) handleGetMessage(c *gin.Context) {
 	resp := server.logger.GetMessage(c.Query, c.GetQuery)
-	c.JSON(resp.StatusCode, resp)
+	c.IndentedJSON(resp.StatusCode, resp)
 }
 
 func (server *LoggerServer) Init(logger *LoggerService) {
