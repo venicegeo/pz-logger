@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
@@ -71,7 +70,7 @@ func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[st
 		}
 	}
 
-	log.Printf("%s\n", url)
+	//log.Printf("%s\n", url)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -134,7 +133,7 @@ func (pz *Client) LogMessage(mssg *Message) error {
 		return err
 	}
 
-	resp, err := http.Post(pz.url + "/messages", piazza.ContentTypeJSON, bytes.NewBuffer(data))
+	resp, err := http.Post(pz.url+"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}

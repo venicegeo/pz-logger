@@ -49,7 +49,8 @@ func (server *LoggerServer) handleGetStats(c *gin.Context) {
 }
 
 func (server *LoggerServer) handleGetMessage(c *gin.Context) {
-	resp := server.logger.GetMessage(c.Query, c.GetQuery)
+	params := piazza.GetQueryParams(c.Request)
+	resp := server.logger.GetMessage(params)
 	c.IndentedJSON(resp.StatusCode, resp)
 }
 

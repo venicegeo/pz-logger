@@ -120,23 +120,20 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
 
-	log.Printf("PostMessage started: %s\n", mssg.String())
-
 	logger.logData.Lock()
 	idStr := strconv.Itoa(logger.logData.id)
 	logger.logData.id++
 	logger.logData.Unlock()
 
-	log.Printf("schema=%s, idStr=%s, mssg=%s", schema, idStr, mssg)
-
-	indexResult, err := logger.logData.esIndex.PostData(schema, idStr, mssg)
+	_, err = logger.logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
-		log.Printf("POST failed (1): %#v %#v", err, indexResult)
+		//log.Printf("POST failed (1): %#v %#v", err, indexResult)
 		return &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    err.Error(),
 		}
 	}
+
 	/*	if !indexResult.Created {
 		log.Printf("POST failed (2): %#v", *indexResult)
 		resp := &piazza.JsonResponse{
@@ -153,8 +150,6 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 		Data:       mssg,
 	}
 
-	log.Printf("PostMessage completed")
-
 	return resp
 }
 
@@ -169,27 +164,39 @@ func (logger *LoggerService) GetStats() *piazza.JsonResponse {
 	return resp
 }
 
-func (logger *LoggerService) GetMessage(queryFunc piazza.QueryFunc,
-	getQueryFunc piazza.GetQueryFunc) *piazza.JsonResponse {
+func (logger *LoggerService) GetMessage(params *map[string]string) *piazza.JsonResponse {
 	var err error
 
-	format, err := elasticsearch.GetFormatParamsV2(queryFunc, 10, 0, "createdOn", elasticsearch.SortDescending)
-	if err != nil {
-		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
+	var format *elasticsearch.QueryFormat
+	var formalPagination *piazza.JsonPagination
+	{
+		defaults := &piazza.JsonPagination{
+			PerPage: 10,
+			Page:    0,
+			Order:   piazza.PaginationOrderDescending,
+			SortBy:  "createdOn",
+		}
+		formalPagination = &piazza.JsonPagination{}
+		err = formalPagination.ReadParams(params, defaults)
+		if err != nil {
+			return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
+		}
+		format = elasticsearch.NewQueryFormat(formalPagination)
 	}
+
 	filterParams := logger.parseFilterParams(getQueryFunc)
 
 	//log.Printf("size %d, from %d, key %s, format %v",
 	//	format.Size, format.From, format.Key, format.Order)
 
-	log.Printf("filterParams: %v\n", filterParams)
+	//log.Printf("filterParams: %v\n", filterParams)
 
 	var searchResult *elasticsearch.SearchResult
 
 	if len(filterParams) == 0 {
-		searchResult, err = logger.logData.esIndex.FilterByMatchAll(schema, format)
+		searchResult, err = logger.logData.esIndex.FilterByMatchAll(schema, *format)
 	} else {
-		var jsonString = logger.createQueryDslAsString(format, filterParams)
+		var jsonString = logger.createQueryDslAsString(*format, filterParams)
 		searchResult, err = logger.logData.esIndex.SearchByJSON(schema, jsonString)
 	}
 
@@ -243,24 +250,11 @@ func (logger *LoggerService) GetMessage(queryFunc piazza.QueryFunc,
 		bar[i] = e
 	}
 
-	var order string
-
-	if format.Order {
-		order = "desc"
-	} else {
-		order = "asc"
-	}
-
+	formalPagination.Count = matched
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       bar,
-		Pagination: &piazza.JsonPaginationResponse{
-			Page:    format.From,
-			PerPage: format.Size,
-			Count:   matched,
-			SortBy:  format.Key,
-			Order:   order,
-		},
+		Pagination: formalPagination,
 	}
 
 	return resp

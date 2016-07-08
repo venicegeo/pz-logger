@@ -326,9 +326,9 @@ func (suite *LoggerTester) Test06OtherParams() {
 	assert.NoError(err)
 	assert.Len(msgs, 1)
 
-	for _, msg := range msgs {
-		log.Printf("%v\n", msg)
-	}
+	//for _, msg := range msgs {
+	//log.Printf("%v\n", msg)
+	//}
 
 	msgs, err = client.GetFromMessages(format,
 		map[string]string{
@@ -339,8 +339,8 @@ func (suite *LoggerTester) Test06OtherParams() {
 	assert.NoError(err)
 	assert.Len(msgs, 4)
 
-	for _, msg := range msgs {
-		log.Printf("%v\n", msg)
-	}
+	//for _, msg := range msgs {
+	//log.Printf("%v\n", msg)
+	//}
 
 }
