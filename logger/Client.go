@@ -59,7 +59,7 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 
 func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
 
-	url := fmt.Sprintf("%s/messages?size=%d&from=%d&key=%s&order=%t", c.url, format.Size, format.From, format.Key, format.Order)
+	url := fmt.Sprintf("%s/message?size=%d&from=%d&key=%s&order=%t", c.url, format.Size, format.From, format.Key, format.Order)
 
 	var names = []string{"before", "after", "service", "contains"}
 
@@ -133,7 +133,7 @@ func (pz *Client) LogMessage(mssg *Message) error {
 		return err
 	}
 
-	resp, err := http.Post(pz.url+"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(data))
+	resp, err := http.Post(pz.url+"/message", piazza.ContentTypeJSON, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
