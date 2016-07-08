@@ -167,7 +167,6 @@ func (logger *LoggerService) GetStats() *piazza.JsonResponse {
 func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonResponse {
 	var err error
 
-	var format *elasticsearch.QueryFormat
 	var formalPagination *piazza.JsonPagination
 	{
 		defaults := &piazza.JsonPagination{
@@ -180,7 +179,6 @@ func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.
 		if err != nil {
 			return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 		}
-		format = elasticsearch.NewQueryFormat(formalPagination)
 	}
 
 	filterParams := logger.parseFilterParams(params)
@@ -193,9 +191,9 @@ func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.
 	var searchResult *elasticsearch.SearchResult
 
 	if len(filterParams) == 0 {
-		searchResult, err = logger.logData.esIndex.FilterByMatchAll(schema, *format)
+		searchResult, err = logger.logData.esIndex.FilterByMatchAll(schema, formalPagination)
 	} else {
-		var jsonString = logger.createQueryDslAsString(*format, filterParams)
+		var jsonString = logger.createQueryDslAsString(formalPagination, filterParams)
 		searchResult, err = logger.logData.esIndex.SearchByJSON(schema, jsonString)
 	}
 
@@ -297,7 +295,7 @@ func (logger *LoggerService) parseFilterParams(params *piazza.HttpQueryParams) m
 }
 
 func (logger *LoggerService) createQueryDslAsString(
-	format elasticsearch.QueryFormat,
+	format *piazza.JsonPagination,
 	params map[string]interface{},
 ) string {
 	// fmt.Printf("%d\n", len(params))
@@ -349,20 +347,12 @@ func (logger *LoggerService) createQueryDslAsString(
 				},
 			},
 		},
-		"size": format.Size,
-		"from": format.From,
-	}
-
-	var sortOrder string
-
-	if format.Order {
-		sortOrder = "desc"
-	} else {
-		sortOrder = "asc"
+		"size": format.PerPage,
+		"from": format.PerPage * format.Page,
 	}
 
 	dsl["sort"] = map[string]string{
-		format.Key: sortOrder,
+		format.SortBy: string(format.Order),
 	}
 
 	output, _ := json.Marshal(dsl)
