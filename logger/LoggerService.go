@@ -164,7 +164,7 @@ func (logger *LoggerService) GetStats() *piazza.JsonResponse {
 	return resp
 }
 
-func (logger *LoggerService) GetMessage(params *map[string]string) *piazza.JsonResponse {
+func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonResponse {
 	var err error
 
 	var format *elasticsearch.QueryFormat
@@ -176,15 +176,14 @@ func (logger *LoggerService) GetMessage(params *map[string]string) *piazza.JsonR
 			Order:   piazza.PaginationOrderDescending,
 			SortBy:  "createdOn",
 		}
-		formalPagination = &piazza.JsonPagination{}
-		err = formalPagination.ReadParams(params, defaults)
+		formalPagination, err = piazza.NewJsonPagination(params, defaults)
 		if err != nil {
 			return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 		}
 		format = elasticsearch.NewQueryFormat(formalPagination)
 	}
 
-	filterParams := logger.parseFilterParams(getQueryFunc)
+	filterParams := logger.parseFilterParams(params)
 
 	//log.Printf("size %d, from %d, key %s, format %v",
 	//	format.Size, format.From, format.Key, format.Order)
@@ -260,37 +259,37 @@ func (logger *LoggerService) GetMessage(params *map[string]string) *piazza.JsonR
 	return resp
 }
 
-func (logger *LoggerService) parseFilterParams(getQueryFunc piazza.GetQueryFunc) map[string]interface{} {
+func (logger *LoggerService) parseFilterParams(params *piazza.HttpQueryParams) map[string]interface{} {
 
 	var filterParams = map[string]interface{}{}
 
-	before, beforeExists := getQueryFunc("before")
+	before := params.Get("before")
 
-	if beforeExists && before != "" {
+	if before != "" {
 		num, err := strconv.Atoi(before)
 		if err == nil {
 			filterParams["before"] = num
 		}
 	}
 
-	after, afterExists := getQueryFunc("after")
+	after := params.Get("after")
 
-	if afterExists && after != "" {
+	if after != "" {
 		num, err := strconv.Atoi(after)
 		if err == nil {
 			filterParams["after"] = num
 		}
 	}
 
-	service, serviceExists := getQueryFunc("service")
+	service := params.Get("service")
 
-	if serviceExists && service != "" {
+	if service != "" {
 		filterParams["service"] = service
 	}
 
-	contains, containsExists := getQueryFunc("contains")
+	contains := params.Get("contains")
 
-	if containsExists && contains != "" {
+	if contains != "" {
 		filterParams["contains"] = contains
 	}
 
