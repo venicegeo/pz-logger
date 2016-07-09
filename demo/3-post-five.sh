@@ -1,11 +1,11 @@
 #!/bin/bash
 
-sh 2-post.sh A
+sh 2-post.sh AA
 sleep 1
-sh 2-post.sh B
+sh 2-post.sh BB
 sleep 1
-sh 2-post.sh C
+sh 2-post.sh CC
 sleep 1
-sh 2-post.sh D
+sh 2-post.sh DD
 sleep 1
-sh 2-post.sh E
+sh 2-post.sh EE

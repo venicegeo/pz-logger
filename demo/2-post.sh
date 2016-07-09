@@ -1,32 +1,24 @@
 #!/bin/bash
 
 # optional
-msg=$1
+msg="Yow. $1"
 
 # in unix ms
 d=`date "+%s"`
 
-cat > tmp <<foo
-{
+input='{
     "service":  "alpha",
     "address":  "1.2.3.4",
-    "createdOn": $d,
+    "createdOn": '$d',
     "severity": "Debug",
-    "message":  "Yow! $msg"
-}
-foo
-
-json=$(cat tmp)
+    "message":  "'"$msg"'"
+}'
 
 url="https://pz-logger.int.geointservices.io/message"
 echo
 echo POST $url
-echo "$json"
-
-ret=$(curl -S -s -XPOST -d "$json" "$url")
+echo "$input"
 
 echo RETURN:
-echo "$ret"
+curl -S -s -XPOST -d "$input" "$url"
 echo
-
-rm -f tmp
