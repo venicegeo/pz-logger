@@ -2,7 +2,7 @@
 
 # should return C, B
 
-url="https://pz-logger.int.geointservices.io/message?perPage=2&page=1"
+url="https://pz-logger.$PZDOMAIN/message?perPage=2&page=1"
 
 echo
 echo GET $url

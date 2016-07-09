@@ -3,7 +3,7 @@
 # optional
 msg="Yow. $1"
 
-# in unix ms
+# in unix seconds
 d=`date "+%s"`
 
 input='{
@@ -14,7 +14,7 @@ input='{
     "message":  "'"$msg"'"
 }'
 
-url="https://pz-logger.int.geointservices.io/message"
+url="https://pz-logger.$PZDOMAIN/message"
 echo
 echo POST $url
 echo "$input"

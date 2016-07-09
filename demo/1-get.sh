@@ -1,6 +1,6 @@
 #!/bin/bash
 
-url="https://pz-logger.int.geointservices.io/message?perPage=3"
+url="https://pz-logger.$PZDOMAIN/message?perPage=3"
 
 echo
 echo GET $url
