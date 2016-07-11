@@ -3,8 +3,8 @@ sudo apt-get update
 sudo apt-get upgrade
 
 # install openjdk-7 
-sudo apt-get purge openjdk*
-sudo apt-get -y install openjdk-7-jdk
+#sudo apt-get purge openjdk*
+#sudo apt-get -y install openjdk-7-jdk
 
 #alias list="ls -a"
  
@@ -58,13 +58,7 @@ cd /home/vagrant/workspace
 export GOPATH=/home/vagrant/workspace/gostuff
 #echo 'export GOPATH=/home/vagrant/workspace/gostuff' >>/home/vagrant/.bash_profile
 
-#echo 'export GOPATH=$(pwd -P)/workspace/pz-logger/gogo' >>/home/vagrant/.bash_profile
-#echo Installing pz-logger go install...
-
-#echo go help..........................................
-#go help
-
-#echo getting pz-logger and trying to build it.....................
+#echo getting pz-logger and trying to build it...
 go get github.com/venicegeo/pz-logger
 go install github.com/venicegeo/pz-logger
 
