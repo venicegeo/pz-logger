@@ -64,7 +64,7 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 	***/
 
 	if !esIndex.IndexExists() {
-		err = esIndex.Create()
+		err = esIndex.Create("")
 		if err != nil {
 			log.Fatal(err)
 		}
