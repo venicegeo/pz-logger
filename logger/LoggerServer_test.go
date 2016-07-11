@@ -87,8 +87,6 @@ func (suite *LoggerTester) setupFixture() {
 }
 
 func (suite *LoggerTester) teardownFixture() {
-	//TODO: kill the go routine running the server
-
 	suite.genericServer.Stop()
 
 	suite.esi.Close()
@@ -106,7 +104,7 @@ func (suite *LoggerTester) getLastMessage() string {
 
 	client := suite.client
 
-	format := elasticsearch.QueryFormat{Size: 100, From: 0, Order: elasticsearch.SortDescending, Key: "stamp"}
+	format := elasticsearch.QueryFormat{Size: 100, From: 0, Order: elasticsearch.SortAscending, Key: "CreatedOn"}
 	ms, err := client.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
@@ -137,19 +135,19 @@ func (suite *LoggerTester) Test02One() {
 	var err error
 
 	data1 := Message{
-		Service:  "log-tester",
-		Address:  "128.1.2.3",
-		Stamp:    time.Now().Unix(),
-		Severity: "Info",
-		Message:  "The quick brown fox",
+		Service:   "log-tester",
+		Address:   "128.1.2.3",
+		CreatedOn: time.Now(),
+		Severity:  "Info",
+		Message:   "The quick brown fox",
 	}
 
 	data2 := Message{
-		Service:  "log-tester",
-		Address:  "128.0.0.0",
-		Stamp:    time.Now().Unix(),
-		Severity: "Fatal",
-		Message:  "The quick brown fox",
+		Service:   "log-tester",
+		Address:   "128.0.0.0",
+		CreatedOn: time.Now(),
+		Severity:  "Fatal",
+		Message:   "The quick brown fox",
 	}
 
 	{
@@ -182,7 +180,6 @@ func (suite *LoggerTester) Test02One() {
 		stats, err := client.GetFromAdminStats()
 		assert.NoError(err, "GetFromAdminStats")
 		assert.Equal(2, stats.NumMessages, "stats check")
-		assert.WithinDuration(time.Now(), stats.StartTime, 30*time.Second, "service start time too long ago")
 	}
 }
 
@@ -212,7 +209,7 @@ func (suite *LoggerTester) Test05Pagination() {
 	assert := assert.New(t)
 
 	if MOCKING {
-		t.Skip("Skipping test, because mocking.")
+		//t.Skip("Skipping test, because mocking.")
 	}
 
 	suite.setupFixture()
@@ -238,19 +235,25 @@ func (suite *LoggerTester) Test05Pagination() {
 	assert.NoError(err)
 	sleep()
 
-	format := elasticsearch.QueryFormat{Size: 1, From: 0, Key: "stamp", Order: elasticsearch.SortDescending}
+	format := elasticsearch.QueryFormat{Size: 1, From: 0, Key: "CreatedOn", Order: elasticsearch.SortAscending}
 	ms, err := client.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 1)
-	assert.EqualValues(SeverityFatal, ms[0].Severity)
+	assert.EqualValues(SeverityDebug, ms[0].Severity)
 
-	format = elasticsearch.QueryFormat{Size: 3, From: 2, Key: "stamp", Order: elasticsearch.SortDescending}
+	format = elasticsearch.QueryFormat{Size: 5, From: 0, Key: "CreatedOn", Order: elasticsearch.SortAscending}
+	ms, err = client.GetFromMessages(format, map[string]string{})
+	assert.NoError(err)
+	assert.Len(ms, 5)
+	assert.EqualValues(SeverityFatal, ms[4].Severity)
+
+	format = elasticsearch.QueryFormat{Size: 3, From: 2, Key: "CreatedOn", Order: elasticsearch.SortDescending}
 	ms, err = client.GetFromMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 3)
-	assert.EqualValues(SeverityWarning, ms[0].Severity)
-	assert.EqualValues(SeverityInfo, ms[1].Severity)
-	assert.EqualValues(SeverityDebug, ms[2].Severity)
+	assert.EqualValues(SeverityWarning, ms[2].Severity)
+	assert.EqualValues(SeverityError, ms[1].Severity)
+	assert.EqualValues(SeverityFatal, ms[0].Severity)
 }
 
 func (suite *LoggerTester) Test06OtherParams() {
@@ -268,37 +271,41 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	client.SetService("myservice", "1.2.3.4")
 
+	//sometime, err := time.Parse(time.RFC3339, "1985-04-12T23:20:50.52Z")
+	//assert.NoError(err)
+	sometime := time.Now()
+
 	var testData = []Message{
 		{
-			Address:  "gnemud7smfv/10.254.0.66",
-			Message:  "Received Message to Relay on topic Request-Job with key f3b63085-b482-4ae8-8297-3c7d1fcfff7d",
-			Service:  "Dispatcher",
-			Severity: "Info",
-			Stamp:    1461181461,
+			Address:   "gnemud7smfv/10.254.0.66",
+			Message:   "Received Message to Relay on topic Request-Job with key f3b63085-b482-4ae8-8297-3c7d1fcfff7d",
+			Service:   "Dispatcher",
+			Severity:  "Info",
+			CreatedOn: sometime,
 		}, {
-			Address:  "gnfbnqsn5m9/10.254.0.14",
-			Message:  "Processed Update Status for Job 6d0ea538-4382-4ea5-9669-56519b8c8f58 with Status Success",
-			Service:  "JobManager",
-			Severity: "Info",
-			Stamp:    1461181378,
+			Address:   "gnfbnqsn5m9/10.254.0.14",
+			Message:   "Processed Update Status for Job 6d0ea538-4382-4ea5-9669-56519b8c8f58 with Status Success",
+			Service:   "JobManager",
+			Severity:  "Info",
+			CreatedOn: sometime,
 		}, {
-			Address:  "0.0.0.0",
-			Message:  "generated 1: 09d4ec60-ea61-4066-8697-5568a47f84bf",
-			Service:  "pz-uuidgen",
-			Severity: "Info",
-			Stamp:    1461181362,
+			Address:   "0.0.0.0",
+			Message:   "generated 1: 09d4ec60-ea61-4066-8697-5568a47f84bf",
+			Service:   "pz-uuidgen",
+			Severity:  "Info",
+			CreatedOn: sometime,
 		}, {
-			Address:  "gnfbnqsn5m9/10.254.0.14",
-			Message:  "Handling Job with Topic Create-Job for Job ID 09d4ec60-ea61-4066-8697-5568a47f84bf",
-			Service:  "JobManager",
-			Severity: "Info",
-			Stamp:    1461181362,
+			Address:   "gnfbnqsn5m9/10.254.0.14",
+			Message:   "Handling Job with Topic Create-Job for Job ID 09d4ec60-ea61-4066-8697-5568a47f84bf",
+			Service:   "JobManager",
+			Severity:  "Info",
+			CreatedOn: sometime,
 		}, {
-			Address:  "gnfbnqsn5m9/10.254.0.14",
-			Message:  "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
-			Service:  "JobManager",
-			Severity: "Info",
-			Stamp:    1461181283,
+			Address:   "gnfbnqsn5m9/10.254.0.14",
+			Message:   "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
+			Service:   "JobManager",
+			Severity:  "Info",
+			CreatedOn: sometime,
 		},
 	}
 
@@ -313,7 +320,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 	format := elasticsearch.QueryFormat{
 		Size: 100, From: 0,
 		Order: elasticsearch.SortDescending,
-		Key:   "stamp"}
+		Key:   "CreatedOn"}
 
 	msgs, err := client.GetFromMessages(format,
 		map[string]string{
@@ -323,9 +330,9 @@ func (suite *LoggerTester) Test06OtherParams() {
 	assert.NoError(err)
 	assert.Len(msgs, 1)
 
-	for _, msg := range msgs {
-		log.Printf("%v\n", msg)
-	}
+	//for _, msg := range msgs {
+	//log.Printf("%v\n", msg)
+	//}
 
 	msgs, err = client.GetFromMessages(format,
 		map[string]string{
@@ -336,8 +343,8 @@ func (suite *LoggerTester) Test06OtherParams() {
 	assert.NoError(err)
 	assert.Len(msgs, 4)
 
-	for _, msg := range msgs {
-		log.Printf("%v\n", msg)
-	}
+	//for _, msg := range msgs {
+	//log.Printf("%v\n", msg)
+	//}
 
 }

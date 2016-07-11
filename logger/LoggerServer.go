@@ -29,28 +29,29 @@ type LoggerServer struct {
 
 func (server *LoggerServer) handleGetRoot(c *gin.Context) {
 	resp := server.logger.GetRoot()
-	c.JSON(resp.StatusCode, resp)
+	c.IndentedJSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) handlePostMessages(c *gin.Context) {
+func (server *LoggerServer) handlePostMessage(c *gin.Context) {
 	var mssg Message
 	err := c.BindJSON(&mssg)
 	if err != nil {
 		resp := &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
-		c.JSON(resp.StatusCode, resp)
+		c.IndentedJSON(resp.StatusCode, resp)
 	}
 	resp := server.logger.PostMessage(&mssg)
-	c.JSON(resp.StatusCode, resp)
+	c.IndentedJSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) handleGetAdminStats(c *gin.Context) {
-	resp := server.logger.GetAdminStats()
-	c.JSON(resp.StatusCode, resp)
+func (server *LoggerServer) handleGetStats(c *gin.Context) {
+	resp := server.logger.GetStats()
+	c.IndentedJSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) handleGetMessages(c *gin.Context) {
-	resp := server.logger.GetMessages(c.Query, c.GetQuery)
-	c.JSON(resp.StatusCode, resp)
+func (server *LoggerServer) handleGetMessage(c *gin.Context) {
+	params := piazza.NewQueryParams(c.Request)
+	resp := server.logger.GetMessage(params)
+	c.IndentedJSON(resp.StatusCode, resp)
 }
 
 func (server *LoggerServer) Init(logger *LoggerService) {
@@ -58,8 +59,8 @@ func (server *LoggerServer) Init(logger *LoggerService) {
 
 	server.Routes = []piazza.RouteData{
 		{"GET", "/", server.handleGetRoot},
-		{"GET", "/message", server.handleGetMessages},
-		{"GET", "/admin/stats", server.handleGetAdminStats},
-		{"POST", "message", server.handlePostMessages},
+		{"GET", "/message", server.handleGetMessage},
+		{"POST", "/message", server.handlePostMessage},
+		{"GET", "/admin/stats", server.handleGetStats},
 	}
 }

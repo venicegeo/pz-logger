@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
@@ -60,7 +59,7 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 
 func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
 
-	url := fmt.Sprintf("%s/messages?size=%d&from=%d&key=%s&order=%t", c.url, format.Size, format.From, format.Key, format.Order)
+	url := fmt.Sprintf("%s/message?size=%d&from=%d&key=%s&order=%t", c.url, format.Size, format.From, format.Key, format.Order)
 
 	var names = []string{"before", "after", "service", "contains"}
 
@@ -71,7 +70,7 @@ func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[st
 		}
 	}
 
-	log.Printf("%s\n", url)
+	//log.Printf("%s\n", url)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -121,6 +120,7 @@ func (c *Client) GetFromAdminStats() (*LoggerAdminStats, error) {
 
 ///////////////////
 
+// LogMessage puts a new message into Elasticsearch.
 func (pz *Client) LogMessage(mssg *Message) error {
 
 	err := mssg.Validate()
@@ -133,7 +133,7 @@ func (pz *Client) LogMessage(mssg *Message) error {
 		return err
 	}
 
-	resp, err := http.Post(pz.url+"/messages", piazza.ContentTypeJSON, bytes.NewBuffer(data))
+	resp, err := http.Post(pz.url+"/message", piazza.ContentTypeJSON, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
@@ -153,10 +153,8 @@ func (pz *Client) Log(
 	t time.Time,
 	message string, v ...interface{}) error {
 
-	var secs int64 = t.Unix()
-
 	str := fmt.Sprintf(message, v...)
-	mssg := Message{Service: service, Address: address, Severity: severity, Stamp: secs, Message: str}
+	mssg := Message{Service: service, Address: address, Severity: severity, CreatedOn: t, Message: str}
 
 	return pz.LogMessage(&mssg)
 }

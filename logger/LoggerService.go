@@ -38,7 +38,7 @@ type LogData struct {
 	id      int
 }
 
-const schema = "LogData"
+const schema = "LogData2"
 
 type LoggerService struct {
 	stats   LockedAdminStats
@@ -48,8 +48,7 @@ type LoggerService struct {
 func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
 	var err error
 
-	logger.stats.StartTime = time.Now()
-
+	logger.stats.CreatedOn = time.Now()
 	/***
 	err = esIndex.Delete()
 	if err != nil {
@@ -65,38 +64,38 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 	***/
 
 	if !esIndex.IndexExists() {
-		err = esIndex.Create("")
+		err = esIndex.Create()
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		mapping :=
 			`{
-		    "LogData":{
-			    "properties":{
-				    "service":{
-					    "type": "string",
-                        "store": true
-    			    },
-				    "address":{
-					    "type": "string",
-                        "store": true
-    			    },
-				    "stamp":{
-					    "type": "long",
-                        "store": true
-    			    },
-				    "severity":{
-					    "type": "string",
-                        "store": true
-    			    },
-				    "message":{
-					    "type": "string",
-                        "store": true
-    			    }
-	    	    } 
-	        }
-        }`
+			"LogData2":{
+				"properties":{
+					"service":{
+						"type": "string",
+						"store": true
+					},
+					"address":{
+						"type": "string",
+						"store": true
+					},
+					"createdOn":{
+						"type": "date",
+						"store": true
+					},
+					"severity":{
+						"type": "string",
+						"store": true
+					},
+					"message":{
+						"type": "string",
+						"store": true
+					}
+				}
+			}
+		}`
 
 		err = esIndex.SetMapping(schema, piazza.JsonString(mapping))
 		if err != nil {
@@ -121,26 +120,28 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
 
-	log.Printf("PZLOG: %s\n", mssg.String())
-
 	logger.logData.Lock()
 	idStr := strconv.Itoa(logger.logData.id)
 	logger.logData.id++
 	logger.logData.Unlock()
-	indexResult, err := logger.logData.esIndex.PostData(schema, idStr, mssg)
+
+	_, err = logger.logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
+		//log.Printf("POST failed (1): %#v %#v", err, indexResult)
 		return &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    err.Error(),
 		}
 	}
-	if !indexResult.Created {
+
+	/*	if !indexResult.Created {
+		log.Printf("POST failed (2): %#v", *indexResult)
 		resp := &piazza.JsonResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "POST of log data failed",
 		}
 		return resp
-	}
+	}*/
 
 	logger.stats.LoggerAdminStats.NumMessages++
 
@@ -152,7 +153,7 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 	return resp
 }
 
-func (logger *LoggerService) GetAdminStats() *piazza.JsonResponse {
+func (logger *LoggerService) GetStats() *piazza.JsonResponse {
 	logger.logData.Lock()
 	t := logger.stats.LoggerAdminStats
 	logger.logData.Unlock()
@@ -163,27 +164,36 @@ func (logger *LoggerService) GetAdminStats() *piazza.JsonResponse {
 	return resp
 }
 
-func (logger *LoggerService) GetMessages(queryFunc piazza.QueryFunc,
-	getQueryFunc piazza.GetQueryFunc) *piazza.JsonResponse {
+func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonResponse {
 	var err error
 
-	format, err := elasticsearch.GetFormatParamsV2(queryFunc, 10, 0, "stamp", elasticsearch.SortDescending)
-	if err != nil {
-		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
+	var formalPagination *piazza.JsonPagination
+	{
+		defaults := &piazza.JsonPagination{
+			PerPage: 10,
+			Page:    0,
+			Order:   piazza.PaginationOrderDescending,
+			SortBy:  "createdOn",
+		}
+		formalPagination, err = piazza.NewJsonPagination(params, defaults)
+		if err != nil {
+			return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
+		}
 	}
-	filterParams := logger.parseFilterParams(getQueryFunc)
+
+	filterParams := logger.parseFilterParams(params)
 
 	//log.Printf("size %d, from %d, key %s, format %v",
 	//	format.Size, format.From, format.Key, format.Order)
 
-	log.Printf("filterParams: %v\n", filterParams)
+	//log.Printf("filterParams: %v\n", filterParams)
 
 	var searchResult *elasticsearch.SearchResult
 
 	if len(filterParams) == 0 {
-		searchResult, err = logger.logData.esIndex.FilterByMatchAll(schema, format)
+		searchResult, err = logger.logData.esIndex.FilterByMatchAll(schema, formalPagination)
 	} else {
-		var jsonString = logger.createQueryDslAsString(format, filterParams)
+		var jsonString = logger.createQueryDslAsString(formalPagination, filterParams)
 		searchResult, err = logger.logData.esIndex.SearchByJSON(schema, jsonString)
 	}
 
@@ -237,60 +247,47 @@ func (logger *LoggerService) GetMessages(queryFunc piazza.QueryFunc,
 		bar[i] = e
 	}
 
-	var order string
-
-	if format.Order {
-		order = "desc"
-	} else {
-		order = "asc"
-	}
-
+	formalPagination.Count = matched
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       bar,
-		Pagination: &piazza.JsonPaginationResponse{
-			Page:    format.From,
-			PerPage: format.Size,
-			Count:   matched,
-			SortBy:  format.Key,
-			Order:   order,
-		},
+		Pagination: formalPagination,
 	}
 
 	return resp
 }
 
-func (logger *LoggerService) parseFilterParams(getQueryFunc piazza.GetQueryFunc) map[string]interface{} {
+func (logger *LoggerService) parseFilterParams(params *piazza.HttpQueryParams) map[string]interface{} {
 
 	var filterParams = map[string]interface{}{}
 
-	before, beforeExists := getQueryFunc("before")
+	before := params.Get("before")
 
-	if beforeExists && before != "" {
+	if before != "" {
 		num, err := strconv.Atoi(before)
 		if err == nil {
 			filterParams["before"] = num
 		}
 	}
 
-	after, afterExists := getQueryFunc("after")
+	after := params.Get("after")
 
-	if afterExists && after != "" {
+	if after != "" {
 		num, err := strconv.Atoi(after)
 		if err == nil {
 			filterParams["after"] = num
 		}
 	}
 
-	service, serviceExists := getQueryFunc("service")
+	service := params.Get("service")
 
-	if serviceExists && service != "" {
+	if service != "" {
 		filterParams["service"] = service
 	}
 
-	contains, containsExists := getQueryFunc("contains")
+	contains := params.Get("contains")
 
-	if containsExists && contains != "" {
+	if contains != "" {
 		filterParams["contains"] = contains
 	}
 
@@ -298,7 +295,7 @@ func (logger *LoggerService) parseFilterParams(getQueryFunc piazza.GetQueryFunc)
 }
 
 func (logger *LoggerService) createQueryDslAsString(
-	format elasticsearch.QueryFormat,
+	format *piazza.JsonPagination,
 	params map[string]interface{},
 ) string {
 	// fmt.Printf("%d\n", len(params))
@@ -317,7 +314,7 @@ func (logger *LoggerService) createQueryDslAsString(
 		must = append(must, map[string]interface{}{
 			"multi_match": map[string]interface{}{
 				"query":  params["contains"],
-				"fields": []string{"address", "message", "service", "serverity"},
+				"fields": []string{"address", "message", "service", "severity"},
 			},
 		})
 	}
@@ -350,20 +347,12 @@ func (logger *LoggerService) createQueryDslAsString(
 				},
 			},
 		},
-		"size": format.Size,
-		"from": format.From,
-	}
-
-	var sortOrder string
-
-	if format.Order {
-		sortOrder = "desc"
-	} else {
-		sortOrder = "asc"
+		"size": format.PerPage,
+		"from": format.PerPage * format.Page,
 	}
 
 	dsl["sort"] = map[string]string{
-		format.Key: sortOrder,
+		format.SortBy: string(format.Order),
 	}
 
 	output, _ := json.Marshal(dsl)

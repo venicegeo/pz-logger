@@ -16,6 +16,7 @@ package logger
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
@@ -35,25 +36,70 @@ func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
 
 	service := &MockClient{}
 
-	service.stats.StartTime = time.Now()
+	service.stats.CreatedOn = time.Now()
 
 	return service, nil
 }
 
 func (logger *MockClient) GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
-	size := format.Size
-	from := format.From
 
-	l := len(logger.messages)
-	if from > l {
+	if len(params) != 0 {
+		log.Fatalf("parameters are not supported in mock client")
+	}
+
+	// this follows ES protocol, NOT our pagination protocol
+	startIndex := format.From
+	endIndex := startIndex + format.Size
+	totalCount := len(logger.messages)
+
+	if format.Key != "CreatedOn" {
+		log.Fatalf("usupported sort key in mock client: %s", format.Key)
+	}
+
+	if startIndex > totalCount {
 		m := make([]Message, 0)
 		return m, nil
 	}
-	if from+size > l {
-		size = l - from
+
+	if endIndex > totalCount {
+		// clip!
+		endIndex = totalCount
 	}
-	ms := logger.messages[from : from+size]
-	return ms, nil
+
+	resultCount := endIndex - startIndex
+
+	//log.Printf("====")
+	//log.Printf("Size=%d, From=%d", format.Size, format.From)
+	//log.Printf("StartIndex=%d, EndIndex=%d, ResultCount=%d", startIndex, endIndex, resultCount)
+	//for i, v := range logger.messages {
+	//log.Printf("%d: %s", i, v)
+	//}
+
+	// we return exactly one page
+	// first we get the right page, *then* we sort that subset
+
+	buf := make([]Message, resultCount)
+	for i := 0; i < resultCount; i++ {
+		//log.Printf("== %d %d", i, startIndex+i)
+		buf[i] = logger.messages[startIndex+i]
+	}
+
+	if format.Order == elasticsearch.SortDescending {
+		buf2 := make([]Message, resultCount)
+		for i := 0; i < resultCount; i++ {
+			buf2[i] = buf[resultCount-1-i]
+		}
+		buf = buf2
+	}
+
+	//log.Printf("----")
+	//for i, v := range buf {
+	//log.Printf("%d: %s", i, v)
+	//}
+
+	//log.Printf("====")
+
+	return buf, nil
 }
 
 func (logger *MockClient) GetFromAdminStats() (*LoggerAdminStats, error) {
@@ -67,8 +113,7 @@ func (logger *MockClient) LogMessage(mssg *Message) error {
 }
 
 func (mock *MockClient) Log(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error {
-	secs := t.Unix()
-	mssg := Message{Service: service, Address: address, Severity: severity, Message: message, Stamp: secs}
+	mssg := Message{Service: service, Address: address, Severity: severity, Message: message, CreatedOn: t}
 	return mock.LogMessage(&mssg)
 }
 
