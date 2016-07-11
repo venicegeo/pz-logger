@@ -137,7 +137,7 @@ func (suite *LoggerTester) Test02One() {
 	data1 := Message{
 		Service:   "log-tester",
 		Address:   "128.1.2.3",
-		CreatedOn: time.Now().Unix(),
+		CreatedOn: time.Now(),
 		Severity:  "Info",
 		Message:   "The quick brown fox",
 	}
@@ -145,7 +145,7 @@ func (suite *LoggerTester) Test02One() {
 	data2 := Message{
 		Service:   "log-tester",
 		Address:   "128.0.0.0",
-		CreatedOn: time.Now().Unix(),
+		CreatedOn: time.Now(),
 		Severity:  "Fatal",
 		Message:   "The quick brown fox",
 	}
@@ -271,37 +271,41 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	client.SetService("myservice", "1.2.3.4")
 
+	//sometime, err := time.Parse(time.RFC3339, "1985-04-12T23:20:50.52Z")
+	//assert.NoError(err)
+	sometime := time.Now()
+
 	var testData = []Message{
 		{
 			Address:   "gnemud7smfv/10.254.0.66",
 			Message:   "Received Message to Relay on topic Request-Job with key f3b63085-b482-4ae8-8297-3c7d1fcfff7d",
 			Service:   "Dispatcher",
 			Severity:  "Info",
-			CreatedOn: 1461181461,
+			CreatedOn: sometime,
 		}, {
 			Address:   "gnfbnqsn5m9/10.254.0.14",
 			Message:   "Processed Update Status for Job 6d0ea538-4382-4ea5-9669-56519b8c8f58 with Status Success",
 			Service:   "JobManager",
 			Severity:  "Info",
-			CreatedOn: 1461181378,
+			CreatedOn: sometime,
 		}, {
 			Address:   "0.0.0.0",
 			Message:   "generated 1: 09d4ec60-ea61-4066-8697-5568a47f84bf",
 			Service:   "pz-uuidgen",
 			Severity:  "Info",
-			CreatedOn: 1461181362,
+			CreatedOn: sometime,
 		}, {
 			Address:   "gnfbnqsn5m9/10.254.0.14",
 			Message:   "Handling Job with Topic Create-Job for Job ID 09d4ec60-ea61-4066-8697-5568a47f84bf",
 			Service:   "JobManager",
 			Severity:  "Info",
-			CreatedOn: 1461181362,
+			CreatedOn: sometime,
 		}, {
 			Address:   "gnfbnqsn5m9/10.254.0.14",
 			Message:   "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
 			Service:   "JobManager",
 			Severity:  "Info",
-			CreatedOn: 1461181283,
+			CreatedOn: sometime,
 		},
 	}
 

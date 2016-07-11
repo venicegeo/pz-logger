@@ -154,7 +154,7 @@ func (pz *Client) Log(
 	message string, v ...interface{}) error {
 
 	str := fmt.Sprintf(message, v...)
-	mssg := Message{Service: service, Address: address, Severity: severity, CreatedOn: t.Unix(), Message: str}
+	mssg := Message{Service: service, Address: address, Severity: severity, CreatedOn: t, Message: str}
 
 	return pz.LogMessage(&mssg)
 }

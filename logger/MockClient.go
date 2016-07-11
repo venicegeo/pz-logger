@@ -113,7 +113,7 @@ func (logger *MockClient) LogMessage(mssg *Message) error {
 }
 
 func (mock *MockClient) Log(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error {
-	mssg := Message{Service: service, Address: address, Severity: severity, Message: message, CreatedOn: t.Unix()}
+	mssg := Message{Service: service, Address: address, Severity: severity, Message: message, CreatedOn: t}
 	return mock.LogMessage(&mssg)
 }
 

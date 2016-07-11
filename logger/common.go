@@ -28,7 +28,7 @@ import (
 type Message struct {
 	Service   piazza.ServiceName `json:"service"`
 	Address   string             `json:"address"`
-	CreatedOn int64              `json:"createdOn"`
+	CreatedOn time.Time          `json:"createdOn"`
 	Severity  Severity           `json:"severity"`
 	Message   string             `json:"message"`
 }
@@ -62,7 +62,7 @@ type LoggerAdminStats struct {
 
 // ToString returns a Message as a formatted string.
 func (mssg *Message) String() string {
-	t := time.Unix(mssg.CreatedOn, 0)
+	t := mssg.CreatedOn.Format(time.RFC3339)
 	s := fmt.Sprintf("[%s, %s, %s, %s, %s]",
 		mssg.Service, mssg.Address, t, mssg.Severity, mssg.Message)
 	return s
@@ -98,7 +98,7 @@ func (mssg *Message) Validate() error {
 	if mssg.Address == "" {
 		return errors.New("required field 'address' not set")
 	}
-	if mssg.CreatedOn == 0 {
+	if mssg.CreatedOn.IsZero() {
 		return errors.New("required field 'createdOn' not set")
 	}
 	if mssg.Severity == "" {
