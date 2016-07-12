@@ -55,7 +55,7 @@ func (suite *LoggerTester) setupFixture() {
 	assert.NoError(err)
 	suite.sys = sys
 
-	esi, err := elasticsearch.NewIndexInterface(sys, "loggertest$", MOCKING)
+	esi, err := elasticsearch.NewIndexInterface(sys, "loggertest$", "", MOCKING)
 	assert.NoError(err)
 	suite.esi = esi
 
