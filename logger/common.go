@@ -110,3 +110,11 @@ func (mssg *Message) Validate() error {
 
 	return nil
 }
+
+//---------------------------------------------------------------------------
+
+func init() {
+	piazza.JsonResponseDataTypes["logger.Message"] = "logmessage"
+	piazza.JsonResponseDataTypes["[]logger.Message"] = "logmessage-list"
+	piazza.JsonResponseDataTypes["logger.LoggerAdminStats"] = "logstats"
+}

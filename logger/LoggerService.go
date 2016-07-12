@@ -111,6 +111,12 @@ func (logger *LoggerService) GetRoot() *piazza.JsonResponse {
 		StatusCode: 200,
 		Data:       "Hi. I'm pz-logger.",
 	}
+
+	err := resp.SetType()
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+	}
+
 	return resp
 }
 
@@ -150,6 +156,11 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 		Data:       mssg,
 	}
 
+	err = resp.SetType()
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+	}
+
 	return resp
 }
 
@@ -157,10 +168,17 @@ func (logger *LoggerService) GetStats() *piazza.JsonResponse {
 	logger.logData.Lock()
 	t := logger.stats.LoggerAdminStats
 	logger.logData.Unlock()
+
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       t,
 	}
+
+	err := resp.SetType()
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+	}
+
 	return resp
 }
 
@@ -252,6 +270,11 @@ func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.
 		StatusCode: http.StatusOK,
 		Data:       bar,
 		Pagination: formalPagination,
+	}
+
+	err = resp.SetType()
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
 	}
 
 	return resp
