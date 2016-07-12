@@ -15,12 +15,8 @@
 package logger
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"time"
 
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
@@ -72,23 +68,13 @@ func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[st
 
 	//log.Printf("%s\n", url)
 
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, err
+	jresp := piazza.HttpGetJson(url)
+	if jresp.IsError() {
+		return nil, jresp.ToError()
 	}
 
 	var mssgs []Message
-	err = json.Unmarshal(data, &mssgs)
+	err := jresp.ExtractData(&mssgs)
 	if err != nil {
 		return nil, err
 	}
@@ -98,19 +84,13 @@ func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[st
 
 func (c *Client) GetFromAdminStats() (*LoggerAdminStats, error) {
 
-	resp, err := http.Get(c.url + "/admin/stats")
-	if err != nil {
-		return nil, err
+	jresp := piazza.HttpGetJson(c.url + "/admin/stats")
+	if jresp.IsError() {
+		return nil, jresp.ToError()
 	}
 
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	stats := new(LoggerAdminStats)
-	err = json.Unmarshal(data, stats)
+	stats := &LoggerAdminStats{}
+	err := jresp.ExtractData(stats)
 	if err != nil {
 		return nil, err
 	}
@@ -128,18 +108,9 @@ func (pz *Client) LogMessage(mssg *Message) error {
 		return errors.New("message did not validate")
 	}
 
-	data, err := json.Marshal(mssg)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.Post(pz.url+"/message", piazza.ContentTypeJSON, bytes.NewBuffer(data))
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.New(resp.Status)
+	jresp := piazza.HttpPostJson(pz.url+"/message", mssg)
+	if jresp.IsError() {
+		return jresp.ToError()
 	}
 
 	return nil
