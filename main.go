@@ -31,7 +31,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	idx, err := elasticsearch.NewIndex(sys, "pzlogger", "")
+	idx, err := elasticsearch.NewIndex(sys, "pzlogger2", "")
 	if err != nil {
 		log.Fatal(err)
 	}
