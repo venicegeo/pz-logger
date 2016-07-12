@@ -38,14 +38,14 @@ type LogData struct {
 	id      int
 }
 
-const schema = "LogData3"
+const schema = "LogData2"
 
 type LoggerService struct {
 	stats   LockedAdminStats
 	logData LogData
 }
 
-func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
+func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) error {
 	var err error
 
 	logger.stats.CreatedOn = time.Now()
@@ -71,7 +71,7 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 
 		mapping :=
 			`{
-			"LogData3":{
+			"LogData2":{
 				"properties":{
 					"service":{
 						"type": "string",
@@ -99,11 +99,13 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 
 		err = esIndex.SetMapping(schema, piazza.JsonString(mapping))
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("LoggerService.Init: %s", err.Error())
+			return err
 		}
 	}
 
 	logger.logData.esIndex = esIndex
+	return nil
 }
 
 func (logger *LoggerService) GetRoot() *piazza.JsonResponse {

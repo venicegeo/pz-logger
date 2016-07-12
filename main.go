@@ -38,7 +38,10 @@ func main() {
 	var esi elasticsearch.IIndex = idx
 
 	loggerService := &pzlogger.LoggerService{}
-	loggerService.Init(sys, esi)
+	err = loggerService.Init(sys, esi)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	loggerServer := &pzlogger.LoggerServer{}
 	loggerServer.Init(loggerService)

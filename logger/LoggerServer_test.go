@@ -70,7 +70,8 @@ func (suite *LoggerTester) setupFixture() {
 	}
 
 	loggerService := &LoggerService{}
-	loggerService.Init(sys, esi)
+	err = loggerService.Init(sys, esi)
+	assert.NoError(err)
 
 	loggerServer := &LoggerServer{}
 	loggerServer.Init(loggerService)
