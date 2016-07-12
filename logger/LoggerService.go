@@ -38,7 +38,7 @@ type LogData struct {
 	id      int
 }
 
-const schema = "LogData2"
+const schema = "LogData3"
 
 type LoggerService struct {
 	stats   LockedAdminStats
@@ -71,7 +71,7 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 
 		mapping :=
 			`{
-			"LogData2":{
+			"LogData3":{
 				"properties":{
 					"service":{
 						"type": "string",
