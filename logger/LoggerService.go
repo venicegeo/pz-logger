@@ -38,7 +38,7 @@ type LogData struct {
 	id      int
 }
 
-const schema = "LogData2"
+const schema = "LogData4"
 
 type LoggerService struct {
 	stats   LockedAdminStats
@@ -64,14 +64,19 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 	***/
 
 	if !esIndex.IndexExists() {
+		log.Printf("Creating index: %s", esIndex.IndexName())
 		err = esIndex.Create("")
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if !esIndex.TypeExists(schema) {
+		log.Printf("Creating type: %s", schema)
 
 		mapping :=
 			`{
-			"LogData2":{
+			"LogData4":{
 				"properties":{
 					"service":{
 						"type": "string",
