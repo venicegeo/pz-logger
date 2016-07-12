@@ -3,13 +3,14 @@
 # optional
 msg="Yow. $1"
 
-# in unix seconds
-d=`date "+%s"`
+# %z gives "-0700" but we need "-07:00"
+#d=`date +%Y-%m-%dT%T%z`
+d=2006-01-02T15:04:05+07:00
 
 input='{
     "service":  "alpha",
     "address":  "1.2.3.4",
-    "createdOn": '$d',
+    "createdOn": "'"$d"'",
     "severity": "Debug",
     "message":  "'"$msg"'"
 }'

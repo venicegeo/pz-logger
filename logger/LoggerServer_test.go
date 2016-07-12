@@ -112,6 +112,17 @@ func (suite *LoggerTester) getLastMessage() string {
 	return ms[len(ms)-1].String()
 }
 
+func (suite *LoggerTester) Test00Time() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	a := "2006-01-02T15:04:05+07:00"
+	b, err := time.Parse(time.RFC3339, a)
+	assert.NoError(err)
+	c := b.Format(time.RFC3339)
+	assert.EqualValues(a, c)
+}
+
 func (suite *LoggerTester) Test01Elasticsearch() {
 	t := suite.T()
 	assert := assert.New(t)
@@ -271,8 +282,6 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	client.SetService("myservice", "1.2.3.4")
 
-	//sometime, err := time.Parse(time.RFC3339, "1985-04-12T23:20:50.52Z")
-	//assert.NoError(err)
 	sometime := time.Now()
 
 	var testData = []Message{
