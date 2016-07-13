@@ -41,7 +41,7 @@ func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
 	return service, nil
 }
 
-func (logger *MockClient) GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
+func (logger *MockClient) GetMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
 
 	if len(params) != 0 {
 		log.Fatalf("parameters are not supported in mock client")
@@ -102,19 +102,19 @@ func (logger *MockClient) GetFromMessages(format elasticsearch.QueryFormat, para
 	return buf, nil
 }
 
-func (logger *MockClient) GetFromAdminStats() (*LoggerAdminStats, error) {
+func (logger *MockClient) GetStats() (*LoggerAdminStats, error) {
 	return &logger.stats, nil
 }
 
-func (logger *MockClient) LogMessage(mssg *Message) error {
+func (logger *MockClient) PostMessage(mssg *Message) error {
 	logger.messages = append(logger.messages, *mssg)
 	logger.stats.NumMessages++
 	return nil
 }
 
-func (mock *MockClient) Log(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error {
+func (mock *MockClient) PostLog(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error {
 	mssg := Message{Service: service, Address: address, Severity: severity, Message: message, CreatedOn: t}
-	return mock.LogMessage(&mssg)
+	return mock.PostMessage(&mssg)
 }
 
 func (logger *MockClient) SetService(name piazza.ServiceName, address string) {
@@ -124,7 +124,7 @@ func (logger *MockClient) SetService(name piazza.ServiceName, address string) {
 
 func (logger *MockClient) post(severity Severity, message string, v ...interface{}) error {
 	str := fmt.Sprintf(message, v...)
-	return logger.Log(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
+	return logger.PostLog(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
 }
 
 // Debug sends a Debug-level message to the logger.

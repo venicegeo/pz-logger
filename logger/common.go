@@ -35,14 +35,15 @@ type Message struct {
 
 type IClient interface {
 	// admin interfaces
-	GetFromAdminStats() (*LoggerAdminStats, error)
+	GetStats() (*LoggerAdminStats, error)
 
 	// read support
-	GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error)
+	GetMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error)
 
 	// write support
-	LogMessage(mssg *Message) error
-	Log(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error
+	PostMessage(mssg *Message) error
+	PostLog(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error
+
 	Debug(message string, v ...interface{}) error
 	Info(message string, v ...interface{}) error
 	Warn(message string, v ...interface{}) error

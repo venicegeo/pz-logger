@@ -23,11 +23,15 @@ import (
 	"github.com/venicegeo/pz-gocommon/gocommon"
 )
 
+//---------------------------------------------------------------------
+
 type Client struct {
 	url            string
 	serviceName    piazza.ServiceName
 	serviceAddress string
 }
+
+//---------------------------------------------------------------------
 
 func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 	var _ IClient = new(Client)
@@ -53,7 +57,9 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 	return service, nil
 }
 
-func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
+//---------------------------------------------------------------------
+
+func (c *Client) GetMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
 
 	url := fmt.Sprintf("%s/message?size=%d&from=%d&key=%s&order=%t", c.url, format.Size, format.From, format.Key, format.Order)
 
@@ -82,7 +88,7 @@ func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[st
 	return mssgs, nil
 }
 
-func (c *Client) GetFromAdminStats() (*LoggerAdminStats, error) {
+func (c *Client) GetStats() (*LoggerAdminStats, error) {
 
 	jresp := piazza.HttpGetJson(c.url + "/admin/stats")
 	if jresp.IsError() {
@@ -98,10 +104,10 @@ func (c *Client) GetFromAdminStats() (*LoggerAdminStats, error) {
 	return stats, nil
 }
 
-///////////////////
+//---------------------------------------------------------------------
 
 // LogMessage puts a new message into Elasticsearch.
-func (pz *Client) LogMessage(mssg *Message) error {
+func (pz *Client) PostMessage(mssg *Message) error {
 
 	err := mssg.Validate()
 	if err != nil {
@@ -117,7 +123,7 @@ func (pz *Client) LogMessage(mssg *Message) error {
 }
 
 // Log sends the components of a LogMessage to the logger.
-func (pz *Client) Log(
+func (pz *Client) PostLog(
 	service piazza.ServiceName,
 	address string,
 	severity Severity,
@@ -127,7 +133,7 @@ func (pz *Client) Log(
 	str := fmt.Sprintf(message, v...)
 	mssg := Message{Service: service, Address: address, Severity: severity, CreatedOn: t, Message: str}
 
-	return pz.LogMessage(&mssg)
+	return pz.PostMessage(&mssg)
 }
 
 func (logger *Client) SetService(name piazza.ServiceName, address string) {
@@ -137,7 +143,7 @@ func (logger *Client) SetService(name piazza.ServiceName, address string) {
 
 func (logger *Client) post(severity Severity, message string, v ...interface{}) error {
 	str := fmt.Sprintf(message, v...)
-	return logger.Log(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
+	return logger.PostLog(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
 }
 
 // Debug sends a Debug-level message to the logger.
