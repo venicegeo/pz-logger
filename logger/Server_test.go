@@ -69,16 +69,16 @@ func (suite *LoggerTester) setupFixture() {
 		suite.client = client
 	}
 
-	loggerService := &LoggerService{}
-	err = loggerService.Init(sys, esi)
+	service := &Service{}
+	err = service.Init(sys, esi)
 	assert.NoError(err)
 
-	loggerServer := &LoggerServer{}
-	loggerServer.Init(loggerService)
+	server := &Server{}
+	server.Init(service)
 
 	suite.genericServer = &piazza.GenericServer{Sys: sys}
 
-	err = suite.genericServer.Configure(loggerServer.Routes)
+	err = suite.genericServer.Configure(server.Routes)
 	if err != nil {
 		log.Fatal(err)
 	}

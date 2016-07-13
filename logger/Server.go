@@ -22,40 +22,40 @@ import (
 	"github.com/venicegeo/pz-gocommon/gocommon"
 )
 
-type LoggerServer struct {
-	logger *LoggerService
-	Routes []piazza.RouteData
+type Server struct {
+	service *Service
+	Routes  []piazza.RouteData
 }
 
-func (server *LoggerServer) handleGetRoot(c *gin.Context) {
-	resp := server.logger.GetRoot()
+func (server *Server) handleGetRoot(c *gin.Context) {
+	resp := server.service.GetRoot()
 	c.IndentedJSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) handlePostMessage(c *gin.Context) {
+func (server *Server) handlePostMessage(c *gin.Context) {
 	var mssg Message
 	err := c.BindJSON(&mssg)
 	if err != nil {
 		resp := &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 		c.IndentedJSON(resp.StatusCode, resp)
 	}
-	resp := server.logger.PostMessage(&mssg)
+	resp := server.service.PostMessage(&mssg)
 	c.IndentedJSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) handleGetStats(c *gin.Context) {
-	resp := server.logger.GetStats()
+func (server *Server) handleGetStats(c *gin.Context) {
+	resp := server.service.GetStats()
 	c.IndentedJSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) handleGetMessage(c *gin.Context) {
+func (server *Server) handleGetMessage(c *gin.Context) {
 	params := piazza.NewQueryParams(c.Request)
-	resp := server.logger.GetMessage(params)
+	resp := server.service.GetMessage(params)
 	c.IndentedJSON(resp.StatusCode, resp)
 }
 
-func (server *LoggerServer) Init(logger *LoggerService) {
-	server.logger = logger
+func (server *Server) Init(service *Service) {
+	server.service = service
 
 	server.Routes = []piazza.RouteData{
 		{"GET", "/", server.handleGetRoot},

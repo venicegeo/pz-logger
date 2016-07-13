@@ -40,15 +40,16 @@ type LogData struct {
 
 const schema = "LogData5"
 
-type LoggerService struct {
+type Service struct {
 	stats   LockedAdminStats
 	logData LogData
+	origin  string
 }
 
-func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) error {
+func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) error {
 	var err error
 
-	logger.stats.CreatedOn = time.Now()
+	service.stats.CreatedOn = time.Now()
 	/***
 	err = esIndex.Delete()
 	if err != nil {
@@ -109,87 +110,98 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 		}
 	}
 
-	logger.logData.esIndex = esIndex
+	service.logData.esIndex = esIndex
+
+	service.origin = string(sys.Name)
+
 	return nil
 }
 
-func (logger *LoggerService) GetRoot() *piazza.JsonResponse {
+func (service *Service) newInternalErrorResponse(err error) *piazza.JsonResponse {
+	return &piazza.JsonResponse{
+		StatusCode: http.StatusInternalServerError,
+		Message:    err.Error(),
+		Origin:     service.origin,
+	}
+}
+
+func (service *Service) GetRoot() *piazza.JsonResponse {
 	resp := &piazza.JsonResponse{
 		StatusCode: 200,
 		Data:       "Hi. I'm pz-logger.",
+		Origin:     service.origin,
 	}
 
 	err := resp.SetType()
 	if err != nil {
-		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+		return service.newInternalErrorResponse(err)
 	}
 
 	return resp
 }
 
-func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
+func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
 	err := mssg.Validate()
 	if err != nil {
-		return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
+		return &piazza.JsonResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+			Origin:     service.origin,
+		}
 	}
 
-	logger.logData.Lock()
-	idStr := strconv.Itoa(logger.logData.id)
-	logger.logData.id++
-	logger.logData.Unlock()
+	service.logData.Lock()
+	idStr := strconv.Itoa(service.logData.id)
+	service.logData.id++
+	service.logData.Unlock()
 
-	_, err = logger.logData.esIndex.PostData(schema, idStr, mssg)
+	_, err = service.logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
 		//log.Printf("POST failed (1): %#v %#v", err, indexResult)
-		return &piazza.JsonResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		}
+		return service.newInternalErrorResponse(err)
 	}
 
 	/*	if !indexResult.Created {
 		log.Printf("POST failed (2): %#v", *indexResult)
-		resp := &piazza.JsonResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    "POST of log data failed",
-		}
-		return resp
+		return NewInternalErrorResponse(err)
 	}*/
 
-	logger.stats.LoggerAdminStats.NumMessages++
+	service.stats.LoggerAdminStats.NumMessages++
 
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       mssg,
+		Origin:     service.origin,
 	}
 
 	err = resp.SetType()
 	if err != nil {
-		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+		return service.newInternalErrorResponse(err)
 	}
 
 	return resp
 }
 
-func (logger *LoggerService) GetStats() *piazza.JsonResponse {
-	logger.logData.Lock()
-	t := logger.stats.LoggerAdminStats
-	logger.logData.Unlock()
+func (service *Service) GetStats() *piazza.JsonResponse {
+	service.logData.Lock()
+	t := service.stats.LoggerAdminStats
+	service.logData.Unlock()
 
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       t,
+		Origin:     service.origin,
 	}
 
 	err := resp.SetType()
 	if err != nil {
-		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+		return service.newInternalErrorResponse(err)
 	}
 
 	return resp
 }
 
-func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonResponse {
+func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonResponse {
 	var err error
 
 	var formalPagination *piazza.JsonPagination
@@ -202,11 +214,15 @@ func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.
 		}
 		formalPagination, err = piazza.NewJsonPagination(params, defaults)
 		if err != nil {
-			return &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
+			return &piazza.JsonResponse{
+				StatusCode: http.StatusBadRequest,
+				Message:    err.Error(),
+				Origin:     service.origin,
+			}
 		}
 	}
 
-	filterParams := logger.parseFilterParams(params)
+	filterParams := service.parseFilterParams(params)
 
 	//log.Printf("size %d, from %d, key %s, format %v",
 	//	format.Size, format.From, format.Key, format.Order)
@@ -216,18 +232,14 @@ func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.
 	var searchResult *elasticsearch.SearchResult
 
 	if len(filterParams) == 0 {
-		searchResult, err = logger.logData.esIndex.FilterByMatchAll(schema, formalPagination)
+		searchResult, err = service.logData.esIndex.FilterByMatchAll(schema, formalPagination)
 	} else {
-		var jsonString = logger.createQueryDslAsString(formalPagination, filterParams)
-		searchResult, err = logger.logData.esIndex.SearchByJSON(schema, jsonString)
+		var jsonString = service.createQueryDslAsString(formalPagination, filterParams)
+		searchResult, err = service.logData.esIndex.SearchByJSON(schema, jsonString)
 	}
 
 	if err != nil {
-		resp := &piazza.JsonResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    "query failed: " + err.Error(),
-		}
-		return resp
+		return service.newInternalErrorResponse(err)
 	}
 
 	// TODO: unsafe truncation
@@ -248,11 +260,7 @@ func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.
 		err = json.Unmarshal(src, tmp)
 		if err != nil {
 			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
-			resp := &piazza.JsonResponse{
-				StatusCode: http.StatusInternalServerError,
-				Message:    "unmarshall failed: " + err.Error(),
-			}
-			return resp
+			return service.newInternalErrorResponse(err)
 		}
 
 		// still needed?
@@ -277,17 +285,18 @@ func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.
 		StatusCode: http.StatusOK,
 		Data:       bar,
 		Pagination: formalPagination,
+		Origin:     service.origin,
 	}
 
 	err = resp.SetType()
 	if err != nil {
-		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+		return service.newInternalErrorResponse(err)
 	}
 
 	return resp
 }
 
-func (logger *LoggerService) parseFilterParams(params *piazza.HttpQueryParams) map[string]interface{} {
+func (service *Service) parseFilterParams(params *piazza.HttpQueryParams) map[string]interface{} {
 
 	var filterParams = map[string]interface{}{}
 
@@ -309,10 +318,10 @@ func (logger *LoggerService) parseFilterParams(params *piazza.HttpQueryParams) m
 		}
 	}
 
-	service := params.Get("service")
+	svc := params.Get("service")
 
-	if service != "" {
-		filterParams["service"] = service
+	if svc != "" {
+		filterParams["service"] = svc
 	}
 
 	contains := params.Get("contains")
@@ -324,7 +333,7 @@ func (logger *LoggerService) parseFilterParams(params *piazza.HttpQueryParams) m
 	return filterParams
 }
 
-func (logger *LoggerService) createQueryDslAsString(
+func (service *Service) createQueryDslAsString(
 	format *piazza.JsonPagination,
 	params map[string]interface{},
 ) string {
