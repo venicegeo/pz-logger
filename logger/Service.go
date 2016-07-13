@@ -150,7 +150,7 @@ func (service *Service) GetRoot() *piazza.JsonResponse {
 func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
 	err := mssg.Validate()
 	if err != nil {
-		return newBadRequestResponse(err)
+		return service.newBadRequestResponse(err)
 	}
 
 	service.logData.Lock()
@@ -215,7 +215,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		}
 		formalPagination, err = piazza.NewJsonPagination(params, defaults)
 		if err != nil {
-			return newBadRequestResponse(err)
+			return service.newBadRequestResponse(err)
 		}
 	}
 
