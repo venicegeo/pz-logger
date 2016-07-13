@@ -125,11 +125,18 @@ func (service *Service) newInternalErrorResponse(err error) *piazza.JsonResponse
 	}
 }
 
+func (service *Service) newBadRequestResponse(err error) *piazza.JsonResponse {
+	return &piazza.JsonResponse{
+		StatusCode: http.StatusBadRequest,
+		Message:    err.Error(),
+		Origin:     service.origin,
+	}
+}
+
 func (service *Service) GetRoot() *piazza.JsonResponse {
 	resp := &piazza.JsonResponse{
 		StatusCode: 200,
 		Data:       "Hi. I'm pz-logger.",
-		Origin:     service.origin,
 	}
 
 	err := resp.SetType()
@@ -143,11 +150,7 @@ func (service *Service) GetRoot() *piazza.JsonResponse {
 func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
 	err := mssg.Validate()
 	if err != nil {
-		return &piazza.JsonResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
-			Origin:     service.origin,
-		}
+		return newBadRequestResponse(err)
 	}
 
 	service.logData.Lock()
@@ -171,7 +174,6 @@ func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       mssg,
-		Origin:     service.origin,
 	}
 
 	err = resp.SetType()
@@ -190,7 +192,6 @@ func (service *Service) GetStats() *piazza.JsonResponse {
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       t,
-		Origin:     service.origin,
 	}
 
 	err := resp.SetType()
@@ -214,11 +215,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		}
 		formalPagination, err = piazza.NewJsonPagination(params, defaults)
 		if err != nil {
-			return &piazza.JsonResponse{
-				StatusCode: http.StatusBadRequest,
-				Message:    err.Error(),
-				Origin:     service.origin,
-			}
+			return newBadRequestResponse(err)
 		}
 	}
 
@@ -285,7 +282,6 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		StatusCode: http.StatusOK,
 		Data:       bar,
 		Pagination: formalPagination,
-		Origin:     service.origin,
 	}
 
 	err = resp.SetType()
