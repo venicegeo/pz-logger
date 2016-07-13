@@ -15,23 +15,23 @@
 package logger
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"time"
 
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-gocommon/gocommon"
 )
 
+//---------------------------------------------------------------------
+
 type Client struct {
 	url            string
 	serviceName    piazza.ServiceName
 	serviceAddress string
 }
+
+//---------------------------------------------------------------------
 
 func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 	var _ IClient = new(Client)
@@ -57,7 +57,9 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 	return service, nil
 }
 
-func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
+//---------------------------------------------------------------------
+
+func (c *Client) GetMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
 
 	url := fmt.Sprintf("%s/message?size=%d&from=%d&key=%s&order=%t", c.url, format.Size, format.From, format.Key, format.Order)
 
@@ -72,23 +74,13 @@ func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[st
 
 	//log.Printf("%s\n", url)
 
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, err
+	jresp := piazza.HttpGetJson(url)
+	if jresp.IsError() {
+		return nil, jresp.ToError()
 	}
 
 	var mssgs []Message
-	err = json.Unmarshal(data, &mssgs)
+	err := jresp.ExtractData(&mssgs)
 	if err != nil {
 		return nil, err
 	}
@@ -96,21 +88,15 @@ func (c *Client) GetFromMessages(format elasticsearch.QueryFormat, params map[st
 	return mssgs, nil
 }
 
-func (c *Client) GetFromAdminStats() (*LoggerAdminStats, error) {
+func (c *Client) GetStats() (*LoggerAdminStats, error) {
 
-	resp, err := http.Get(c.url + "/admin/stats")
-	if err != nil {
-		return nil, err
+	jresp := piazza.HttpGetJson(c.url + "/admin/stats")
+	if jresp.IsError() {
+		return nil, jresp.ToError()
 	}
 
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	stats := new(LoggerAdminStats)
-	err = json.Unmarshal(data, stats)
+	stats := &LoggerAdminStats{}
+	err := jresp.ExtractData(stats)
 	if err != nil {
 		return nil, err
 	}
@@ -118,35 +104,26 @@ func (c *Client) GetFromAdminStats() (*LoggerAdminStats, error) {
 	return stats, nil
 }
 
-///////////////////
+//---------------------------------------------------------------------
 
 // LogMessage puts a new message into Elasticsearch.
-func (pz *Client) LogMessage(mssg *Message) error {
+func (pz *Client) PostMessage(mssg *Message) error {
 
 	err := mssg.Validate()
 	if err != nil {
 		return errors.New("message did not validate")
 	}
 
-	data, err := json.Marshal(mssg)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.Post(pz.url+"/message", piazza.ContentTypeJSON, bytes.NewBuffer(data))
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.New(resp.Status)
+	jresp := piazza.HttpPostJson(pz.url+"/message", mssg)
+	if jresp.IsError() {
+		return jresp.ToError()
 	}
 
 	return nil
 }
 
 // Log sends the components of a LogMessage to the logger.
-func (pz *Client) Log(
+func (pz *Client) PostLog(
 	service piazza.ServiceName,
 	address string,
 	severity Severity,
@@ -156,7 +133,7 @@ func (pz *Client) Log(
 	str := fmt.Sprintf(message, v...)
 	mssg := Message{Service: service, Address: address, Severity: severity, CreatedOn: t, Message: str}
 
-	return pz.LogMessage(&mssg)
+	return pz.PostMessage(&mssg)
 }
 
 func (logger *Client) SetService(name piazza.ServiceName, address string) {
@@ -166,7 +143,7 @@ func (logger *Client) SetService(name piazza.ServiceName, address string) {
 
 func (logger *Client) post(severity Severity, message string, v ...interface{}) error {
 	str := fmt.Sprintf(message, v...)
-	return logger.Log(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
+	return logger.PostLog(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
 }
 
 // Debug sends a Debug-level message to the logger.

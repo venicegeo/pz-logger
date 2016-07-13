@@ -31,14 +31,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	idx, err := elasticsearch.NewIndex(sys, "pzlogger")
+	idx, err := elasticsearch.NewIndex(sys, "pzlogger2", "")
 	if err != nil {
 		log.Fatal(err)
 	}
 	var esi elasticsearch.IIndex = idx
 
 	loggerService := &pzlogger.LoggerService{}
-	loggerService.Init(sys, esi)
+	err = loggerService.Init(sys, esi)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	loggerServer := &pzlogger.LoggerServer{}
 	loggerServer.Init(loggerService)

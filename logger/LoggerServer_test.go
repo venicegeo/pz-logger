@@ -55,7 +55,7 @@ func (suite *LoggerTester) setupFixture() {
 	assert.NoError(err)
 	suite.sys = sys
 
-	esi, err := elasticsearch.NewIndexInterface(sys, "loggertest$", MOCKING)
+	esi, err := elasticsearch.NewIndexInterface(sys, "loggertest$", "", MOCKING)
 	assert.NoError(err)
 	suite.esi = esi
 
@@ -70,7 +70,8 @@ func (suite *LoggerTester) setupFixture() {
 	}
 
 	loggerService := &LoggerService{}
-	loggerService.Init(sys, esi)
+	err = loggerService.Init(sys, esi)
+	assert.NoError(err)
 
 	loggerServer := &LoggerServer{}
 	loggerServer.Init(loggerService)
@@ -105,11 +106,22 @@ func (suite *LoggerTester) getLastMessage() string {
 	client := suite.client
 
 	format := elasticsearch.QueryFormat{Size: 100, From: 0, Order: elasticsearch.SortAscending, Key: "CreatedOn"}
-	ms, err := client.GetFromMessages(format, map[string]string{})
+	ms, err := client.GetMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
 
 	return ms[len(ms)-1].String()
+}
+
+func (suite *LoggerTester) Test00Time() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	a := "2006-01-02T15:04:05+07:00"
+	b, err := time.Parse(time.RFC3339, a)
+	assert.NoError(err)
+	c := b.Format(time.RFC3339)
+	assert.EqualValues(a, c)
 }
 
 func (suite *LoggerTester) Test01Elasticsearch() {
@@ -151,7 +163,7 @@ func (suite *LoggerTester) Test02One() {
 	}
 
 	{
-		err = client.LogMessage(&data1)
+		err = client.PostMessage(&data1)
 		assert.NoError(err, "PostToMessages")
 	}
 
@@ -164,7 +176,7 @@ func (suite *LoggerTester) Test02One() {
 	}
 
 	{
-		err = client.LogMessage(&data2)
+		err = client.PostMessage(&data2)
 		assert.NoError(err, "PostToMessages")
 	}
 
@@ -177,7 +189,7 @@ func (suite *LoggerTester) Test02One() {
 	}
 
 	{
-		stats, err := client.GetFromAdminStats()
+		stats, err := client.GetStats()
 		assert.NoError(err, "GetFromAdminStats")
 		assert.Equal(2, stats.NumMessages, "stats check")
 	}
@@ -187,7 +199,7 @@ func (suite *LoggerTester) Test03Help() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	err := suite.client.Log("mocktest", "0.0.0.0", SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
+	err := suite.client.PostLog("mocktest", "0.0.0.0", SeverityInfo, time.Now(), "message from logger unit test via piazza.Log()")
 	assert.NoError(err, "pzService.Log()")
 }
 
@@ -200,7 +212,7 @@ func (suite *LoggerTester) Test04Admin() {
 
 	client := suite.client
 
-	_, err := client.GetFromAdminStats()
+	_, err := client.GetStats()
 	assert.NoError(err, "GetFromAdminStats")
 }
 
@@ -236,19 +248,19 @@ func (suite *LoggerTester) Test05Pagination() {
 	sleep()
 
 	format := elasticsearch.QueryFormat{Size: 1, From: 0, Key: "CreatedOn", Order: elasticsearch.SortAscending}
-	ms, err := client.GetFromMessages(format, map[string]string{})
+	ms, err := client.GetMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 1)
 	assert.EqualValues(SeverityDebug, ms[0].Severity)
 
 	format = elasticsearch.QueryFormat{Size: 5, From: 0, Key: "CreatedOn", Order: elasticsearch.SortAscending}
-	ms, err = client.GetFromMessages(format, map[string]string{})
+	ms, err = client.GetMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 5)
 	assert.EqualValues(SeverityFatal, ms[4].Severity)
 
 	format = elasticsearch.QueryFormat{Size: 3, From: 2, Key: "CreatedOn", Order: elasticsearch.SortDescending}
-	ms, err = client.GetFromMessages(format, map[string]string{})
+	ms, err = client.GetMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 3)
 	assert.EqualValues(SeverityWarning, ms[2].Severity)
@@ -271,8 +283,6 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	client.SetService("myservice", "1.2.3.4")
 
-	//sometime, err := time.Parse(time.RFC3339, "1985-04-12T23:20:50.52Z")
-	//assert.NoError(err)
 	sometime := time.Now()
 
 	var testData = []Message{
@@ -311,7 +321,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	for _, e := range testData {
 		// log.Printf("%d, %v\n", i, e)
-		err := client.LogMessage(&e)
+		err := client.PostMessage(&e)
 		assert.NoError(err)
 	}
 
@@ -322,7 +332,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 		Order: elasticsearch.SortDescending,
 		Key:   "CreatedOn"}
 
-	msgs, err := client.GetFromMessages(format,
+	msgs, err := client.GetMessages(format,
 		map[string]string{
 			"service":  "JobManager",
 			"contains": "Success",
@@ -334,7 +344,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 	//log.Printf("%v\n", msg)
 	//}
 
-	msgs, err = client.GetFromMessages(format,
+	msgs, err = client.GetMessages(format,
 		map[string]string{
 			"before": "1461181461",
 			"after":  "1461181362",

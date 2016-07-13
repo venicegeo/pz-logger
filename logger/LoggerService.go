@@ -38,14 +38,14 @@ type LogData struct {
 	id      int
 }
 
-const schema = "LogData2"
+const schema = "LogData5"
 
 type LoggerService struct {
 	stats   LockedAdminStats
 	logData LogData
 }
 
-func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) {
+func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) error {
 	var err error
 
 	logger.stats.CreatedOn = time.Now()
@@ -64,14 +64,19 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 	***/
 
 	if !esIndex.IndexExists() {
-		err = esIndex.Create()
+		log.Printf("Creating index: %s", esIndex.IndexName())
+		err = esIndex.Create("")
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if !esIndex.TypeExists(schema) {
+		log.Printf("Creating type: %s", schema)
 
 		mapping :=
 			`{
-			"LogData2":{
+			"LogData5":{
 				"properties":{
 					"service":{
 						"type": "string",
@@ -99,11 +104,13 @@ func (logger *LoggerService) Init(sys *piazza.SystemConfig, esIndex elasticsearc
 
 		err = esIndex.SetMapping(schema, piazza.JsonString(mapping))
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("LoggerService.Init: %s", err.Error())
+			return err
 		}
 	}
 
 	logger.logData.esIndex = esIndex
+	return nil
 }
 
 func (logger *LoggerService) GetRoot() *piazza.JsonResponse {
@@ -111,6 +118,12 @@ func (logger *LoggerService) GetRoot() *piazza.JsonResponse {
 		StatusCode: 200,
 		Data:       "Hi. I'm pz-logger.",
 	}
+
+	err := resp.SetType()
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+	}
+
 	return resp
 }
 
@@ -150,6 +163,11 @@ func (logger *LoggerService) PostMessage(mssg *Message) *piazza.JsonResponse {
 		Data:       mssg,
 	}
 
+	err = resp.SetType()
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+	}
+
 	return resp
 }
 
@@ -157,10 +175,17 @@ func (logger *LoggerService) GetStats() *piazza.JsonResponse {
 	logger.logData.Lock()
 	t := logger.stats.LoggerAdminStats
 	logger.logData.Unlock()
+
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       t,
 	}
+
+	err := resp.SetType()
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
+	}
+
 	return resp
 }
 
@@ -252,6 +277,11 @@ func (logger *LoggerService) GetMessage(params *piazza.HttpQueryParams) *piazza.
 		StatusCode: http.StatusOK,
 		Data:       bar,
 		Pagination: formalPagination,
+	}
+
+	err = resp.SetType()
+	if err != nil {
+		return &piazza.JsonResponse{StatusCode: http.StatusInternalServerError, Message: err.Error()}
 	}
 
 	return resp
