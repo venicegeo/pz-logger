@@ -7,7 +7,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	  logger.vm.hostname = "logger.dev"
 	  logger.vm.provision :shell, path: "logger-bootstrap.sh"
 	  logger.vm.network :private_network, ip:"192.168.46.46"
-	  logger.vm.network :forwarded_port, host: 8092, guest: 8092
+	  logger.vm.network :forwarded_port, host: 14600, guest: 14600
 	  logger.vm.synced_folder "../", "/vagrant/pzlogger"
 	  logger.vm.provider "virtualbox" do |v|
 		v.memory = 2048
