@@ -25,7 +25,7 @@ apt-get -y install git
 mkdir /home/vagrant/workspace
 cd /home/vagrant/workspace
 
-#echo setting GOPATH...
+#setting GOPATH...
 export GOPATH=/home/vagrant/workspace/gostuff
 #echo 'export GOPATH=/home/vagrant/workspace/gostuff' >>/home/vagrant/.bash_profile
 
@@ -34,10 +34,18 @@ export VCAP_SERVICES='{"user-provided":[{"credentials":{"host":"192.168.44.44:92
 export PORT=14600
 export VCAP_APPLICATION='{"application_id": "14fca253-8081-402e-abf5-8fd40ddda81f","application_name": "pz-logger","application_uris": ["pz-logger.int.geointservices.io"],"application_version": "5f0ee99-q252c-4f8d-b241-bc3e22534afc","limits": {"disk": 1024,"fds": 16384,"mem": 512},"name": "pz-logger","space_id": "d65a0987-df00-4d69-a50b-657e52cb2f8e","space_name": "simulator-stage","uris": ["pz-logger.int.geointservices.io"],"users": null,"version": "5f0ee99d-252c-4f8d-b241-bc3e22534afc"}'
 
+#copying required init scripts
+chmod 777 /vagrant/pzlogger/config/logger-env-variables.sh
+cp /vagrant/pzlogger/config/logger-env-variables.sh /etc/profile.d/logger-env-variables.sh
+
+chmod 777 /vagrant/pzlogger/config/logger-startup.sh
+cp /vagrant/pzlogger/config/logger-startup.sh /etc/init.d/logger-startup.sh
+
 #echo getting pz-logger and trying to build it...
+cd /home/vagrant/workspace
 go get github.com/venicegeo/pz-logger
 go install github.com/venicegeo/pz-logger
 
 #start pz-logger app
-cd /home/vagrant/workspace/gostuff/bin
-./pz-logger
+#cd /home/vagrant/workspace/gostuff/bin
+#./pz-logger
