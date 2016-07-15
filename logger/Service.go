@@ -205,34 +205,28 @@ func (service *Service) GetStats() *piazza.JsonResponse {
 func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonResponse {
 	var err error
 
-	var formalPagination *piazza.JsonPagination
-	{
-		defaults := &piazza.JsonPagination{
-			PerPage: 10,
-			Page:    0,
-			Order:   piazza.PaginationOrderDescending,
-			SortBy:  "createdOn",
-		}
-		formalPagination, err = piazza.NewJsonPagination(params, defaults)
-		if err != nil {
-			return service.newBadRequestResponse(err)
-		}
+	defaultPagination := &piazza.JsonPagination{
+		PerPage: 10,
+		Page:    0,
+		Order:   piazza.PaginationOrderDescending,
+		SortBy:  "createdOn",
+	}
+	pagination, err := piazza.NewJsonPagination(params, defaultPagination)
+	if err != nil {
+		return service.newBadRequestResponse(err)
 	}
 
-	filterParams := service.parseFilterParams(params)
-
-	//log.Printf("size %d, from %d, key %s, format %v",
-	//	format.Size, format.From, format.Key, format.Order)
-
-	//log.Printf("filterParams: %v\n", filterParams)
+	dsl, err := createQueryDslAsString(pagination, params)
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
 
 	var searchResult *elasticsearch.SearchResult
 
-	if len(filterParams) == 0 {
-		searchResult, err = service.logData.esIndex.FilterByMatchAll(schema, formalPagination)
+	if dsl == "" {
+		searchResult, err = service.logData.esIndex.FilterByMatchAll(schema, pagination)
 	} else {
-		var jsonString = service.createQueryDslAsString(formalPagination, filterParams)
-		searchResult, err = service.logData.esIndex.SearchByJSON(schema, jsonString)
+		searchResult, err = service.logData.esIndex.SearchByJSON(schema, dsl)
 	}
 
 	if err != nil {
@@ -260,7 +254,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 			return service.newInternalErrorResponse(err)
 		}
 
-		// still needed?
+		// just in case
 		err = tmp.Validate()
 		if err != nil {
 			log.Printf("UNABLE TO VALIDATE: %s", string(*hit.Source))
@@ -277,11 +271,11 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		bar[i] = e
 	}
 
-	formalPagination.Count = matched
+	pagination.Count = matched
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       bar,
-		Pagination: formalPagination,
+		Pagination: pagination,
 	}
 
 	err = resp.SetType()
@@ -292,77 +286,59 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	return resp
 }
 
-func (service *Service) parseFilterParams(params *piazza.HttpQueryParams) map[string]interface{} {
-
-	var filterParams = map[string]interface{}{}
-
-	before := params.Get("before")
-
-	if before != "" {
-		num, err := strconv.Atoi(before)
-		if err == nil {
-			filterParams["before"] = num
-		}
-	}
-
-	after := params.Get("after")
-
-	if after != "" {
-		num, err := strconv.Atoi(after)
-		if err == nil {
-			filterParams["after"] = num
-		}
-	}
-
-	svc := params.Get("service")
-
-	if svc != "" {
-		filterParams["service"] = svc
-	}
-
-	contains := params.Get("contains")
-
-	if contains != "" {
-		filterParams["contains"] = contains
-	}
-
-	return filterParams
-}
-
-func (service *Service) createQueryDslAsString(
-	format *piazza.JsonPagination,
-	params map[string]interface{},
-) string {
-	// fmt.Printf("%d\n", len(params))
+func createQueryDslAsString(
+	pagination *piazza.JsonPagination,
+	params *piazza.HttpQueryParams,
+) (string, error) {
 
 	must := []map[string]interface{}{}
 
-	if params["service"] != nil {
+	service, err := params.AsString("service", nil)
+	if err != nil {
+		return "", err
+	}
+
+	contains, err := params.AsString("contains", nil)
+	if err != nil {
+		return "", err
+	}
+
+	before, err := params.AsTime("before", nil)
+	if err != nil {
+		return "", err
+	}
+
+	after, err := params.AsTime("after", nil)
+	if err != nil {
+		return "", err
+	}
+
+	if service != nil {
 		must = append(must, map[string]interface{}{
 			"match": map[string]interface{}{
-				"service": params["service"],
+				"service": *service,
 			},
 		})
 	}
 
-	if params["contains"] != nil {
+	if contains != nil {
 		must = append(must, map[string]interface{}{
 			"multi_match": map[string]interface{}{
-				"query":  params["contains"],
+				"query":  contains,
 				"fields": []string{"address", "message", "service", "severity"},
 			},
 		})
 	}
 
-	if params["after"] != nil || params["before"] != nil {
-		rangeParams := map[string]int{}
+	if after != nil || before != nil {
+		rangeParams := map[string]time.Time{}
 
-		if params["after"] != nil {
-			rangeParams["gte"] = params["after"].(int)
+		if after != nil {
+			rangeParams["gte"] = *after
 		}
 
-		if params["before"] != nil {
-			rangeParams["lte"] = params["before"].(int)
+		if before != nil {
+			rangeParams["lte"] = *before
 		}
 
 		must = append(must, map[string]interface{}{
@@ -370,6 +346,10 @@ func (service *Service) createQueryDslAsString(
 				"stamp": rangeParams,
 			},
 		})
+	}
+
+	if len(must) == 0 {
+		return "", nil
 	}
 
 	dsl := map[string]interface{}{
@@ -382,14 +362,18 @@ func (service *Service) createQueryDslAsString(
 				},
 			},
 		},
-		"size": format.PerPage,
-		"from": format.PerPage * format.Page,
+		"size": pagination.PerPage,
+		"from": pagination.PerPage * pagination.Page,
 	}
 
 	dsl["sort"] = map[string]string{
-		format.SortBy: string(format.Order),
+		pagination.SortBy: string(pagination.Order),
 	}
 
-	output, _ := json.Marshal(dsl)
-	return string(output)
+	output, err := json.Marshal(dsl)
+	if err != nil {
+		return "", err
+	}
+
+	return string(output), nil
 }
