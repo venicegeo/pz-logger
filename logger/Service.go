@@ -290,7 +290,8 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 
 func createQueryDslAsString(
 	pagination *piazza.JsonPagination,
-	params *piazza.HttpQueryParams) (string, error) {
+	params *piazza.HttpQueryParams,
+) (string, error) {
 
 	must := []map[string]interface{}{}
 
@@ -344,7 +345,7 @@ func createQueryDslAsString(
 
 		must = append(must, map[string]interface{}{
 			"range": map[string]interface{}{
-				"createdOn": rangeParams,
+				"stamp": rangeParams,
 			},
 		})
 	}
