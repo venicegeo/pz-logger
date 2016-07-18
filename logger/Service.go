@@ -236,47 +236,36 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	}
 
 	// TODO: unsafe truncation
-	count := int(searchResult.TotalHits())
 	matched := int(searchResult.NumberMatched())
-	lines := make([]Message, count)
+	var lines []Message
 
-	i := 0
 	for _, hit := range *searchResult.GetHits() {
 		if hit == nil {
 			log.Printf("null source hit")
 			continue
 		}
-		src := *hit.Source
-		//log.Printf("source hit: %s", string(src))
 
-		tmp := &Message{}
-		err = json.Unmarshal(src, tmp)
+		var msg Message
+		err = json.Unmarshal(*hit.Source, msg)
 		if err != nil {
 			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
 			return service.newInternalErrorResponse(err)
 		}
 
 		// just in case
-		err = tmp.Validate()
+		err = msg.Validate()
 		if err != nil {
 			log.Printf("UNABLE TO VALIDATE: %s", string(*hit.Source))
 			continue
 		}
 
-		lines[i] = *tmp
-		i++
-	}
-
-	bar := make([]interface{}, len(lines))
-
-	for i, e := range lines {
-		bar[i] = e
+		lines = append(lines, msg)
 	}
 
 	pagination.Count = matched
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
-		Data:       bar,
+		Data:       lines,
 		Pagination: pagination,
 	}
 
@@ -290,8 +279,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 
 func createQueryDslAsString(
 	pagination *piazza.JsonPagination,
-	params *piazza.HttpQueryParams,
-) (string, error) {
+	params *piazza.HttpQueryParams) (string, error) {
 
 	must := []map[string]interface{}{}
 
@@ -345,7 +333,7 @@ func createQueryDslAsString(
 
 		must = append(must, map[string]interface{}{
 			"range": map[string]interface{}{
-				"stamp": rangeParams,
+				"createdOn": rangeParams,
 			},
 		})
 	}
