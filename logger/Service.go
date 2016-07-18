@@ -259,7 +259,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 			continue
 		}
 
-		lines = append(lines, msg)
+		lines = append(lines, *msg)
 	}
 
 	pagination.Count = matched
