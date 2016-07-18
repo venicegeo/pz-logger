@@ -240,7 +240,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	var lines []Message
 
 	for _, hit := range *searchResult.GetHits() {
-		if hit == nil {
+		if hit.Source == nil {
 			log.Printf("null source hit")
 			continue
 		}
