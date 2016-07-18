@@ -236,33 +236,34 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	}
 
 	// TODO: unsafe truncation
-	matched := int(searchResult.NumberMatched())
 	var lines []Message
 
-	for _, hit := range *searchResult.GetHits() {
-		if hit.Source == nil {
-			log.Printf("null source hit")
-			continue
-		}
+	if searchResult != nil && searchResult.GetHits() != nil {
+		for _, hit := range *searchResult.GetHits() {
+			if hit.Source == nil {
+				log.Printf("null source hit")
+				continue
+			}
 
-		var msg *Message
-		err = json.Unmarshal(*hit.Source, msg)
-		if err != nil {
-			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
-			return service.newInternalErrorResponse(err)
-		}
+			var msg Message
+			err = json.Unmarshal(*hit.Source, &msg)
+			if err != nil {
+				log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
+				return service.newInternalErrorResponse(err)
+			}
 
-		// just in case
-		err = msg.Validate()
-		if err != nil {
-			log.Printf("UNABLE TO VALIDATE: %s", string(*hit.Source))
-			continue
-		}
+			// just in case
+			err = msg.Validate()
+			if err != nil {
+				log.Printf("UNABLE TO VALIDATE: %s", string(*hit.Source))
+				continue
+			}
 
-		lines = append(lines, *msg)
+			lines = append(lines, msg)
+		}
 	}
 
-	pagination.Count = matched
+	pagination.Count = len(lines)
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       lines,
