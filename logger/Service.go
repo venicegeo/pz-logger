@@ -235,7 +235,6 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		return service.newInternalErrorResponse(err)
 	}
 
-	// TODO: unsafe truncation
 	var lines []Message
 
 	if searchResult != nil && searchResult.GetHits() != nil {
@@ -263,7 +262,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		}
 	}
 
-	pagination.Count = len(lines)
+	pagination.Count = searchResult.NumberMatched()
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       lines,
