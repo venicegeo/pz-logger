@@ -262,7 +262,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		}
 	}
 
-	pagination.Count = searchResult.NumberMatched()
+	pagination.Count = int(searchResult.NumberMatched())
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       lines,
