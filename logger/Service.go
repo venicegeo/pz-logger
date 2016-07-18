@@ -245,7 +245,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 			continue
 		}
 
-		var msg Message
+		var msg *Message
 		err = json.Unmarshal(*hit.Source, msg)
 		if err != nil {
 			log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
