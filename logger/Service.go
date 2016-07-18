@@ -221,6 +221,8 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		return service.newBadRequestResponse(err)
 	}
 
+	log.Printf("dsl: %s", dsl)
+
 	var searchResult *elasticsearch.SearchResult
 
 	if dsl == "" {
@@ -288,8 +290,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 
 func createQueryDslAsString(
 	pagination *piazza.JsonPagination,
-	params *piazza.HttpQueryParams,
-) (string, error) {
+	params *piazza.HttpQueryParams) (string, error) {
 
 	must := []map[string]interface{}{}
 
@@ -343,7 +344,7 @@ func createQueryDslAsString(
 
 		must = append(must, map[string]interface{}{
 			"range": map[string]interface{}{
-				"stamp": rangeParams,
+				"createdOn": rangeParams,
 			},
 		})
 	}
