@@ -53,4 +53,5 @@ go get github.com/venicegeo/pz-logger
 go install github.com/venicegeo/pz-logger
 
 #start the app on initial box setup.
-/home/vagrant/workspace/gostuff/bin/pz-logger
+cd /home/vagrant/workspace/gostuff/bin/
+nohup ./pz-logger &
