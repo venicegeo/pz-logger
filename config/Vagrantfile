@@ -10,9 +10,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	  logger.vm.network :forwarded_port, host: 14600, guest: 14600
 	  logger.vm.synced_folder "../", "/vagrant/pzlogger"
 	  logger.vm.provider "virtualbox" do |v|
-		v.memory = 2048
-		v.cpus = 1
-		v.name = "pz_logger"
+	  	v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+		v.customize ["modifyvm", :id, "--memory", "512"]
       end
   end
 end
