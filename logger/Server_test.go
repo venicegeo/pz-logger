@@ -105,10 +105,16 @@ func (suite *LoggerTester) getLastMessage() string {
 
 	client := suite.client
 
-	format := elasticsearch.QueryFormat{Size: 100, From: 0, Order: elasticsearch.SortAscending, Key: "CreatedOn"}
-	ms, err := client.GetMessages(format, map[string]string{})
+	format := piazza.JsonPagination{
+		PerPage: 100,
+		Page:    0,
+		Order:   piazza.PaginationOrderAscending,
+		SortBy:  "createdOn",
+	}
+	ms, count, err := client.GetMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
+	assert.True(count >= len(ms))
 
 	return ms[len(ms)-1].String()
 }
@@ -247,25 +253,43 @@ func (suite *LoggerTester) Test05Pagination() {
 	assert.NoError(err)
 	sleep()
 
-	format := elasticsearch.QueryFormat{Size: 1, From: 0, Key: "CreatedOn", Order: elasticsearch.SortAscending}
-	ms, err := client.GetMessages(format, map[string]string{})
+	format := piazza.JsonPagination{
+		PerPage: 1,
+		Page:    0,
+		SortBy:  "createdOn",
+		Order:   piazza.PaginationOrderDescending,
+	}
+	ms, count, err := client.GetMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 1)
 	assert.EqualValues(SeverityDebug, ms[0].Severity)
+	assert.Equal(5, count)
 
-	format = elasticsearch.QueryFormat{Size: 5, From: 0, Key: "CreatedOn", Order: elasticsearch.SortAscending}
-	ms, err = client.GetMessages(format, map[string]string{})
+	format = piazza.JsonPagination{
+		PerPage: 5,
+		Page:    0,
+		SortBy:  "createdOn",
+		Order:   piazza.PaginationOrderAscending,
+	}
+	ms, count, err = client.GetMessages(format, map[string]string{})
 	assert.NoError(err)
 	assert.Len(ms, 5)
 	assert.EqualValues(SeverityFatal, ms[4].Severity)
+	assert.Equal(5, count)
 
-	format = elasticsearch.QueryFormat{Size: 3, From: 2, Key: "CreatedOn", Order: elasticsearch.SortDescending}
-	ms, err = client.GetMessages(format, map[string]string{})
+	format = piazza.JsonPagination{
+		PerPage: 3,
+		Page:    1,
+		SortBy:  "createdOn",
+		Order:   piazza.PaginationOrderDescending,
+	}
+	ms, count, err = client.GetMessages(format, map[string]string{})
 	assert.NoError(err)
-	assert.Len(ms, 3)
-	assert.EqualValues(SeverityWarning, ms[2].Severity)
+	assert.Len(ms, 2)
+	//assert.EqualValues(SeverityWarning, ms[2].Severity)
 	assert.EqualValues(SeverityError, ms[1].Severity)
 	assert.EqualValues(SeverityFatal, ms[0].Severity)
+	assert.Equal(5, count)
 }
 
 func (suite *LoggerTester) Test06OtherParams() {
@@ -327,24 +351,27 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	sleep()
 
-	format := elasticsearch.QueryFormat{
-		Size: 100, From: 0,
-		Order: elasticsearch.SortDescending,
-		Key:   "CreatedOn"}
+	format := piazza.JsonPagination{
+		PerPage: 100,
+		Page:    0,
+		Order:   piazza.PaginationOrderDescending,
+		SortBy:  "createdOn",
+	}
 
-	msgs, err := client.GetMessages(format,
+	msgs, count, err := client.GetMessages(format,
 		map[string]string{
 			"service":  "JobManager",
 			"contains": "Success",
 		})
 	assert.NoError(err)
 	assert.Len(msgs, 1)
+	assert.Equal(5, count)
 
 	//for _, msg := range msgs {
 	//log.Printf("%v\n", msg)
 	//}
 
-	msgs, err = client.GetMessages(format,
+	msgs, count, err = client.GetMessages(format,
 		map[string]string{
 			"before": "1461181461",
 			"after":  "1461181362",
@@ -352,6 +379,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 
 	assert.NoError(err)
 	assert.Len(msgs, 4)
+	assert.Equal(5, count)
 
 	//for _, msg := range msgs {
 	//log.Printf("%v\n", msg)

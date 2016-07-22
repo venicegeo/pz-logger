@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
@@ -38,7 +37,7 @@ type IClient interface {
 	GetStats() (*LoggerAdminStats, error)
 
 	// read support
-	GetMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error)
+	GetMessages(format piazza.JsonPagination, params map[string]string) ([]Message, int, error)
 
 	// write support
 	PostMessage(mssg *Message) error
@@ -58,7 +57,7 @@ type IClient interface {
 
 type LoggerAdminStats struct {
 	CreatedOn   time.Time `json:"createdOn"`
-	NumMessages int       `json:"num_messages"`
+	NumMessages int       `json:"numMessages"`
 }
 
 // ToString returns a Message as a formatted string.

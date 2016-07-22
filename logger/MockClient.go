@@ -19,7 +19,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
@@ -41,24 +40,25 @@ func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
 	return service, nil
 }
 
-func (logger *MockClient) GetMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
+func (logger *MockClient) GetMessages(
+	format piazza.JsonPagination,
+	params map[string]string) ([]Message, int, error) {
 
 	if len(params) != 0 {
 		log.Fatalf("parameters are not supported in mock client")
 	}
 
-	// this follows ES protocol, NOT our pagination protocol
-	startIndex := format.From
-	endIndex := startIndex + format.Size
+	startIndex := format.Page * format.PerPage
+	endIndex := startIndex + format.PerPage
 	totalCount := len(logger.messages)
 
-	if format.Key != "CreatedOn" {
-		log.Fatalf("usupported sort key in mock client: %s", format.Key)
+	if format.SortBy != "createdOn" {
+		log.Fatalf("unsupported sort key in mock client: %s", format.SortBy)
 	}
 
 	if startIndex > totalCount {
 		m := make([]Message, 0)
-		return m, nil
+		return m, totalCount, nil
 	}
 
 	if endIndex > totalCount {
@@ -84,7 +84,7 @@ func (logger *MockClient) GetMessages(format elasticsearch.QueryFormat, params m
 		buf[i] = logger.messages[startIndex+i]
 	}
 
-	if format.Order == elasticsearch.SortDescending {
+	if format.Order == piazza.PaginationOrderDescending {
 		buf2 := make([]Message, resultCount)
 		for i := 0; i < resultCount; i++ {
 			buf2[i] = buf[resultCount-1-i]
@@ -99,7 +99,7 @@ func (logger *MockClient) GetMessages(format elasticsearch.QueryFormat, params m
 
 	//log.Printf("====")
 
-	return buf, nil
+	return buf, totalCount, nil
 }
 
 func (logger *MockClient) GetStats() (*LoggerAdminStats, error) {

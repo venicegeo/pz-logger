@@ -17,9 +17,9 @@ package logger
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
-	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-gocommon/gocommon"
 )
 
@@ -57,40 +57,62 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 	return service, nil
 }
 
+func NewClient2(url string) (*Client, error) {
+	var _ IClient = new(Client)
+
+	service := &Client{
+		url:            url,
+		serviceName:    "notset",
+		serviceAddress: "0.0.0.0",
+	}
+
+	return service, nil
+}
+
 //---------------------------------------------------------------------
 
-func (c *Client) GetMessages(format elasticsearch.QueryFormat, params map[string]string) ([]Message, error) {
+func preflight(verb string, url string, obj string) {
+	log.Printf("%s %s", verb, url)
+	log.Printf("%s", obj)
+}
 
-	url := fmt.Sprintf("%s/message?size=%d&from=%d&key=%s&order=%t", c.url, format.Size, format.From, format.Key, format.Order)
+func (c *Client) GetMessages(
+	format piazza.JsonPagination,
+	params map[string]string) ([]Message, int, error) {
 
+	endpoint := fmt.Sprintf("/message?perPage=%d&page=%d&key=%s&order=%s",
+		format.PerPage, format.Page, format.SortBy, format.Order)
+	log.Printf("FORMAT: %#v", endpoint)
 	var names = []string{"before", "after", "service", "contains"}
 
 	for _, name := range names {
 		if value, ok := params[name]; ok {
 			//do something here
-			url = fmt.Sprintf("%s&%s=%s", url, name, value)
+			endpoint = fmt.Sprintf("%s&%s=%s", endpoint, name, value)
 		}
 	}
 
 	//log.Printf("%s\n", url)
 
-	jresp := piazza.HttpGetJson(url)
+	h := piazza.Http{BaseUrl: c.url, Preflight: preflight}
+	jresp := h.PzGet(endpoint)
 	if jresp.IsError() {
-		return nil, jresp.ToError()
+		return nil, 0, jresp.ToError()
 	}
 
 	var mssgs []Message
 	err := jresp.ExtractData(&mssgs)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return mssgs, nil
+	return mssgs, jresp.Pagination.Count, nil
 }
 
 func (c *Client) GetStats() (*LoggerAdminStats, error) {
 
-	jresp := piazza.HttpGetJson(c.url + "/admin/stats")
+	h := piazza.Http{BaseUrl: c.url}
+	jresp := h.PzGet("/admin/stats")
 	if jresp.IsError() {
 		return nil, jresp.ToError()
 	}
@@ -107,14 +129,15 @@ func (c *Client) GetStats() (*LoggerAdminStats, error) {
 //---------------------------------------------------------------------
 
 // LogMessage puts a new message into Elasticsearch.
-func (pz *Client) PostMessage(mssg *Message) error {
+func (c *Client) PostMessage(mssg *Message) error {
 
 	err := mssg.Validate()
 	if err != nil {
 		return errors.New("message did not validate")
 	}
 
-	jresp := piazza.HttpPostJson(pz.url+"/message", mssg)
+	h := piazza.Http{BaseUrl: c.url}
+	jresp := h.PzPost("/message", mssg)
 	if jresp.IsError() {
 		return jresp.ToError()
 	}
@@ -123,7 +146,7 @@ func (pz *Client) PostMessage(mssg *Message) error {
 }
 
 // Log sends the components of a LogMessage to the logger.
-func (pz *Client) PostLog(
+func (c *Client) PostLog(
 	service piazza.ServiceName,
 	address string,
 	severity Severity,
@@ -133,40 +156,40 @@ func (pz *Client) PostLog(
 	str := fmt.Sprintf(message, v...)
 	mssg := Message{Service: service, Address: address, Severity: severity, CreatedOn: t, Message: str}
 
-	return pz.PostMessage(&mssg)
+	return c.PostMessage(&mssg)
 }
 
-func (logger *Client) SetService(name piazza.ServiceName, address string) {
-	logger.serviceName = name
-	logger.serviceAddress = address
+func (c *Client) SetService(name piazza.ServiceName, address string) {
+	c.serviceName = name
+	c.serviceAddress = address
 }
 
-func (logger *Client) post(severity Severity, message string, v ...interface{}) error {
+func (c *Client) post(severity Severity, message string, v ...interface{}) error {
 	str := fmt.Sprintf(message, v...)
-	return logger.PostLog(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
+	return c.PostLog(c.serviceName, c.serviceAddress, severity, time.Now(), str)
 }
 
 // Debug sends a Debug-level message to the logger.
-func (logger *Client) Debug(message string, v ...interface{}) error {
-	return logger.post(SeverityDebug, message, v...)
+func (c *Client) Debug(message string, v ...interface{}) error {
+	return c.post(SeverityDebug, message, v...)
 }
 
 // Info sends an Info-level message to the logger.
-func (logger *Client) Info(message string, v ...interface{}) error {
-	return logger.post(SeverityInfo, message, v...)
+func (c *Client) Info(message string, v ...interface{}) error {
+	return c.post(SeverityInfo, message, v...)
 }
 
 // Warn sends a Waring-level message to the logger.
-func (logger *Client) Warn(message string, v ...interface{}) error {
-	return logger.post(SeverityWarning, message, v...)
+func (c *Client) Warn(message string, v ...interface{}) error {
+	return c.post(SeverityWarning, message, v...)
 }
 
 // Error sends a Error-level message to the logger.
-func (logger *Client) Error(message string, v ...interface{}) error {
-	return logger.post(SeverityError, message, v...)
+func (c *Client) Error(message string, v ...interface{}) error {
+	return c.post(SeverityError, message, v...)
 }
 
 // Fatal sends a Fatal-level message to the logger.
-func (logger *Client) Fatal(message string, v ...interface{}) error {
-	return logger.post(SeverityFatal, message, v...)
+func (c *Client) Fatal(message string, v ...interface{}) error {
+	return c.post(SeverityFatal, message, v...)
 }
