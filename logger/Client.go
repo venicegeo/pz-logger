@@ -72,8 +72,14 @@ func NewClient2(url string) (*Client, error) {
 //---------------------------------------------------------------------
 
 func preflight(verb string, url string, obj string) {
-	log.Printf("%s %s", verb, url)
-	log.Printf("%s", obj)
+	log.Printf("PREFLIGHT %s", verb)
+	log.Printf("PREFLIGHT %s", url)
+	log.Printf("PREFLIGHT %s", obj)
+}
+
+func postflight(code int, obj string) {
+	log.Printf("POSTFLIGHT %d", code)
+	log.Printf("POSTFLIGHT %s", obj)
 }
 
 func (c *Client) GetMessages(
@@ -82,7 +88,6 @@ func (c *Client) GetMessages(
 
 	endpoint := fmt.Sprintf("/message?perPage=%d&page=%d&key=%s&order=%s",
 		format.PerPage, format.Page, format.SortBy, format.Order)
-	log.Printf("FORMAT: %#v", endpoint)
 	var names = []string{"before", "after", "service", "contains"}
 
 	for _, name := range names {
@@ -94,7 +99,11 @@ func (c *Client) GetMessages(
 
 	//log.Printf("%s\n", url)
 
-	h := piazza.Http{BaseUrl: c.url, Preflight: preflight}
+	h := piazza.Http{
+		BaseUrl: c.url,
+		//Preflight: preflight,
+		//Postflight: postflight,
+	}
 	jresp := h.PzGet(endpoint)
 	if jresp.IsError() {
 		return nil, 0, jresp.ToError()

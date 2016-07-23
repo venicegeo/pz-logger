@@ -15,6 +15,9 @@
 package logger_demo
 
 import (
+	"bytes"
+	"io"
+	"net/http"
 	"testing"
 	"time"
 
@@ -83,7 +86,7 @@ func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 	client := suite.client
 
 	format := piazza.JsonPagination{
-		PerPage: 100,
+		PerPage: 10,
 		Page:    0,
 		Order:   piazza.PaginationOrderAscending,
 		SortBy:  "createdOn",
@@ -98,6 +101,87 @@ func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 		}
 	}
 	return false
+}
+
+func (suite *LoggerTester) TestRawGet() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	suite.setupFixture()
+	defer suite.teardownFixture()
+
+	resp, err := http.Get("https://pz-logger.int.geointservices.io/message?perPage=13&page=&0")
+	assert.NoError(err)
+
+	assert.True(resp.ContentLength >= 0)
+	assert.True(resp.ContentLength > 0)
+
+	raw := make([]byte, resp.ContentLength)
+	_, err = io.ReadFull(resp.Body, raw)
+	defer resp.Body.Close()
+	if err != nil && err != io.EOF {
+		assert.NoError(err)
+	}
+
+	//log.Printf("RAW GET: %s", string(raw))
+	//err = json.Unmarshal(raw, output)
+	//assett.NoError(err)
+
+	assert.Equal(200, resp.StatusCode)
+}
+
+func (suite *LoggerTester) TestRawPost() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	suite.setupFixture()
+	defer suite.teardownFixture()
+
+	jsn := `
+	{
+		"address":"XXX",
+		"createdOn":"2016-07-22T16:44:58.065583138-04:00",
+		"message":"XXX",
+		"service":"XXX",
+		"severity":"XXX"
+	}`
+	reader := bytes.NewReader([]byte(jsn))
+
+	resp, err := http.Post("https://pz-logger.int.geointservices.io/message",
+		piazza.ContentTypeJSON, reader)
+	assert.NoError(err)
+
+	raw := make([]byte, resp.ContentLength)
+	_, err = io.ReadFull(resp.Body, raw)
+	defer resp.Body.Close()
+	if err != nil && err != io.EOF {
+		assert.NoError(err)
+	}
+
+	//err = json.Unmarshal(raw, output)
+	//assett.NoError(err)
+
+	assert.Equal(200, resp.StatusCode)
+}
+
+func (suite *LoggerTester) TestGet() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	suite.setupFixture()
+	defer suite.teardownFixture()
+
+	client := suite.client
+
+	format := piazza.JsonPagination{
+		PerPage: 12,
+		Page:    0,
+		Order:   piazza.PaginationOrderAscending,
+		SortBy:  "createdOn",
+	}
+	ms, _, err := client.GetMessages(format, map[string]string{})
+	assert.NoError(err)
+	assert.Len(ms, format.PerPage)
 }
 
 func (suite *LoggerTester) TestPost() {
@@ -129,7 +213,7 @@ func (suite *LoggerTester) TestPost() {
 	assert.True(suite.verifyMessageExists(data))
 }
 
-func (suite *LoggerTester) xTestAdmin() {
+func (suite *LoggerTester) TestAdmin() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -143,7 +227,7 @@ func (suite *LoggerTester) xTestAdmin() {
 	assert.True(stats.NumMessages > 0)
 }
 
-func (suite *LoggerTester) xTestPagination() {
+func (suite *LoggerTester) TestPagination() {
 	t := suite.T()
 	assert := assert.New(t)
 

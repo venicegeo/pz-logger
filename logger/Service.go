@@ -259,7 +259,6 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 			}
 
 			lines = append(lines, msg)
-			log.Printf("ADDING %#v (%d)", msg, len(lines))
 		}
 	}
 
@@ -274,7 +273,6 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
-	log.Printf("RESP: %#v", resp)
 	return resp
 }
 
