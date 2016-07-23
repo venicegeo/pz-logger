@@ -29,7 +29,7 @@ type Server struct {
 
 func (server *Server) handleGetRoot(c *gin.Context) {
 	resp := server.service.GetRoot()
-	c.IndentedJSON(resp.StatusCode, resp)
+	piazza.GinReturnJson(c, resp)
 }
 
 func (server *Server) handlePostMessage(c *gin.Context) {
@@ -40,18 +40,18 @@ func (server *Server) handlePostMessage(c *gin.Context) {
 		c.IndentedJSON(resp.StatusCode, resp)
 	}
 	resp := server.service.PostMessage(&mssg)
-	c.IndentedJSON(resp.StatusCode, resp)
+	piazza.GinReturnJson(c, resp)
 }
 
 func (server *Server) handleGetStats(c *gin.Context) {
 	resp := server.service.GetStats()
-	c.IndentedJSON(resp.StatusCode, resp)
+	piazza.GinReturnJson(c, resp)
 }
 
 func (server *Server) handleGetMessage(c *gin.Context) {
 	params := piazza.NewQueryParams(c.Request)
 	resp := server.service.GetMessage(params)
-	c.IndentedJSON(resp.StatusCode, resp)
+	piazza.GinReturnJson(c, resp)
 }
 
 func (server *Server) Init(service *Service) {
