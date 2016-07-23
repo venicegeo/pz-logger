@@ -259,6 +259,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 			}
 
 			lines = append(lines, msg)
+			log.Printf("ADDING %#v (%d)", lines, len(lines))
 		}
 	}
 
