@@ -235,7 +235,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		return service.newInternalErrorResponse(err)
 	}
 
-	var lines []Message
+	var lines = make([]Message, 0)
 
 	if searchResult != nil && searchResult.GetHits() != nil {
 		for _, hit := range *searchResult.GetHits() {
@@ -259,7 +259,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 			}
 
 			lines = append(lines, msg)
-			log.Printf("ADDING %#v (%d)", lines, len(lines))
+			log.Printf("ADDING %#v (%d)", msg, len(lines))
 		}
 	}
 
@@ -274,7 +274,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
-
+	log.Printf("RESP: %#v", resp)
 	return resp
 }
 
