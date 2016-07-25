@@ -17,6 +17,7 @@ package logger_demo
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -107,13 +108,13 @@ func (suite *LoggerTester) TestRawGet() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	suite.setupFixture()
-	defer suite.teardownFixture()
-
 	resp, err := http.Get("https://pz-logger.int.geointservices.io/message?perPage=13&page=&0")
 	assert.NoError(err)
-
+	log.Printf("==%#v", resp)
 	assert.True(resp.ContentLength >= 0)
+	if resp.ContentLength == -1 {
+		assert.FailNow("bonk")
+	}
 	assert.True(resp.ContentLength > 0)
 
 	raw := make([]byte, resp.ContentLength)
@@ -130,7 +131,7 @@ func (suite *LoggerTester) TestRawGet() {
 	assert.Equal(200, resp.StatusCode)
 }
 
-func (suite *LoggerTester) TestRawPost() {
+func (suite *LoggerTester) xTestRawPost() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -164,7 +165,7 @@ func (suite *LoggerTester) TestRawPost() {
 	assert.Equal(200, resp.StatusCode)
 }
 
-func (suite *LoggerTester) TestGet() {
+func (suite *LoggerTester) xTestGet() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -184,7 +185,7 @@ func (suite *LoggerTester) TestGet() {
 	assert.Len(ms, format.PerPage)
 }
 
-func (suite *LoggerTester) TestPost() {
+func (suite *LoggerTester) xTestPost() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -213,7 +214,7 @@ func (suite *LoggerTester) TestPost() {
 	assert.True(suite.verifyMessageExists(data))
 }
 
-func (suite *LoggerTester) TestAdmin() {
+func (suite *LoggerTester) xTestAdmin() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -224,10 +225,10 @@ func (suite *LoggerTester) TestAdmin() {
 
 	stats, err := client.GetStats()
 	assert.NoError(err, "GetFromAdminStats")
-	assert.True(stats.NumMessages > 0)
+	assert.NotZero(stats.NumMessages)
 }
 
-func (suite *LoggerTester) TestPagination() {
+func (suite *LoggerTester) xTestPagination() {
 	t := suite.T()
 	assert := assert.New(t)
 
