@@ -37,7 +37,7 @@ func (server *Server) handlePostMessage(c *gin.Context) {
 	err := c.BindJSON(&mssg)
 	if err != nil {
 		resp := &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
-		c.IndentedJSON(resp.StatusCode, resp)
+		piazza.GinReturnJson(c, resp)
 	}
 	resp := server.service.PostMessage(&mssg)
 	piazza.GinReturnJson(c, resp)
