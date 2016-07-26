@@ -16,7 +16,6 @@ package logger
 
 import (
 	_ "fmt"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -52,7 +51,6 @@ func (server *Server) handleGetStats(c *gin.Context) {
 func (server *Server) handleGetMessage(c *gin.Context) {
 	params := piazza.NewQueryParams(c.Request)
 	resp := server.service.GetMessage(params)
-	log.Printf("AAA: %#v || %s || %#v", params, params.ToParamString(), resp)
 
 	piazza.GinReturnJson(c, resp)
 }

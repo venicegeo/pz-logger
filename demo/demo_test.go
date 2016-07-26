@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -34,13 +35,15 @@ func sleep() {
 type LoggerTester struct {
 	suite.Suite
 	client *logger.Client
+	url    string
 }
 
 func (suite *LoggerTester) setupFixture() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	client, err := logger.NewClient2("https://pz-logger.int.geointservices.io")
+	suite.url = "https://pz-logger.int.geointservices.io"
+	client, err := logger.NewClient2(suite.url)
 	assert.NoError(err)
 	suite.client = client
 }
@@ -103,11 +106,11 @@ func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 	return false
 }
 
-func (suite *LoggerTester) xTestRawGet() {
+func (suite *LoggerTester) TestRawGet() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	resp, err := http.Get("https://pz-logger.int.geointservices.io/message?perPage=13&page=&0")
+	resp, err := http.Get(suite.url + "/message?perPage=13&page=&0")
 	assert.NoError(err)
 	assert.True(resp.ContentLength >= 0)
 	if resp.ContentLength == -1 {
@@ -122,14 +125,10 @@ func (suite *LoggerTester) xTestRawGet() {
 		assert.NoError(err)
 	}
 
-	//log.Printf("RAW GET: %s", string(raw))
-	//err = json.Unmarshal(raw, output)
-	//assett.NoError(err)
-
 	assert.Equal(200, resp.StatusCode)
 }
 
-func (suite *LoggerTester) xTestRawPost() {
+func (suite *LoggerTester) TestRawPost() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -146,7 +145,7 @@ func (suite *LoggerTester) xTestRawPost() {
 	}`
 	reader := bytes.NewReader([]byte(jsn))
 
-	resp, err := http.Post("https://pz-logger.int.geointservices.io/message",
+	resp, err := http.Post(suite.url+"/message",
 		piazza.ContentTypeJSON, reader)
 	assert.NoError(err)
 
@@ -163,7 +162,7 @@ func (suite *LoggerTester) xTestRawPost() {
 	assert.Equal(200, resp.StatusCode)
 }
 
-func (suite *LoggerTester) xTestGet() {
+func (suite *LoggerTester) TestGet() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -183,7 +182,7 @@ func (suite *LoggerTester) xTestGet() {
 	assert.Len(ms, format.PerPage)
 }
 
-func (suite *LoggerTester) xTestPost() {
+func (suite *LoggerTester) TestPost() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -212,7 +211,7 @@ func (suite *LoggerTester) xTestPost() {
 	assert.True(suite.verifyMessageExists(data))
 }
 
-func (suite *LoggerTester) xTestAdmin() {
+func (suite *LoggerTester) TestAdmin() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -226,7 +225,7 @@ func (suite *LoggerTester) xTestAdmin() {
 	assert.NotZero(stats.NumMessages)
 }
 
-func (suite *LoggerTester) xTestPagination() {
+func (suite *LoggerTester) TestPagination() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -246,10 +245,9 @@ func (suite *LoggerTester) xTestPagination() {
 	ms, _, err := client.GetMessages(format, params)
 	assert.NoError(err)
 	assert.Len(ms, format.PerPage)
-	//	log.Printf("%#v ===", ms)
 }
 
-func (suite *LoggerTester) TestDateRange() {
+func (suite *LoggerTester) TestParams() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -258,31 +256,64 @@ func (suite *LoggerTester) TestDateRange() {
 
 	client := suite.client
 
-	uniq := "foo-" + time.Now().String() + "-bar"
-	client.SetService(piazza.ServiceName(uniq), "1.2.3.4")
+	uniqService := strconv.Itoa(time.Now().Nanosecond())
+	uniqDebug := strconv.Itoa(time.Now().Nanosecond() * 3)
+	uniqError := strconv.Itoa(time.Now().Nanosecond() * 5)
+	uniqFatal := strconv.Itoa(time.Now().Nanosecond() * 7)
 
-	tstart := time.Now()
-	client.Debug("D")
-	client.Error("E")
-	client.Fatal("F")
-	tend := time.Now()
+	client.SetService(piazza.ServiceName(uniqService), "1.2.3.4")
+
+	now := time.Now()
+	sec3 := time.Second * 3
+	tstart := now.Add(-sec3)
+
+	client.Debug(uniqDebug)
+	client.Error(uniqError)
+	client.Fatal(uniqFatal)
 
 	sleep()
 
 	format := &piazza.JsonPagination{
-		PerPage: 100,
+		PerPage: 256,
 		Page:    0,
 		Order:   piazza.PaginationOrderDescending,
 		SortBy:  "createdOn",
 	}
 
-	params := &piazza.HttpQueryParams{}
-	params.AddTime("before", tstart)
-	params.AddTime("after", tend)
+	// test date range params
+	{
+		tend := now.Add(sec3)
 
-	msgs, cnt, err := client.GetMessages(format, params)
+		params := &piazza.HttpQueryParams{}
+		params.AddTime("after", tstart)
+		params.AddTime("before", tend)
 
-	assert.NoError(err)
-	assert.True(cnt >= 3)
-	assert.Len(msgs, 3)
+		msgs, cnt, err := client.GetMessages(format, params)
+
+		assert.NoError(err)
+		assert.True(cnt >= 3)
+		assert.True(len(msgs) >= 3)
+	}
+
+	// test service param
+	{
+		params := &piazza.HttpQueryParams{}
+		params.AddString("service", uniqService)
+
+		msgs, _, err := client.GetMessages(format, params)
+
+		assert.NoError(err)
+		assert.Len(msgs, 3)
+	}
+
+	// test contains param
+	{
+		params := &piazza.HttpQueryParams{}
+		params.AddString("contains", uniqDebug)
+
+		msgs, _, err := client.GetMessages(format, params)
+
+		assert.NoError(err)
+		assert.True(len(msgs) == 1)
+	}
 }

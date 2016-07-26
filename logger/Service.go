@@ -160,14 +160,8 @@ func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
 
 	_, err = service.logData.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
-		//log.Printf("POST failed (1): %#v %#v", err, indexResult)
 		return service.newInternalErrorResponse(err)
 	}
-
-	/*	if !indexResult.Created {
-		log.Printf("POST failed (2): %#v", *indexResult)
-		return NewInternalErrorResponse(err)
-	}*/
 
 	service.stats.LoggerAdminStats.NumMessages++
 
@@ -221,7 +215,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		return service.newBadRequestResponse(err)
 	}
 
-	log.Printf("dsl: %s", dsl)
+	//log.Printf("DSL: %s", dsl)
 
 	var searchResult *elasticsearch.SearchResult
 

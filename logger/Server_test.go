@@ -344,7 +344,6 @@ func (suite *LoggerTester) Test06OtherParams() {
 	}
 
 	for _, e := range testData {
-		// log.Printf("%d, %v\n", i, e)
 		err := client.PostMessage(&e)
 		assert.NoError(err)
 	}
