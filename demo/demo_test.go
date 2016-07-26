@@ -103,7 +103,7 @@ func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 	return false
 }
 
-func (suite *LoggerTester) TestRawGet() {
+func (suite *LoggerTester) xTestRawGet() {
 	t := suite.T()
 	assert := assert.New(t)
 
