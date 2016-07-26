@@ -282,22 +282,22 @@ func createQueryDslAsString(
 
 	must := []map[string]interface{}{}
 
-	service, err := params.AsString("service", nil)
+	service, err := params.GetAsString("service", nil)
 	if err != nil {
 		return "", err
 	}
 
-	contains, err := params.AsString("contains", nil)
+	contains, err := params.GetAsString("contains", nil)
 	if err != nil {
 		return "", err
 	}
 
-	before, err := params.AsTime("before", nil)
+	before, err := params.GetBefore(nil)
 	if err != nil {
 		return "", err
 	}
 
-	after, err := params.AsTime("after", nil)
+	after, err := params.GetAfter(nil)
 	if err != nil {
 		return "", err
 	}

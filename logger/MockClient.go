@@ -41,10 +41,10 @@ func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
 }
 
 func (logger *MockClient) GetMessages(
-	format piazza.JsonPagination,
-	params map[string]string) ([]Message, int, error) {
+	format *piazza.JsonPagination,
+	params *piazza.HttpQueryParams) ([]Message, int, error) {
 
-	if len(params) != 0 {
+	if params.ToParamString() != "" {
 		log.Fatalf("parameters are not supported in mock client")
 	}
 

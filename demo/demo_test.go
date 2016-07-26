@@ -17,7 +17,6 @@ package logger_demo
 import (
 	"bytes"
 	"io"
-	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -60,13 +59,13 @@ func (suite *LoggerTester) getMessages(key string) []logger.Message {
 
 	client := suite.client
 
-	format := piazza.JsonPagination{
+	format := &piazza.JsonPagination{
 		PerPage: 100,
 		Page:    0,
 		Order:   piazza.PaginationOrderAscending,
 		SortBy:  "createdOn",
 	}
-	ms, _, err := client.GetMessages(format, map[string]string{})
+	ms, _, err := client.GetMessages(format, nil)
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
 
@@ -86,13 +85,13 @@ func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 
 	client := suite.client
 
-	format := piazza.JsonPagination{
+	format := &piazza.JsonPagination{
 		PerPage: 10,
 		Page:    0,
 		Order:   piazza.PaginationOrderAscending,
 		SortBy:  "createdOn",
 	}
-	ms, _, err := client.GetMessages(format, map[string]string{})
+	ms, _, err := client.GetMessages(format, nil)
 	assert.NoError(err)
 	assert.Len(ms, format.PerPage)
 
@@ -110,7 +109,6 @@ func (suite *LoggerTester) TestRawGet() {
 
 	resp, err := http.Get("https://pz-logger.int.geointservices.io/message?perPage=13&page=&0")
 	assert.NoError(err)
-	log.Printf("==%#v", resp)
 	assert.True(resp.ContentLength >= 0)
 	if resp.ContentLength == -1 {
 		assert.FailNow("bonk")
@@ -174,13 +172,13 @@ func (suite *LoggerTester) xTestGet() {
 
 	client := suite.client
 
-	format := piazza.JsonPagination{
+	format := &piazza.JsonPagination{
 		PerPage: 12,
 		Page:    0,
 		Order:   piazza.PaginationOrderAscending,
 		SortBy:  "createdOn",
 	}
-	ms, _, err := client.GetMessages(format, map[string]string{})
+	ms, _, err := client.GetMessages(format, nil)
 	assert.NoError(err)
 	assert.Len(ms, format.PerPage)
 }
@@ -237,13 +235,13 @@ func (suite *LoggerTester) xTestPagination() {
 
 	client := suite.client
 
-	format := piazza.JsonPagination{
+	format := &piazza.JsonPagination{
 		PerPage: 1,
 		Page:    0,
 		SortBy:  "createdOn",
 		Order:   piazza.PaginationOrderAscending,
 	}
-	params := map[string]string{}
+	params := &piazza.HttpQueryParams{}
 
 	ms, _, err := client.GetMessages(format, params)
 	assert.NoError(err)
@@ -251,7 +249,7 @@ func (suite *LoggerTester) xTestPagination() {
 	//	log.Printf("%#v ===", ms)
 }
 
-func (suite *LoggerTester) xTest06OtherParams() {
+func (suite *LoggerTester) TestDateRange() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -260,82 +258,31 @@ func (suite *LoggerTester) xTest06OtherParams() {
 
 	client := suite.client
 
-	client.SetService("myservice", "1.2.3.4")
+	uniq := "foo-" + time.Now().String() + "-bar"
+	client.SetService(piazza.ServiceName(uniq), "1.2.3.4")
 
-	sometime := time.Now()
-
-	var testData = []logger.Message{
-		{
-			Address:   "gnemud7smfv/10.254.0.66",
-			Message:   "Received Message to Relay on topic Request-Job with key f3b63085-b482-4ae8-8297-3c7d1fcfff7d",
-			Service:   "Dispatcher",
-			Severity:  "Info",
-			CreatedOn: sometime,
-		}, {
-			Address:   "gnfbnqsn5m9/10.254.0.14",
-			Message:   "Processed Update Status for Job 6d0ea538-4382-4ea5-9669-56519b8c8f58 with Status Success",
-			Service:   "JobManager",
-			Severity:  "Info",
-			CreatedOn: sometime,
-		}, {
-			Address:   "0.0.0.0",
-			Message:   "generated 1: 09d4ec60-ea61-4066-8697-5568a47f84bf",
-			Service:   "pz-uuidgen",
-			Severity:  "Info",
-			CreatedOn: sometime,
-		}, {
-			Address:   "gnfbnqsn5m9/10.254.0.14",
-			Message:   "Handling Job with Topic Create-Job for Job ID 09d4ec60-ea61-4066-8697-5568a47f84bf",
-			Service:   "JobManager",
-			Severity:  "Info",
-			CreatedOn: sometime,
-		}, {
-			Address:   "gnfbnqsn5m9/10.254.0.14",
-			Message:   "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
-			Service:   "JobManager",
-			Severity:  "Info",
-			CreatedOn: sometime,
-		},
-	}
-
-	for _, e := range testData {
-		// log.Printf("%d, %v\n", i, e)
-		err := client.PostMessage(&e)
-		assert.NoError(err)
-	}
+	tstart := time.Now()
+	client.Debug("D")
+	client.Error("E")
+	client.Fatal("F")
+	tend := time.Now()
 
 	sleep()
 
-	format := piazza.JsonPagination{
+	format := &piazza.JsonPagination{
 		PerPage: 100,
 		Page:    0,
 		Order:   piazza.PaginationOrderDescending,
 		SortBy:  "createdOn",
 	}
 
-	msgs, _, err := client.GetMessages(format,
-		map[string]string{
-			"service":  "JobManager",
-			"contains": "Success",
-		})
-	assert.NoError(err)
-	assert.Len(msgs, 1)
+	params := &piazza.HttpQueryParams{}
+	params.AddTime("before", tstart)
+	params.AddTime("after", tend)
 
-	//for _, msg := range msgs {
-	//log.Printf("%v\n", msg)
-	//}
-
-	msgs, _, err = client.GetMessages(format,
-		map[string]string{
-			"before": "1461181461",
-			"after":  "1461181362",
-		})
+	msgs, cnt, err := client.GetMessages(format, params)
 
 	assert.NoError(err)
-	assert.Len(msgs, 4)
-
-	//for _, msg := range msgs {
-	//log.Printf("%v\n", msg)
-	//}
-
+	assert.True(cnt >= 3)
+	assert.Len(msgs, 3)
 }

@@ -111,7 +111,7 @@ func (suite *LoggerTester) getLastMessage() string {
 		Order:   piazza.PaginationOrderAscending,
 		SortBy:  "createdOn",
 	}
-	ms, count, err := client.GetMessages(format, map[string]string{})
+	ms, count, err := client.GetMessages(&format, nil)
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
 	assert.True(count >= len(ms))
@@ -259,7 +259,7 @@ func (suite *LoggerTester) Test05Pagination() {
 		SortBy:  "createdOn",
 		Order:   piazza.PaginationOrderDescending,
 	}
-	ms, count, err := client.GetMessages(format, map[string]string{})
+	ms, count, err := client.GetMessages(&format, nil)
 	assert.NoError(err)
 	assert.Len(ms, 1)
 	assert.EqualValues(SeverityDebug, ms[0].Severity)
@@ -271,7 +271,7 @@ func (suite *LoggerTester) Test05Pagination() {
 		SortBy:  "createdOn",
 		Order:   piazza.PaginationOrderAscending,
 	}
-	ms, count, err = client.GetMessages(format, map[string]string{})
+	ms, count, err = client.GetMessages(&format, nil)
 	assert.NoError(err)
 	assert.Len(ms, 5)
 	assert.EqualValues(SeverityFatal, ms[4].Severity)
@@ -283,10 +283,10 @@ func (suite *LoggerTester) Test05Pagination() {
 		SortBy:  "createdOn",
 		Order:   piazza.PaginationOrderDescending,
 	}
-	ms, count, err = client.GetMessages(format, map[string]string{})
+	ms, count, err = client.GetMessages(&format, nil)
 	assert.NoError(err)
 	assert.Len(ms, 2)
-	//assert.EqualValues(SeverityWarning, ms[2].Severity)
+
 	assert.EqualValues(SeverityError, ms[1].Severity)
 	assert.EqualValues(SeverityFatal, ms[0].Severity)
 	assert.Equal(5, count)
@@ -358,31 +358,66 @@ func (suite *LoggerTester) Test06OtherParams() {
 		SortBy:  "createdOn",
 	}
 
-	msgs, count, err := client.GetMessages(format,
-		map[string]string{
-			"service":  "JobManager",
-			"contains": "Success",
-		})
+	params := piazza.HttpQueryParams{}
+	params.AddString("service", "JobManager")
+	params.AddString("contains", "Success")
+
+	msgs, count, err := client.GetMessages(&format, &params)
 	assert.NoError(err)
 	assert.Len(msgs, 1)
 	assert.Equal(5, count)
+}
 
-	//for _, msg := range msgs {
-	//log.Printf("%v\n", msg)
-	//}
+func (suite *LoggerTester) TestConstructDsl() {
+	t := suite.T()
+	assert := assert.New(t)
 
-	msgs, count, err = client.GetMessages(format,
-		map[string]string{
-			"before": "1461181461",
-			"after":  "1461181362",
-		})
+	format := &piazza.JsonPagination{
+		PerPage: 100,
+		Page:    0,
+		Order:   piazza.PaginationOrderDescending,
+		SortBy:  "createdOn",
+	}
 
+	startS := "2016-07-26T01:00:00.000Z"
+	endS := "2016-07-26T02:00:00.000Z"
+
+	startT, err := time.Parse(time.RFC3339, startS)
 	assert.NoError(err)
-	assert.Len(msgs, 4)
-	assert.Equal(5, count)
+	endT, err := time.Parse(time.RFC3339, endS)
+	assert.NoError(err)
 
-	//for _, msg := range msgs {
-	//log.Printf("%v\n", msg)
-	//}
+	params := &piazza.HttpQueryParams{}
+	params.AddTime("before", startT)
+	params.AddTime("after", endT)
 
+	actual, err := createQueryDslAsString(format, params)
+	assert.NoError(err)
+	assert.NotEmpty(actual)
+
+	expected := `
+	{
+		"from":0,
+		"query": {
+			"filtered": {
+				"query": {
+					"bool": { 
+						"must": [
+							{
+								"range": {
+									"createdOn": {
+										"gte":"2016-07-26T02:00:00Z",
+										"lte":"2016-07-26T01:00:00Z"
+									}
+								}
+							}
+						]
+					}
+				}
+			}
+		},
+		"size":100, 
+		"sort":{"createdOn":"desc"}
+	}`
+	assert.JSONEq(expected, actual)
 }

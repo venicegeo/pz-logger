@@ -83,29 +83,35 @@ func postflight(code int, obj string) {
 }
 
 func (c *Client) GetMessages(
-	format piazza.JsonPagination,
-	params map[string]string) ([]Message, int, error) {
+	format *piazza.JsonPagination,
+	params *piazza.HttpQueryParams) ([]Message, int, error) {
 
-	endpoint := fmt.Sprintf("/message?perPage=%d&page=%d&key=%s&order=%s",
-		format.PerPage, format.Page, format.SortBy, format.Order)
-	var names = []string{"before", "after", "service", "contains"}
+	formatString := format.ToParamString()
+	paramString := params.ToParamString()
 
-	for _, name := range names {
-		if value, ok := params[name]; ok {
-			//do something here
-			endpoint = fmt.Sprintf("%s&%s=%s", endpoint, name, value)
-		}
+	var ext string
+	if formatString != "" && paramString != "" {
+		ext = "?" + formatString + "&" + paramString
+	} else if formatString == "" && paramString != "" {
+		ext = "?" + paramString
+	} else if formatString != "" && paramString == "" {
+		ext = "?" + formatString
+	} else if formatString == "" && paramString == "" {
+		ext = ""
+	} else {
+		return nil, 0, errors.New("Internal error: failed to parse query params")
 	}
 
-	//log.Printf("%s\n", url)
+	endpoint := "/message" + ext
 
 	h := piazza.Http{
-		BaseUrl: c.url,
-		//Preflight: preflight,
-		//Postflight: postflight,
+		BaseUrl:    c.url,
+		Preflight:  preflight,
+		Postflight: postflight,
 	}
 	jresp := h.PzGet(endpoint)
 	if jresp.IsError() {
+		log.Printf("*** %s", endpoint)
 		return nil, 0, jresp.ToError()
 	}
 

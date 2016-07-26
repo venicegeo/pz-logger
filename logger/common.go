@@ -37,7 +37,7 @@ type IClient interface {
 	GetStats() (*LoggerAdminStats, error)
 
 	// read support
-	GetMessages(format piazza.JsonPagination, params map[string]string) ([]Message, int, error)
+	GetMessages(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]Message, int, error)
 
 	// write support
 	PostMessage(mssg *Message) error
