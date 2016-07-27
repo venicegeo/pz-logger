@@ -47,8 +47,14 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 
 	service := &Client{
 		url:            url,
-		serviceName:    "notset",
-		serviceAddress: "0.0.0.0",
+		serviceName:    sys.Name,
+		serviceAddress: sys.Address,
+		h: piazza.Http{
+			BaseUrl: url,
+			//ApiKey:  apiKey,
+			//Preflight:  preflight,
+			//Postflight: postflight,
+		},
 	}
 
 	err = sys.WaitForService(piazza.PzLogger)
