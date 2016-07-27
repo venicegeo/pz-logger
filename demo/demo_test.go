@@ -36,14 +36,21 @@ type LoggerTester struct {
 	suite.Suite
 	client *logger.Client
 	url    string
+	apiKey string
 }
 
 func (suite *LoggerTester) setupFixture() {
 	t := suite.T()
 	assert := assert.New(t)
 
+	var err error
+
 	suite.url = "https://pz-logger.int.geointservices.io"
-	client, err := logger.NewClient2(suite.url)
+
+	suite.apiKey, err = piazza.GetApiKey("int")
+	assert.NoError(err)
+
+	client, err := logger.NewClient2(suite.url, suite.apiKey)
 	assert.NoError(err)
 	suite.client = client
 }

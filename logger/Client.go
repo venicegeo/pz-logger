@@ -27,8 +27,10 @@ import (
 
 type Client struct {
 	url            string
+	apiKey         string
 	serviceName    piazza.ServiceName
 	serviceAddress string
+	h              piazza.Http
 }
 
 //---------------------------------------------------------------------
@@ -57,13 +59,19 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 	return service, nil
 }
 
-func NewClient2(url string) (*Client, error) {
+func NewClient2(url string, apiKey string) (*Client, error) {
 	var _ IClient = new(Client)
 
 	service := &Client{
 		url:            url,
 		serviceName:    "notset",
 		serviceAddress: "0.0.0.0",
+		h: piazza.Http{
+			BaseUrl: url,
+			ApiKey:  apiKey,
+			//Preflight:  preflight,
+			//Postflight: postflight,
+		},
 	}
 
 	return service, nil
@@ -104,12 +112,7 @@ func (c *Client) GetMessages(
 
 	endpoint := "/message" + ext
 
-	h := piazza.Http{
-		BaseUrl: c.url,
-		//Preflight:  preflight,
-		//Postflight: postflight,
-	}
-	jresp := h.PzGet(endpoint)
+	jresp := c.h.PzGet(endpoint)
 	if jresp.IsError() {
 		return nil, 0, jresp.ToError()
 	}
@@ -125,8 +128,7 @@ func (c *Client) GetMessages(
 
 func (c *Client) GetStats() (*LoggerAdminStats, error) {
 
-	h := piazza.Http{BaseUrl: c.url}
-	jresp := h.PzGet("/admin/stats")
+	jresp := c.h.PzGet("/admin/stats")
 	if jresp.IsError() {
 		return nil, jresp.ToError()
 	}
@@ -150,8 +152,7 @@ func (c *Client) PostMessage(mssg *Message) error {
 		return errors.New("message did not validate")
 	}
 
-	h := piazza.Http{BaseUrl: c.url}
-	jresp := h.PzPost("/message", mssg)
+	jresp := c.h.PzPost("/message", mssg)
 	if jresp.IsError() {
 		return jresp.ToError()
 	}
