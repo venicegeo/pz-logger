@@ -70,7 +70,7 @@ func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 	client := suite.client
 
 	format := &piazza.JsonPagination{
-		PerPage: 10,
+		PerPage: 100,
 		Page:    0,
 		Order:   piazza.SortOrderDescending,
 		SortBy:  "createdOn",
@@ -220,6 +220,44 @@ func (suite *LoggerTester) TestPost() {
 	sleep()
 
 	assert.True(suite.verifyMessageExists(data))
+}
+
+func (suite *LoggerTester) TestPostHelpers() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	suite.setupFixture()
+	defer suite.teardownFixture()
+
+	client := suite.client
+
+	uniq := time.Now().String()
+
+	err := client.Info(uniq)
+	assert.NoError(err)
+
+	sleep()
+
+	{
+		format := &piazza.JsonPagination{
+			PerPage: 100,
+			Page:    0,
+			Order:   piazza.SortOrderDescending,
+			SortBy:  "createdOn",
+		}
+		ms, _, err := client.GetMessages(format, nil)
+		assert.NoError(err)
+		assert.True(len(ms) <= format.PerPage)
+
+		ok := false
+		for _, m := range ms {
+			if m.Message == uniq {
+				ok = true
+				break
+			}
+		}
+		assert.True(ok)
+	}
 }
 
 func (suite *LoggerTester) TestAdmin() {
