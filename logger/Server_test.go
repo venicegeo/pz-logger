@@ -108,7 +108,7 @@ func (suite *LoggerTester) getLastMessage() string {
 	format := piazza.JsonPagination{
 		PerPage: 100,
 		Page:    0,
-		Order:   piazza.PaginationOrderAscending,
+		Order:   piazza.SortOrderAscending,
 		SortBy:  "createdOn",
 	}
 	ms, count, err := client.GetMessages(&format, nil)
@@ -257,7 +257,7 @@ func (suite *LoggerTester) Test05Pagination() {
 		PerPage: 1,
 		Page:    0,
 		SortBy:  "createdOn",
-		Order:   piazza.PaginationOrderDescending,
+		Order:   piazza.SortOrderDescending,
 	}
 	ms, count, err := client.GetMessages(&format, nil)
 	assert.NoError(err)
@@ -269,7 +269,7 @@ func (suite *LoggerTester) Test05Pagination() {
 		PerPage: 5,
 		Page:    0,
 		SortBy:  "createdOn",
-		Order:   piazza.PaginationOrderAscending,
+		Order:   piazza.SortOrderAscending,
 	}
 	ms, count, err = client.GetMessages(&format, nil)
 	assert.NoError(err)
@@ -281,7 +281,7 @@ func (suite *LoggerTester) Test05Pagination() {
 		PerPage: 3,
 		Page:    1,
 		SortBy:  "createdOn",
-		Order:   piazza.PaginationOrderDescending,
+		Order:   piazza.SortOrderDescending,
 	}
 	ms, count, err = client.GetMessages(&format, nil)
 	assert.NoError(err)
@@ -353,7 +353,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 	format := piazza.JsonPagination{
 		PerPage: 100,
 		Page:    0,
-		Order:   piazza.PaginationOrderDescending,
+		Order:   piazza.SortOrderDescending,
 		SortBy:  "createdOn",
 	}
 
@@ -374,7 +374,7 @@ func (suite *LoggerTester) TestConstructDsl() {
 	format := &piazza.JsonPagination{
 		PerPage: 100,
 		Page:    0,
-		Order:   piazza.PaginationOrderDescending,
+		Order:   piazza.SortOrderDescending,
 		SortBy:  "createdOn",
 	}
 

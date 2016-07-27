@@ -202,7 +202,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	defaultPagination := &piazza.JsonPagination{
 		PerPage: 10,
 		Page:    0,
-		Order:   piazza.PaginationOrderDescending,
+		Order:   piazza.SortOrderDescending,
 		SortBy:  "createdOn",
 	}
 	pagination, err := piazza.NewJsonPagination(params, defaultPagination)

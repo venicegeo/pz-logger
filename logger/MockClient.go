@@ -84,7 +84,7 @@ func (logger *MockClient) GetMessages(
 		buf[i] = logger.messages[startIndex+i]
 	}
 
-	if format.Order == piazza.PaginationOrderDescending {
+	if format.Order == piazza.SortOrderDescending {
 		buf2 := make([]Message, resultCount)
 		for i := 0; i < resultCount; i++ {
 			buf2[i] = buf[resultCount-1-i]
