@@ -56,32 +56,6 @@ func TestRunSuite(t *testing.T) {
 	suite.Run(t, s)
 }
 
-func (suite *LoggerTester) getMessages(key string) []logger.Message {
-	t := suite.T()
-	assert := assert.New(t)
-
-	client := suite.client
-
-	format := &piazza.JsonPagination{
-		PerPage: 100,
-		Page:    0,
-		Order:   piazza.PaginationOrderAscending,
-		SortBy:  "createdOn",
-	}
-	ms, _, err := client.GetMessages(format, nil)
-	assert.NoError(err)
-	assert.True(len(ms) > 0)
-
-	ret := make([]logger.Message, 0)
-	for _, m := range ms {
-		if m.Message == key {
-			ret = append(ret, m)
-		}
-	}
-
-	return ret
-}
-
 func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 	t := suite.T()
 	assert := assert.New(t)
@@ -91,7 +65,7 @@ func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 	format := &piazza.JsonPagination{
 		PerPage: 10,
 		Page:    0,
-		Order:   piazza.PaginationOrderAscending,
+		Order:   piazza.SortOrderDescending,
 		SortBy:  "createdOn",
 	}
 	ms, _, err := client.GetMessages(format, nil)
@@ -104,6 +78,36 @@ func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 		}
 	}
 	return false
+}
+
+// test assume at least two mssgs in the log file, so do this first
+func (suite *LoggerTester) Test0000() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	suite.setupFixture()
+	defer suite.teardownFixture()
+
+	client := suite.client
+
+	key := strconv.Itoa(time.Now().Nanosecond())
+
+	data := &logger.Message{
+		Service:   "log-tester",
+		Address:   "128.1.2.3",
+		CreatedOn: time.Now(),
+		Severity:  "Info",
+		Message:   key + "A",
+	}
+
+	err := client.PostMessage(data)
+	assert.NoError(err)
+
+	data.Message = key + "B"
+	data.CreatedOn = time.Now()
+
+	err = client.PostMessage(data)
+	assert.NoError(err)
 }
 
 func (suite *LoggerTester) TestRawGet() {
@@ -174,7 +178,7 @@ func (suite *LoggerTester) TestGet() {
 	format := &piazza.JsonPagination{
 		PerPage: 12,
 		Page:    0,
-		Order:   piazza.PaginationOrderAscending,
+		Order:   piazza.SortOrderAscending,
 		SortBy:  "createdOn",
 	}
 	ms, _, err := client.GetMessages(format, nil)
@@ -222,6 +226,7 @@ func (suite *LoggerTester) TestAdmin() {
 
 	stats, err := client.GetStats()
 	assert.NoError(err, "GetFromAdminStats")
+
 	assert.NotZero(stats.NumMessages)
 }
 
@@ -235,16 +240,65 @@ func (suite *LoggerTester) TestPagination() {
 	client := suite.client
 
 	format := &piazza.JsonPagination{
-		PerPage: 1,
+		PerPage: 10,
 		Page:    0,
 		SortBy:  "createdOn",
-		Order:   piazza.PaginationOrderAscending,
+		Order:   piazza.SortOrderAscending,
 	}
 	params := &piazza.HttpQueryParams{}
 
-	ms, _, err := client.GetMessages(format, params)
-	assert.NoError(err)
-	assert.Len(ms, format.PerPage)
+	// check per-page
+	{
+		format.PerPage = 17
+		ms, _, err := client.GetMessages(format, params)
+		assert.NoError(err)
+		assert.Len(ms, 17)
+	}
+
+	// check sort order
+	{
+		format.PerPage = 10
+		format.Order = piazza.SortOrderAscending
+		ms, _, err := client.GetMessages(format, params)
+		assert.NoError(err)
+		last := len(ms) - 1
+		assert.True(last <= 9)
+
+		// we can't check "before", because two createdOn's might be the same
+		isBefore := ms[0].CreatedOn.Before(ms[last].CreatedOn)
+		isEqual := ms[0].CreatedOn.Equal(ms[last].CreatedOn)
+		assert.True(isBefore || isEqual)
+
+		format.Order = piazza.SortOrderDescending
+		ms, _, err = client.GetMessages(format, params)
+		assert.NoError(err)
+		last = len(ms) - 1
+		assert.True(last <= 9)
+
+		isAfter := ms[0].CreatedOn.After(ms[last].CreatedOn)
+		isEqual = ms[0].CreatedOn.Equal(ms[last].CreatedOn)
+		assert.True(isAfter || isEqual)
+	}
+
+	// check sort-by
+	{
+		format.Order = piazza.SortOrderAscending
+		format.SortBy = "severity"
+		format.PerPage = 100
+		format.Page = 0
+		ms, _, err := client.GetMessages(format, params)
+		if err != nil {
+			panic(88)
+		}
+		assert.NoError(err)
+
+		last := len(ms) - 1
+		for i := 0; i < last; i++ {
+			a, b := string(ms[i].Severity), string(ms[i+1].Severity)
+			isBefore := (a <= b)
+			assert.True(isBefore)
+		}
+	}
 }
 
 func (suite *LoggerTester) TestParams() {
@@ -276,7 +330,7 @@ func (suite *LoggerTester) TestParams() {
 	format := &piazza.JsonPagination{
 		PerPage: 256,
 		Page:    0,
-		Order:   piazza.PaginationOrderDescending,
+		Order:   piazza.SortOrderDescending,
 		SortBy:  "createdOn",
 	}
 
