@@ -38,7 +38,7 @@ type LogData struct {
 	id      int
 }
 
-const schema = "LogData6"
+const schema = "LogData7"
 
 type Service struct {
 	stats   LockedAdminStats
@@ -77,7 +77,7 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 
 		mapping :=
 			`{
-			"LogData6":{
+			"LogData7":{
 				"dynamic": "strict",
 				"properties": {
 					"service": {
