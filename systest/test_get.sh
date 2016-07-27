@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PZDOMAIN=int.geointservices.io
+
 url="https://pz-logger.$PZDOMAIN/message?perPage=3"
 
 echo
