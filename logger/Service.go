@@ -221,8 +221,6 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		return service.newBadRequestResponse(err)
 	}
 
-	//log.Printf("DSL: %s", dsl)
-
 	var searchResult *elasticsearch.SearchResult
 
 	if dsl == "" {

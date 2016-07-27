@@ -68,19 +68,11 @@ func (logger *MockClient) GetMessages(
 
 	resultCount := endIndex - startIndex
 
-	//log.Printf("====")
-	//log.Printf("Size=%d, From=%d", format.Size, format.From)
-	//log.Printf("StartIndex=%d, EndIndex=%d, ResultCount=%d", startIndex, endIndex, resultCount)
-	//for i, v := range logger.messages {
-	//log.Printf("%d: %s", i, v)
-	//}
-
 	// we return exactly one page
 	// first we get the right page, *then* we sort that subset
 
 	buf := make([]Message, resultCount)
 	for i := 0; i < resultCount; i++ {
-		//log.Printf("== %d %d", i, startIndex+i)
 		buf[i] = logger.messages[startIndex+i]
 	}
 
@@ -91,13 +83,6 @@ func (logger *MockClient) GetMessages(
 		}
 		buf = buf2
 	}
-
-	//log.Printf("----")
-	//for i, v := range buf {
-	//log.Printf("%d: %s", i, v)
-	//}
-
-	//log.Printf("====")
 
 	return buf, totalCount, nil
 }
