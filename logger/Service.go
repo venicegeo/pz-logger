@@ -38,7 +38,7 @@ type LogData struct {
 	id      int
 }
 
-const schema = "LogData5"
+const schema = "LogData6"
 
 type Service struct {
 	stats   LockedAdminStats
@@ -77,27 +77,33 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 
 		mapping :=
 			`{
-			"LogData5":{
-				"properties":{
-					"service":{
+			"LogData6":{
+				"dynamic": "strict",
+				"properties": {
+					"service": {
 						"type": "string",
-						"store": true
+						"store": true,
+						"index": "not_analyzed"
 					},
-					"address":{
+					"address": {
 						"type": "string",
-						"store": true
+						"store": true,
+						"index": "not_analyzed"
 					},
-					"createdOn":{
+					"createdOn": {
 						"type": "date",
-						"store": true
+						"store": true,
+						"index": "not_analyzed"
 					},
-					"severity":{
+					"severity": {
 						"type": "string",
-						"store": true
+						"store": true,
+						"index": "not_analyzed"
 					},
-					"message":{
+					"message": {
 						"type": "string",
-						"store": true
+						"store": true,
+						"index": "analyzed"
 					}
 				}
 			}
