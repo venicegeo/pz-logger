@@ -17,7 +17,6 @@ package logger
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/venicegeo/pz-gocommon/gocommon"
@@ -52,8 +51,8 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 		h: piazza.Http{
 			BaseUrl: url,
 			//ApiKey:  apiKey,
-			//Preflight:  preflight,
-			//Postflight: postflight,
+			//Preflight:  piazza.SimplePreflight,
+			//Postflight: piazza.SimplePostflight,
 		},
 	}
 
@@ -84,17 +83,6 @@ func NewClient2(url string, apiKey string) (*Client, error) {
 }
 
 //---------------------------------------------------------------------
-
-func preflight(verb string, url string, obj string) {
-	log.Printf("PREFLIGHT.verb: %s", verb)
-	log.Printf("PREFLIGHT.url: %s", url)
-	log.Printf("PREFLIGHT.obj: %s", obj)
-}
-
-func postflight(code int, obj string) {
-	log.Printf("POSTFLIGHT.code: %d", code)
-	log.Printf("POSTFLIGHT.obj: %s", obj)
-}
 
 func (c *Client) GetMessages(
 	format *piazza.JsonPagination,
