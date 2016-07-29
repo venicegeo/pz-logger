@@ -4,22 +4,28 @@ pushd `dirname $0`/.. > /dev/null
 root=$(pwd -P)
 popd > /dev/null
 
+#----------------------------------------------------------------------
+
 export GOPATH=$root/gogo
-mkdir -p $GOPATH
+mkdir -p "$GOPATH"
 
-###
+# glide expects this to already exist
+mkdir "$GOPATH"/bin "$GOPATH"/src "$GOPATH"/pkg
 
-# external pkgs
-go get gopkg.in/olivere/elastic.v3
-go get github.com/stretchr/testify/suite
-go get github.com/stretchr/testify/assert
+PATH=$PATH:"$GOPATH"/bin
 
-# our gocommon pkgs
-go get github.com/venicegeo/pz-gocommon/gocommon
-go get github.com/venicegeo/pz-gocommon/elasticsearch
+export GO15VENDOREXPERIMENT="1"
 
-# ourself
-go get github.com/venicegeo/pz-logger/logger
+curl https://glide.sh/get | sh
+
+# get ourself, and go there
+go get github.com/venicegeo/pz-logger
+cd $GOPATH/src/github.com/venicegeo/pz-logger
+
+glide install
+
+#----------------------------------------------------------------------
+
 go test -v -coverprofile=logger.cov -coverpkg github.com/venicegeo/pz-logger/logger github.com/venicegeo/pz-logger/logger
 
 ###
