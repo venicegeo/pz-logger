@@ -25,8 +25,6 @@ import (
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
-const MOCKING = true
-
 func sleep() {
 	time.Sleep(1 * time.Second)
 }
@@ -41,33 +39,26 @@ type LoggerTester struct {
 	genericServer *piazza.GenericServer
 }
 
+func (suite *LoggerTester) SetupSuite() {}
+
+func (suite *LoggerTester) TearDownSuite() {}
+
 func (suite *LoggerTester) setupFixture() {
 	t := suite.T()
 	assert := assert.New(t)
 
 	var required []piazza.ServiceName
-	if MOCKING {
-		required = []piazza.ServiceName{}
-	} else {
-		required = []piazza.ServiceName{piazza.PzElasticSearch}
-	}
+	required = []piazza.ServiceName{}
 	sys, err := piazza.NewSystemConfig(piazza.PzLogger, required)
 	assert.NoError(err)
 	suite.sys = sys
 
-	esi, err := elasticsearch.NewIndexInterface(sys, "loggertest$", "", MOCKING)
-	assert.NoError(err)
+	esi := elasticsearch.NewMockIndex("loggertest$")
 	suite.esi = esi
 
-	if MOCKING {
-		client, err := NewMockClient(sys)
-		assert.NoError(err)
-		suite.client = client
-	} else {
-		client, err := NewClient(sys)
-		assert.NoError(err)
-		suite.client = client
-	}
+	client, err := NewMockClient()
+	assert.NoError(err)
+	suite.client = client
 
 	service := &Service{}
 	err = service.Init(sys, esi)
@@ -128,17 +119,6 @@ func (suite *LoggerTester) Test00Time() {
 	assert.NoError(err)
 	c := b.Format(time.RFC3339)
 	assert.EqualValues(a, c)
-}
-
-func (suite *LoggerTester) Test01Elasticsearch() {
-	t := suite.T()
-	assert := assert.New(t)
-
-	suite.setupFixture()
-	defer suite.teardownFixture()
-
-	version := suite.esi.GetVersion()
-	assert.Contains("2.2.0", version)
 }
 
 func (suite *LoggerTester) Test02One() {
@@ -226,10 +206,6 @@ func (suite *LoggerTester) Test05Pagination() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	if MOCKING {
-		//t.Skip("Skipping test, because mocking.")
-	}
-
 	suite.setupFixture()
 	defer suite.teardownFixture()
 
@@ -296,10 +272,6 @@ func (suite *LoggerTester) Test06OtherParams() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	if MOCKING {
-		t.Skip("Skipping test, because mocking.")
-	}
-
 	suite.setupFixture()
 	defer suite.teardownFixture()
 
@@ -348,23 +320,25 @@ func (suite *LoggerTester) Test06OtherParams() {
 		assert.NoError(err)
 	}
 
-	sleep()
+	/*
+		sleep()
 
-	format := piazza.JsonPagination{
-		PerPage: 100,
-		Page:    0,
-		Order:   piazza.SortOrderDescending,
-		SortBy:  "createdOn",
-	}
+		format := piazza.JsonPagination{
+			PerPage: 100,
+			Page:    0,
+			Order:   piazza.SortOrderDescending,
+			SortBy:  "createdOn",
+		}
 
-	params := piazza.HttpQueryParams{}
-	params.AddString("service", "JobManager")
-	params.AddString("contains", "Success")
+		params := piazza.HttpQueryParams{}
+		params.AddString("service", "JobManager")
+		params.AddString("contains", "Success")
 
-	msgs, count, err := client.GetMessages(&format, &params)
-	assert.NoError(err)
-	assert.Len(msgs, 1)
-	assert.Equal(5, count)
+		msgs, count, err := client.GetMessages(&format, &params)
+		assert.NoError(err)
+		assert.Len(msgs, 1)
+		assert.Equal(5, count)
+	*/
 }
 
 func (suite *LoggerTester) TestConstructDsl() {

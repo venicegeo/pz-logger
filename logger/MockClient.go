@@ -30,7 +30,7 @@ type MockClient struct {
 	stats          LoggerAdminStats
 }
 
-func NewMockClient(sys *piazza.SystemConfig) (IClient, error) {
+func NewMockClient() (IClient, error) {
 	var _ IClient = new(MockClient)
 
 	service := &MockClient{}
