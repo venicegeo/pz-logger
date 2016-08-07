@@ -87,39 +87,12 @@ func (suite *LoggerTester) verifyMessageExists(expected *logger.Message) bool {
 	return false
 }
 
-// test assume at least two mssgs in the log file, so do this first
-func (suite *LoggerTester) Test0000() {
+func (suite *LoggerTester) Test01RawGet() {
 	t := suite.T()
 	assert := assert.New(t)
 
 	suite.setupFixture()
 	defer suite.teardownFixture()
-
-	client := suite.client
-
-	key := strconv.Itoa(time.Now().Nanosecond())
-
-	data := &logger.Message{
-		Service:   "log-tester",
-		Address:   "128.1.2.3",
-		CreatedOn: time.Now(),
-		Severity:  "Info",
-		Message:   key + "A",
-	}
-
-	err := client.PostMessage(data)
-	assert.NoError(err)
-
-	data.Message = key + "B"
-	data.CreatedOn = time.Now()
-
-	err = client.PostMessage(data)
-	assert.NoError(err)
-}
-
-func (suite *LoggerTester) TestRawGet() {
-	t := suite.T()
-	assert := assert.New(t)
 
 	resp, err := http.Get(suite.url + "/message?perPage=13&page=&0")
 	assert.NoError(err)
@@ -139,7 +112,7 @@ func (suite *LoggerTester) TestRawGet() {
 	assert.Equal(200, resp.StatusCode)
 }
 
-func (suite *LoggerTester) TestRawPost() {
+func (suite *LoggerTester) Test02RawPost() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -173,7 +146,7 @@ func (suite *LoggerTester) TestRawPost() {
 	assert.Equal(200, resp.StatusCode)
 }
 
-func (suite *LoggerTester) TestGet() {
+func (suite *LoggerTester) Test03Get() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -193,7 +166,7 @@ func (suite *LoggerTester) TestGet() {
 	assert.Len(ms, format.PerPage)
 }
 
-func (suite *LoggerTester) TestPost() {
+func (suite *LoggerTester) Test04Post() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -222,7 +195,7 @@ func (suite *LoggerTester) TestPost() {
 	assert.True(suite.verifyMessageExists(data))
 }
 
-func (suite *LoggerTester) TestPostHelpers() {
+func (suite *LoggerTester) Test05PostHelpers() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -260,7 +233,7 @@ func (suite *LoggerTester) TestPostHelpers() {
 	}
 }
 
-func (suite *LoggerTester) TestAdmin() {
+func (suite *LoggerTester) Test06Admin() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -271,11 +244,10 @@ func (suite *LoggerTester) TestAdmin() {
 
 	stats, err := client.GetStats()
 	assert.NoError(err, "GetFromAdminStats")
-
 	assert.NotZero(stats.NumMessages)
 }
 
-func (suite *LoggerTester) TestPagination() {
+func (suite *LoggerTester) Test07Pagination() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -346,7 +318,7 @@ func (suite *LoggerTester) TestPagination() {
 	}
 }
 
-func (suite *LoggerTester) TestParams() {
+func (suite *LoggerTester) Test08Params() {
 	t := suite.T()
 	assert := assert.New(t)
 
