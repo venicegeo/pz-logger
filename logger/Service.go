@@ -64,7 +64,11 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 	}
 	***/
 
-	if !esIndex.IndexExists() {
+	ok, err := esIndex.IndexExists()
+	if err != nil {
+		return err
+	}
+	if !ok {
 		log.Printf("Creating index: %s", esIndex.IndexName())
 		err = esIndex.Create("")
 		if err != nil {
@@ -72,7 +76,11 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 		}
 	}
 
-	if !esIndex.TypeExists(schema) {
+	ok, err = esIndex.TypeExists(schema)
+	if err != nil {
+		return err
+	}
+	if !ok {
 		log.Printf("Creating type: %s", schema)
 
 		mapping :=
