@@ -197,7 +197,7 @@ func (suite *LoggerTester) Test02One() {
 	{
 		stats, err := client.GetStats()
 		assert.NoError(err, "GetFromAdminStats")
-		assert.Equal(2, stats.NumMessages, "stats check")
+		assert.EqualValues(2, stats.NumMessages, "stats check")
 	}
 }
 

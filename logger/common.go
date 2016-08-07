@@ -56,8 +56,11 @@ type IClient interface {
 //---------------------------------------------------------------------------
 
 type LoggerAdminStats struct {
-	CreatedOn   time.Time `json:"createdOn"`
-	NumMessages int       `json:"numMessages"`
+	CreatedOn time.Time `json:"createdOn"`
+
+	// this is the number of messages since the service was started,
+	// not the total number of messages in the system
+	NumMessages float64 `json:"numMessages"`
 }
 
 // ToString returns a Message as a formatted string.
