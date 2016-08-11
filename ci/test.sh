@@ -23,6 +23,7 @@ go get github.com/venicegeo/pz-logger
 cd $GOPATH/src/github.com/venicegeo/pz-logger
 
 glide install
+glide update
 
 #----------------------------------------------------------------------
 
