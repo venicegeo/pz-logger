@@ -205,13 +205,7 @@ func (service *Service) GetStats() *piazza.JsonResponse {
 func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonResponse {
 	var err error
 
-	defaultPagination := &piazza.JsonPagination{
-		PerPage: 10,
-		Page:    0,
-		Order:   piazza.SortOrderDescending,
-		SortBy:  "createdOn",
-	}
-	pagination, err := piazza.NewJsonPagination(params, defaultPagination)
+	pagination, err := piazza.NewJsonPagination(params)
 	if err != nil {
 		return service.newBadRequestResponse(err)
 	}
