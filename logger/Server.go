@@ -27,8 +27,16 @@ type Server struct {
 	Routes  []piazza.RouteData
 }
 
+const Version = "1.0.0"
+
 func (server *Server) handleGetRoot(c *gin.Context) {
 	resp := server.service.GetRoot()
+	piazza.GinReturnJson(c, resp)
+}
+
+func (server *Server) handleGetVersion(c *gin.Context) {
+	version := piazza.Version{Version: Version}
+	resp := &piazza.JsonResponse{StatusCode: http.StatusOK, Data: version}
 	piazza.GinReturnJson(c, resp)
 }
 
@@ -60,6 +68,7 @@ func (server *Server) Init(service *Service) {
 
 	server.Routes = []piazza.RouteData{
 		{"GET", "/", server.handleGetRoot},
+		{"GET", "/version", server.handleGetVersion},
 		{"GET", "/message", server.handleGetMessage},
 		{"POST", "/message", server.handlePostMessage},
 		{"GET", "/admin/stats", server.handleGetStats},

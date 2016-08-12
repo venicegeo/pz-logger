@@ -40,6 +40,11 @@ func NewMockClient() (IClient, error) {
 	return service, nil
 }
 
+func (c *MockClient) GetVersion() (*piazza.Version, error) {
+	version := piazza.Version{Version: Version}
+	return &version, nil
+}
+
 func (logger *MockClient) GetMessages(
 	format *piazza.JsonPagination,
 	params *piazza.HttpQueryParams) ([]Message, int, error) {

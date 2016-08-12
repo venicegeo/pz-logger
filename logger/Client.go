@@ -84,6 +84,23 @@ func NewClient2(url string, apiKey string) (*Client, error) {
 
 //---------------------------------------------------------------------
 
+func (c *Client) GetVersion() (*piazza.Version, error) {
+	jresp := c.h.PzGet("/version")
+	if jresp.IsError() {
+		return nil, jresp.ToError()
+	}
+
+	var version piazza.Version
+	err := jresp.ExtractData(&version)
+	if err != nil {
+		return nil, err
+	}
+
+	return &version, nil
+}
+
+//---------------------------------------------------------------------
+
 func (c *Client) GetMessages(
 	format *piazza.JsonPagination,
 	params *piazza.HttpQueryParams) ([]Message, int, error) {

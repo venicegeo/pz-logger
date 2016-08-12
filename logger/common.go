@@ -34,6 +34,7 @@ type Message struct {
 
 type IClient interface {
 	// admin interfaces
+	GetVersion() (*piazza.Version, error)
 	GetStats() (*LoggerAdminStats, error)
 
 	// read support
