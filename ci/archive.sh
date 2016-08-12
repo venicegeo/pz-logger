@@ -22,8 +22,9 @@ curl https://glide.sh/get | sh
 go get github.com/venicegeo/pz-logger
 cd $GOPATH/src/github.com/venicegeo/pz-logger
 
-glide install
-glide update
+#glide install
+#glide update
+go get github.com/stretchr/testify/assert
 
 #----------------------------------------------------------------------
 
