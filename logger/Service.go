@@ -282,35 +282,35 @@ func createQueryDslAsString(
 
 	must := []map[string]interface{}{}
 
-	service, err := params.GetAsString("service", nil)
+	service, err := params.GetAsString("service", "")
 	if err != nil {
 		return "", err
 	}
 
-	contains, err := params.GetAsString("contains", nil)
+	contains, err := params.GetAsString("contains", "")
 	if err != nil {
 		return "", err
 	}
 
-	before, err := params.GetBefore(nil)
+	before, err := params.GetBefore(time.Time{})
 	if err != nil {
 		return "", err
 	}
 
-	after, err := params.GetAfter(nil)
+	after, err := params.GetAfter(time.Time{})
 	if err != nil {
 		return "", err
 	}
 
-	if service != nil {
+	if service != "" {
 		must = append(must, map[string]interface{}{
 			"match": map[string]interface{}{
-				"service": *service,
+				"service": service,
 			},
 		})
 	}
 
-	if contains != nil {
+	if contains != "" {
 		must = append(must, map[string]interface{}{
 			"multi_match": map[string]interface{}{
 				"query":  contains,
@@ -319,15 +319,15 @@ func createQueryDslAsString(
 		})
 	}
 
-	if after != nil || before != nil {
+	if !after.IsZero() || !before.IsZero() {
 		rangeParams := map[string]time.Time{}
 
-		if after != nil {
-			rangeParams["gte"] = *after
+		if !after.IsZero() {
+			rangeParams["gte"] = after
 		}
 
-		if before != nil {
-			rangeParams["lte"] = *before
+		if !before.IsZero() {
+			rangeParams["lte"] = before
 		}
 
 		must = append(must, map[string]interface{}{
