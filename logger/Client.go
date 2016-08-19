@@ -105,8 +105,8 @@ func (c *Client) GetMessages(
 	format *piazza.JsonPagination,
 	params *piazza.HttpQueryParams) ([]Message, int, error) {
 
-	formatString := format.ToParamString()
-	paramString := params.ToParamString()
+	formatString := format.String()
+	paramString := params.String()
 
 	var ext string
 	if formatString != "" && paramString != "" {

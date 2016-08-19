@@ -49,7 +49,7 @@ func (logger *MockClient) GetMessages(
 	format *piazza.JsonPagination,
 	params *piazza.HttpQueryParams) ([]Message, int, error) {
 
-	if params.ToParamString() != "" {
+	if params.String() != "" {
 		log.Fatalf("parameters are not supported in mock client")
 	}
 
