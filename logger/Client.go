@@ -17,6 +17,7 @@ package logger
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/venicegeo/pz-gocommon/gocommon"
@@ -196,26 +197,41 @@ func (c *Client) post(severity Severity, message string, v ...interface{}) error
 }
 
 // Debug sends a Debug-level message to the logger.
-func (c *Client) Debug(message string, v ...interface{}) error {
-	return c.post(SeverityDebug, message, v...)
+func (c *Client) Debug(message string, v ...interface{}) {
+	err := c.post(SeverityDebug, message, v...)
+	if err != nil {
+		log.Printf("Error sending to logger: %s", err.Error())
+	}
 }
 
 // Info sends an Info-level message to the logger.
-func (c *Client) Info(message string, v ...interface{}) error {
-	return c.post(SeverityInfo, message, v...)
+func (c *Client) Info(message string, v ...interface{}) {
+	err := c.post(SeverityInfo, message, v...)
+	if err != nil {
+		log.Printf("Error sending to logger: %s", err.Error())
+	}
 }
 
 // Warn sends a Waring-level message to the logger.
-func (c *Client) Warn(message string, v ...interface{}) error {
-	return c.post(SeverityWarning, message, v...)
+func (c *Client) Warn(message string, v ...interface{}) {
+	err := c.post(SeverityWarning, message, v...)
+	if err != nil {
+		log.Printf("Error sending to logger: %s", err.Error())
+	}
 }
 
 // Error sends a Error-level message to the logger.
-func (c *Client) Error(message string, v ...interface{}) error {
-	return c.post(SeverityError, message, v...)
+func (c *Client) Error(message string, v ...interface{}) {
+	err := c.post(SeverityError, message, v...)
+	if err != nil {
+		log.Printf("Error sending to logger: %s", err.Error())
+	}
 }
 
 // Fatal sends a Fatal-level message to the logger.
-func (c *Client) Fatal(message string, v ...interface{}) error {
-	return c.post(SeverityFatal, message, v...)
+func (c *Client) Fatal(message string, v ...interface{}) {
+	err := c.post(SeverityFatal, message, v...)
+	if err != nil {
+		log.Printf("Error sending to logger: %s", err.Error())
+	}
 }

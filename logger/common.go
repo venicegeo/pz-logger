@@ -44,11 +44,11 @@ type IClient interface {
 	PostMessage(mssg *Message) error
 	PostLog(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error
 
-	Debug(message string, v ...interface{}) error
-	Info(message string, v ...interface{}) error
-	Warn(message string, v ...interface{}) error
-	Error(message string, v ...interface{}) error
-	Fatal(message string, v ...interface{}) error
+	Debug(message string, v ...interface{})
+	Info(message string, v ...interface{})
+	Warn(message string, v ...interface{})
+	Error(message string, v ...interface{})
+	Fatal(message string, v ...interface{})
 
 	// config support
 	SetService(name piazza.ServiceName, address string)
@@ -121,5 +121,6 @@ func init() {
 	piazza.JsonResponseDataTypes["logger.Message"] = "logmessage"
 	piazza.JsonResponseDataTypes["*logger.Message"] = "logmessage"
 	piazza.JsonResponseDataTypes["[]logger.Message"] = "logmessage-list"
-	piazza.JsonResponseDataTypes["logger.LoggerAdminStats"] = "logstats"
+	piazza.JsonResponseDataTypes["logger.Stats"] = "logstats"
+	piazza.JsonResponseDataTypes["*logger.Stats"] = "logstats"
 }

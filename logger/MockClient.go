@@ -117,26 +117,41 @@ func (c *MockClient) post(severity Severity, message string, v ...interface{}) e
 }
 
 // Debug sends a Debug-level message to the logger.
-func (c *MockClient) Debug(message string, v ...interface{}) error {
-	return c.post(SeverityDebug, message, v...)
+func (c *MockClient) Debug(message string, v ...interface{}) {
+	err := c.post(SeverityDebug, message, v...)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Info sends an Info-level message to the logger.
-func (c *MockClient) Info(message string, v ...interface{}) error {
-	return c.post(SeverityInfo, message, v...)
+func (c *MockClient) Info(message string, v ...interface{}) {
+	err := c.post(SeverityInfo, message, v...)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Warn sends a Waring-level message to the logger.
-func (c *MockClient) Warn(message string, v ...interface{}) error {
-	return c.post(SeverityWarning, message, v...)
+func (c *MockClient) Warn(message string, v ...interface{}) {
+	err := c.post(SeverityWarning, message, v...)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Error sends a Error-level message to the logger.
-func (c *MockClient) Error(message string, v ...interface{}) error {
-	return c.post(SeverityError, message, v...)
+func (c *MockClient) Error(message string, v ...interface{}) {
+	err := c.post(SeverityError, message, v...)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Fatal sends a Fatal-level message to the logger.
-func (c *MockClient) Fatal(message string, v ...interface{}) error {
-	return c.post(SeverityFatal, message, v...)
+func (c *MockClient) Fatal(message string, v ...interface{}) {
+	err := c.post(SeverityFatal, message, v...)
+	if err != nil {
+		panic(err)
+	}
 }

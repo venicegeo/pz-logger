@@ -237,20 +237,11 @@ func (suite *LoggerTester) Test05Pagination() {
 
 	client.SetService("myservice", "1.2.3.4")
 
-	err := client.Debug("d")
-	assert.NoError(err)
-	sleep()
-	err = client.Info("i")
-	assert.NoError(err)
-	sleep()
-	err = client.Warn("w")
-	assert.NoError(err)
-	sleep()
-	err = client.Error("e")
-	assert.NoError(err)
-	sleep()
-	err = client.Fatal("f")
-	assert.NoError(err)
+	client.Debug("d")
+	client.Info("i")
+	client.Warn("w")
+	client.Error("e")
+	client.Fatal("f")
 	sleep()
 
 	format := piazza.JsonPagination{

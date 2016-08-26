@@ -26,23 +26,16 @@ import (
 	"github.com/venicegeo/pz-gocommon/gocommon"
 )
 
-type LockedAdminStats struct {
-	sync.Mutex
-	Stats
-}
-
-type LogData struct {
-	sync.Mutex
-	esIndex elasticsearch.IIndex
-	id      int
-}
-
 const schema = "LogData7"
 
 type Service struct {
-	stats   LockedAdminStats
-	logData LogData
-	origin  string
+	sync.Mutex
+
+	stats  Stats
+	origin string
+
+	esIndex elasticsearch.IIndex
+	id      int
 }
 
 func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) error {
@@ -123,7 +116,7 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 		}
 	}
 
-	service.logData.esIndex = esIndex
+	service.esIndex = esIndex
 
 	service.origin = string(sys.Name)
 
@@ -166,17 +159,17 @@ func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
 		return service.newBadRequestResponse(err)
 	}
 
-	service.logData.Lock()
-	idStr := strconv.Itoa(service.logData.id)
-	service.logData.id++
-	service.logData.Unlock()
+	service.Lock()
+	idStr := strconv.Itoa(service.id)
+	service.id++
+	service.Unlock()
 
-	_, err = service.logData.esIndex.PostData(schema, idStr, mssg)
+	_, err = service.esIndex.PostData(schema, idStr, mssg)
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
 
-	service.stats.Stats.NumMessages++
+	service.stats.NumMessages++
 
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
@@ -192,9 +185,9 @@ func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
 }
 
 func (service *Service) GetStats() *piazza.JsonResponse {
-	service.logData.Lock()
-	t := service.stats.Stats
-	service.logData.Unlock()
+	service.Lock()
+	t := service.stats
+	service.Unlock()
 
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
@@ -225,9 +218,9 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	var searchResult *elasticsearch.SearchResult
 
 	if dsl == "" {
-		searchResult, err = service.logData.esIndex.FilterByMatchAll(schema, pagination)
+		searchResult, err = service.esIndex.FilterByMatchAll(schema, pagination)
 	} else {
-		searchResult, err = service.logData.esIndex.SearchByJSON(schema, dsl)
+		searchResult, err = service.esIndex.SearchByJSON(schema, dsl)
 	}
 
 	if err != nil {

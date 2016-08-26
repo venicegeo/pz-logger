@@ -219,9 +219,7 @@ func (suite *LoggerTester) Test05PostHelpers() {
 	client := suite.client
 
 	uniq := time.Now().String()
-
-	err := client.Info(uniq)
-	assert.NoError(err)
+	client.Info(uniq)
 
 	sleep()
 
@@ -257,7 +255,7 @@ func (suite *LoggerTester) Test06Admin() {
 	client := suite.client
 
 	stats, err := client.GetStats()
-	assert.NoError(err, "GetFromAdminStats")
+	assert.NoError(err)
 	assert.NotZero(stats.NumMessages)
 }
 
