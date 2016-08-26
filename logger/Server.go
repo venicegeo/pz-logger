@@ -15,7 +15,6 @@
 package logger
 
 import (
-	_ "fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -67,10 +66,10 @@ func (server *Server) Init(service *Service) {
 	server.service = service
 
 	server.Routes = []piazza.RouteData{
-		{"GET", "/", server.handleGetRoot},
-		{"GET", "/version", server.handleGetVersion},
-		{"GET", "/message", server.handleGetMessage},
-		{"POST", "/message", server.handlePostMessage},
-		{"GET", "/admin/stats", server.handleGetStats},
+		{Verb: "GET", Path: "/", Handler: server.handleGetRoot},
+		{Verb: "GET", Path: "/version", Handler: server.handleGetVersion},
+		{Verb: "GET", Path: "/message", Handler: server.handleGetMessage},
+		{Verb: "POST", Path: "/message", Handler: server.handlePostMessage},
+		{Verb: "GET", Path: "/admin/stats", Handler: server.handleGetStats},
 	}
 }

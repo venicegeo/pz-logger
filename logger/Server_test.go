@@ -79,10 +79,20 @@ func (suite *LoggerTester) setupFixture() {
 }
 
 func (suite *LoggerTester) teardownFixture() {
-	suite.genericServer.Stop()
+	err := suite.genericServer.Stop()
+	if err != nil {
+		panic(err)
+	}
 
-	suite.esi.Close()
-	suite.esi.Delete()
+	err = suite.esi.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	err = suite.esi.Delete()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func TestRunSuite(t *testing.T) {

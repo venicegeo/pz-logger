@@ -22,7 +22,7 @@ import (
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
-// LogMessage represents the contents of a message for the logger service.
+// Message represents the contents of a message for the logger service.
 // All fields are required.
 type Message struct {
 	Service   piazza.ServiceName `json:"service"`
@@ -35,7 +35,7 @@ type Message struct {
 type IClient interface {
 	// admin interfaces
 	GetVersion() (*piazza.Version, error)
-	GetStats() (*LoggerAdminStats, error)
+	GetStats() (*Stats, error)
 
 	// read support
 	GetMessages(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]Message, int, error)
@@ -56,7 +56,7 @@ type IClient interface {
 
 //---------------------------------------------------------------------------
 
-type LoggerAdminStats struct {
+type Stats struct {
 	CreatedOn time.Time `json:"createdOn"`
 
 	// this is the number of messages since the service was started,

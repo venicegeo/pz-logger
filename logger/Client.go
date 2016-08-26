@@ -25,8 +25,8 @@ import (
 //---------------------------------------------------------------------
 
 type Client struct {
-	url            string
-	apiKey         string
+	url string
+	//apiKey         string
 	serviceName    piazza.ServiceName
 	serviceAddress string
 	h              piazza.Http
@@ -137,14 +137,14 @@ func (c *Client) GetMessages(
 	return mssgs, jresp.Pagination.Count, nil
 }
 
-func (c *Client) GetStats() (*LoggerAdminStats, error) {
+func (c *Client) GetStats() (*Stats, error) {
 
 	jresp := c.h.PzGet("/admin/stats")
 	if jresp.IsError() {
 		return nil, jresp.ToError()
 	}
 
-	stats := &LoggerAdminStats{}
+	stats := &Stats{}
 	err := jresp.ExtractData(stats)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (c *Client) GetStats() (*LoggerAdminStats, error) {
 
 //---------------------------------------------------------------------
 
-// LogMessage puts a new message into Elasticsearch.
+// PostMessage puts a new message into Elasticsearch.
 func (c *Client) PostMessage(mssg *Message) error {
 
 	err := mssg.Validate()
@@ -171,7 +171,7 @@ func (c *Client) PostMessage(mssg *Message) error {
 	return nil
 }
 
-// Log sends the components of a LogMessage to the logger.
+// PostLog sends the components of a LogMessage to the logger.
 func (c *Client) PostLog(
 	service piazza.ServiceName,
 	address string,

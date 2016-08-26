@@ -16,7 +16,6 @@ package logger
 
 import (
 	"encoding/json"
-	_ "fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -29,7 +28,7 @@ import (
 
 type LockedAdminStats struct {
 	sync.Mutex
-	LoggerAdminStats
+	Stats
 }
 
 type LogData struct {
@@ -177,7 +176,7 @@ func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
 		return service.newInternalErrorResponse(err)
 	}
 
-	service.stats.LoggerAdminStats.NumMessages++
+	service.stats.Stats.NumMessages++
 
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
@@ -194,7 +193,7 @@ func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
 
 func (service *Service) GetStats() *piazza.JsonResponse {
 	service.logData.Lock()
-	t := service.stats.LoggerAdminStats
+	t := service.stats.Stats
 	service.logData.Unlock()
 
 	resp := &piazza.JsonResponse{

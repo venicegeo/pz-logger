@@ -22,12 +22,12 @@ import (
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
-// implements Logger
+// MockClient implements Logger
 type MockClient struct {
 	serviceName    piazza.ServiceName
 	serviceAddress string
 	messages       []Message
-	stats          LoggerAdminStats
+	stats          Stats
 }
 
 func NewMockClient() (IClient, error) {
@@ -45,7 +45,7 @@ func (c *MockClient) GetVersion() (*piazza.Version, error) {
 	return &version, nil
 }
 
-func (logger *MockClient) GetMessages(
+func (c *MockClient) GetMessages(
 	format *piazza.JsonPagination,
 	params *piazza.HttpQueryParams) ([]Message, int, error) {
 
@@ -55,15 +55,14 @@ func (logger *MockClient) GetMessages(
 
 	startIndex := format.Page * format.PerPage
 	endIndex := startIndex + format.PerPage
-	totalCount := len(logger.messages)
+	totalCount := len(c.messages)
 
 	if format.SortBy != "createdOn" {
 		log.Fatalf("unsupported sort key in mock client: %s", format.SortBy)
 	}
 
 	if startIndex > totalCount {
-		m := make([]Message, 0)
-		return m, totalCount, nil
+		return []Message{}, totalCount, nil
 	}
 
 	if endIndex > totalCount {
@@ -78,7 +77,7 @@ func (logger *MockClient) GetMessages(
 
 	buf := make([]Message, resultCount)
 	for i := 0; i < resultCount; i++ {
-		buf[i] = logger.messages[startIndex+i]
+		buf[i] = c.messages[startIndex+i]
 	}
 
 	if format.Order == piazza.SortOrderDescending {
@@ -92,52 +91,52 @@ func (logger *MockClient) GetMessages(
 	return buf, totalCount, nil
 }
 
-func (logger *MockClient) GetStats() (*LoggerAdminStats, error) {
-	return &logger.stats, nil
+func (c *MockClient) GetStats() (*Stats, error) {
+	return &c.stats, nil
 }
 
-func (logger *MockClient) PostMessage(mssg *Message) error {
-	logger.messages = append(logger.messages, *mssg)
-	logger.stats.NumMessages++
+func (c *MockClient) PostMessage(mssg *Message) error {
+	c.messages = append(c.messages, *mssg)
+	c.stats.NumMessages++
 	return nil
 }
 
-func (mock *MockClient) PostLog(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error {
+func (c *MockClient) PostLog(service piazza.ServiceName, address string, severity Severity, t time.Time, message string, v ...interface{}) error {
 	mssg := Message{Service: service, Address: address, Severity: severity, Message: message, CreatedOn: t}
-	return mock.PostMessage(&mssg)
+	return c.PostMessage(&mssg)
 }
 
-func (logger *MockClient) SetService(name piazza.ServiceName, address string) {
-	logger.serviceName = name
-	logger.serviceAddress = address
+func (c *MockClient) SetService(name piazza.ServiceName, address string) {
+	c.serviceName = name
+	c.serviceAddress = address
 }
 
-func (logger *MockClient) post(severity Severity, message string, v ...interface{}) error {
+func (c *MockClient) post(severity Severity, message string, v ...interface{}) error {
 	str := fmt.Sprintf(message, v...)
-	return logger.PostLog(logger.serviceName, logger.serviceAddress, severity, time.Now(), str)
+	return c.PostLog(c.serviceName, c.serviceAddress, severity, time.Now(), str)
 }
 
 // Debug sends a Debug-level message to the logger.
-func (logger *MockClient) Debug(message string, v ...interface{}) error {
-	return logger.post(SeverityDebug, message, v...)
+func (c *MockClient) Debug(message string, v ...interface{}) error {
+	return c.post(SeverityDebug, message, v...)
 }
 
 // Info sends an Info-level message to the logger.
-func (logger *MockClient) Info(message string, v ...interface{}) error {
-	return logger.post(SeverityInfo, message, v...)
+func (c *MockClient) Info(message string, v ...interface{}) error {
+	return c.post(SeverityInfo, message, v...)
 }
 
 // Warn sends a Waring-level message to the logger.
-func (logger *MockClient) Warn(message string, v ...interface{}) error {
-	return logger.post(SeverityWarning, message, v...)
+func (c *MockClient) Warn(message string, v ...interface{}) error {
+	return c.post(SeverityWarning, message, v...)
 }
 
 // Error sends a Error-level message to the logger.
-func (logger *MockClient) Error(message string, v ...interface{}) error {
-	return logger.post(SeverityError, message, v...)
+func (c *MockClient) Error(message string, v ...interface{}) error {
+	return c.post(SeverityError, message, v...)
 }
 
 // Fatal sends a Fatal-level message to the logger.
-func (logger *MockClient) Fatal(message string, v ...interface{}) error {
-	return logger.post(SeverityFatal, message, v...)
+func (c *MockClient) Fatal(message string, v ...interface{}) error {
+	return c.post(SeverityFatal, message, v...)
 }
