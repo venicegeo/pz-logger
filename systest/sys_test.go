@@ -19,6 +19,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -34,9 +35,10 @@ func sleep() {
 
 type LoggerTester struct {
 	suite.Suite
-	client *logger.Client
-	url    string
-	apiKey string
+	client    *logger.Client
+	url       string
+	apiKey    string
+	apiServer string
 }
 
 func (suite *LoggerTester) setupFixture() {
@@ -45,9 +47,15 @@ func (suite *LoggerTester) setupFixture() {
 
 	var err error
 
-	suite.url = "https://pz-logger.int.geointservices.io"
+	suite.apiServer, err = piazza.GetApiServer()
+	assert.NoError(err)
 
-	suite.apiKey, err = piazza.GetApiKey("int")
+	i := strings.Index(suite.apiServer, ".")
+	assert.NotEqual(1, i)
+	host := "pz-logger" + suite.apiServer[i:]
+	suite.url = "https://" + host
+
+	suite.apiKey, err = piazza.GetApiKey(suite.apiServer)
 	assert.NoError(err)
 
 	client, err := logger.NewClient2(suite.url, suite.apiKey)
