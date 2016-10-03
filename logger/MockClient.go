@@ -16,7 +16,6 @@ package logger
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
@@ -50,7 +49,7 @@ func (c *MockClient) GetMessages(
 	params *piazza.HttpQueryParams) ([]Message, int, error) {
 
 	if params.String() != "" {
-		log.Fatalf("parameters are not supported in mock client")
+		return nil, 0, fmt.Errorf("parameters are not supported in mock client")
 	}
 
 	startIndex := format.Page * format.PerPage
@@ -58,7 +57,7 @@ func (c *MockClient) GetMessages(
 	totalCount := len(c.messages)
 
 	if format.SortBy != "createdOn" {
-		log.Fatalf("unsupported sort key in mock client: %s", format.SortBy)
+		return nil, 0, fmt.Errorf("unsupported key in mock client: %s", format.SortBy)
 	}
 
 	if startIndex > totalCount {

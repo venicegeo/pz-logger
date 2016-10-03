@@ -15,7 +15,9 @@
 package logger
 
 import (
+	"fmt"
 	"log"
+	"net/http"
 	"testing"
 	"time"
 
@@ -356,7 +358,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 	*/
 }
 
-func (suite *LoggerTester) TestConstructDsl() {
+func (suite *LoggerTester) Test07ConstructDsl() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -378,6 +380,8 @@ func (suite *LoggerTester) TestConstructDsl() {
 	params := &piazza.HttpQueryParams{}
 	params.AddTime("before", startT)
 	params.AddTime("after", endT)
+	params.AddString("service", "myservice")
+	params.AddString("contains", "mycontains")
 
 	actual, err := createQueryDslAsString(format, params)
 	assert.NoError(err)
@@ -387,15 +391,25 @@ func (suite *LoggerTester) TestConstructDsl() {
 	{
 		"from":0,
 		"query": {
-			"filtered": {
-				"query": {
-					"bool": { 
-						"must": [
+			"filtered":{ 
+				"query":{
+					"bool":{
+						"must":
+						[
 							{
-								"range": {
-									"createdOn": {
-										"gte":"2016-07-26T02:00:00Z",
-										"lte":"2016-07-26T01:00:00Z"
+								"match":{"service":"myservice"}
+							},
+							{
+								"multi_match":{
+									"fields":["address", "message", "service", "severity"],
+									"query":"mycontains"
+								}
+							},
+							{
+								"range":
+								{
+									"createdOn":{
+										"gte":"2016-07-26T02:00:00Z", "lte":"2016-07-26T01:00:00Z"
 									}
 								}
 							}
@@ -408,4 +422,51 @@ func (suite *LoggerTester) TestConstructDsl() {
 		"sort":{"createdOn":"desc"}
 	}`
 	assert.JSONEq(expected, actual)
+}
+
+func (suite *LoggerTester) Test08Server() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	service := Service{origin: "yow"}
+
+	resp := service.newInternalErrorResponse(fmt.Errorf("foo"))
+	assert.Equal(http.StatusInternalServerError, resp.StatusCode)
+	assert.Equal("foo", resp.Message)
+	assert.Equal("yow", resp.Origin)
+
+	resp = service.newBadRequestResponse(fmt.Errorf("bar"))
+	assert.Equal(http.StatusBadRequest, resp.StatusCode)
+	assert.Equal("bar", resp.Message)
+	assert.Equal("yow", resp.Origin)
+}
+
+func (suite *LoggerTester) Test09GerMessagesErrors() {
+	t := suite.T()
+	assert := assert.New(t)
+
+	suite.setupFixture()
+	defer suite.teardownFixture()
+
+	client := suite.client
+
+	format := piazza.JsonPagination{
+		PerPage: 1,
+		Page:    0,
+		SortBy:  "id",
+		Order:   piazza.SortOrderDescending,
+	}
+	_, _, err := client.GetMessages(&format, nil)
+	assert.Error(err)
+
+	format = piazza.JsonPagination{
+		PerPage: 9999,
+		Page:    9999,
+		SortBy:  "createdOn",
+		Order:   piazza.SortOrderDescending,
+	}
+	mssgs, count, err := client.GetMessages(&format, nil)
+	assert.NoError(err)
+	assert.Equal(0, count)
+	assert.EqualValues([]Message{}, mssgs)
 }
