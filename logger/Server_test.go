@@ -346,13 +346,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 		err := client.PostMessage(&e)
 		assert.NoError(err)
 	}
-	httpMessage, _ := json.Marshal(Message{
-		Address:   "gnfbnqsn5m9/10.254.0.14",
-		Message:   "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
-		Service:   "JobManager",
-		Severity:  "Info",
-		CreatedOn: sometime,
-	})
+	httpMessage, _ := json.Marshal(testData[0])
 	_, body, _, err := piazza.HTTP(piazza.POST, fmt.Sprintf("localhost:%s/message", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), bytes.NewReader(httpMessage))
 	assert.NoError(err)
 	println(string(body))
