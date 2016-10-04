@@ -15,6 +15,8 @@
 package logger
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -145,6 +147,8 @@ func (suite *LoggerTester) Test01Version() {
 	version, err := client.GetVersion()
 	assert.NoError(err)
 	assert.EqualValues("1.0.0", version.Version)
+	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("localhost:%s/version", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
+	assert.NoError(err)
 }
 
 func (suite *LoggerTester) Test02One() {
@@ -226,6 +230,9 @@ func (suite *LoggerTester) Test04Admin() {
 
 	_, err := client.GetStats()
 	assert.NoError(err, "GetFromAdminStats")
+	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("localhost:%s/admin/stats", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
+	assert.NoError(err)
+
 }
 
 func (suite *LoggerTester) Test05Pagination() {
@@ -254,6 +261,9 @@ func (suite *LoggerTester) Test05Pagination() {
 	}
 	ms, count, err := client.GetMessages(&format, nil)
 	assert.NoError(err)
+	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("localhost:%s/message?page=0", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
+	assert.NoError(err)
+
 	assert.Len(ms, 1)
 	assert.EqualValues(SeverityDebug, ms[0].Severity)
 	assert.Equal(5, count)
@@ -336,7 +346,16 @@ func (suite *LoggerTester) Test06OtherParams() {
 		err := client.PostMessage(&e)
 		assert.NoError(err)
 	}
-
+	httpMessage, _ := json.Marshal(Message{
+		Address:   "gnfbnqsn5m9/10.254.0.14",
+		Message:   "Handling Job with Topic Update-Job for Job ID be4ce034-1187-4a4f-95a9-a9c31826248b",
+		Service:   "JobManager",
+		Severity:  "Info",
+		CreatedOn: sometime,
+	})
+	_, body, _, err := piazza.HTTP(piazza.POST, fmt.Sprintf("localhost:%s/message", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), bytes.NewReader(httpMessage))
+	assert.NoError(err)
+	println(string(body))
 	/*
 		sleep()
 
