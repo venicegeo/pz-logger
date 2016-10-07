@@ -5,7 +5,8 @@ import:
   subpackages:
   - elasticsearch
   - gocommon
+testImport:
 - package: github.com/stretchr/testify
   subpackages:
-  - suite
   - assert
+  - suite
