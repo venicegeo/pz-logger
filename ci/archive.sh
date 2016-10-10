@@ -17,14 +17,13 @@ app=$GOPATH/bin/pz-logger
 source $root/ci/vars.sh
 
 # stage the artifact(s) for a mvn deploy
-ls
-ls $root
+mv $app $root/$APP.$EXT
 cd $root
 tar cvzf $APP.tgz \
-    $app \
+    $APP.$EXT \
     logger.cov \
     lint.txt \
     glide.lock \
     glide.yaml
 ls $root
-mv $app $root/$APP.$EXT
+tar tzt $APP.tgz
