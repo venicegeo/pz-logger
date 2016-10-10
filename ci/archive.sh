@@ -19,9 +19,11 @@ source $root/ci/vars.sh
 # stage the artifact(s) for a mvn deploy
 ls
 ls $root
-tar cvzf -C "$root" "$APP".tgz \
+tar cvzf $root/$APP.tgz \
     $app \
-    *.cov \
-    lint.txt \
-    glide.*
+    $root/logger.cov \
+    $root/lint.txt \
+    $root/glide.lock \
+    $root/glide.yaml
+ls $root
 mv $app $root/$APP.$EXT
