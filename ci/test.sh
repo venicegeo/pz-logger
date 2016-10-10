@@ -31,4 +31,6 @@ go test -v -coverprofile=logger.cov -coverpkg github.com/venicegeo/pz-logger/log
 sh ci/metalinter.sh | tee lint.txt
 wc -l lint.txt
 
+cp *.txt *.cov $root/
+
 ###
