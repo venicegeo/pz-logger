@@ -22,8 +22,8 @@ go get github.com/venicegeo/pz-logger
 cd $GOPATH/src/github.com/venicegeo/pz-logger
 
 # run unit tests w/ coverage collection
-go test -v -coverprofile=logger.cov -coverpkg github.com/venicegeo/pz-logger/logger github.com/venicegeo/pz-logger/logger
+go test -v -coverprofile=$root/logger.cov -coverpkg github.com/venicegeo/pz-logger/logger github.com/venicegeo/pz-logger/logger
 
 # lint
-sh ci/metalinter.sh | tee lint.txt
-wc -l lint.txt
+sh ci/metalinter.sh | tee $root/lint.txt
+wc -l $root/lint.txt
