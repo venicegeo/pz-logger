@@ -32,5 +32,5 @@ sh ci/metalinter.sh | tee lint.txt
 wc -l lint.txt
 
 cp lint.txt *.cov glide.* $root/
-
+ls $root
 ###

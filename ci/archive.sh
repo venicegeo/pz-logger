@@ -26,7 +26,7 @@ src=$GOPATH/bin/pz-logger
 source $root/ci/vars.sh
 
 root0="$root"/../0-test
-
+ls $root0
 # stage the artifact(s) for a mvn deploy
 tar cvzf "$root"/"$APP".tgz \
     $src \
