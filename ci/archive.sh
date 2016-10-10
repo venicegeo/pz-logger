@@ -25,9 +25,12 @@ src=$GOPATH/bin/pz-logger
 # gather some data about the repo
 source $root/ci/vars.sh
 
-ls $root/../0-test
+root0="$root"/../0-test
 
 # stage the artifact(s) for a mvn deploy
 tar cvzf "$root"/"$APP".tgz \
-    $src *.cov lint.txt glide.*
+    $src \
+    $root0/*.cov \
+    $root0/lint.txt \
+    $root0/glide.*
 mv $src $root/$APP.$EXT
