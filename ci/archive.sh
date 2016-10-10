@@ -17,7 +17,9 @@ app=$GOPATH/bin/pz-logger
 source $root/ci/vars.sh
 
 # stage the artifact(s) for a mvn deploy
-tar cvzf "$root"/"$APP".tgz \
+ls
+ls $root
+tar cvzf -C "$root" "$APP".tgz \
     $app \
     *.cov \
     lint.txt \
