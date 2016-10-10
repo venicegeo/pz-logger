@@ -3,11 +3,12 @@
 pushd `dirname $0`/.. > /dev/null
 root=$(pwd -P)
 popd > /dev/null
+export GOPATH=$root/gogo
 
 #----------------------------------------------------------------------
-
+pwd
 sh $root/ci/do_build.sh
-
+pwd
 #----------------------------------------------------------------------
 
 app=$GOPATH/bin/pz-logger

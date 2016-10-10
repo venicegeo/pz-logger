@@ -3,10 +3,10 @@
 pushd `dirname $0`/.. > /dev/null
 root=$(pwd -P)
 popd > /dev/null
+export GOPATH=$root/gogo
 
 #----------------------------------------------------------------------
 
-export GOPATH=$root/gogo
 mkdir -p "$GOPATH" "$GOPATH"/bin "$GOPATH"/src "$GOPATH"/pkg
 
 PATH=$PATH:"$GOPATH"/bin
