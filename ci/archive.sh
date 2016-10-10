@@ -14,9 +14,7 @@ mkdir "$GOPATH"/bin "$GOPATH"/src "$GOPATH"/pkg
 
 PATH=$PATH:"$GOPATH"/bin
 
-curl https://glide.sh/get | sh
-
-# get ourself, and go there
+# build ourself, and go there
 go get github.com/venicegeo/pz-logger
 cd $GOPATH/src/github.com/venicegeo/pz-logger
 
@@ -29,3 +27,6 @@ source $root/ci/vars.sh
 
 # stage the artifact for a mvn deploy
 mv $src $root/$APP.$EXT
+
+tar cvzf "$root"/"$APP".tgz \
+    $src *.cov lint.txt glide.*
