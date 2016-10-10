@@ -19,7 +19,8 @@ source $root/ci/vars.sh
 # stage the artifact(s) for a mvn deploy
 ls
 ls $root
-tar cvzf -C $root $root/$APP.tgz \
+cd $root
+tar cvzf $APP.tgz \
     $app \
     logger.cov \
     lint.txt \
