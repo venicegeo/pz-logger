@@ -1,10 +1,13 @@
 #!/bin/bash -ex
 
-export GOPATH=$root/gogo
-mkdir -p "$GOPATH"
+pushd `dirname $0`/.. > /dev/null
+root=$(pwd -P)
+popd > /dev/null
 
-# glide expects these to already exist
-mkdir "$GOPATH"/bin "$GOPATH"/src "$GOPATH"/pkg
+#----------------------------------------------------------------------
+
+export GOPATH=$root/gogo
+mkdir -p "$GOPATH" "$GOPATH"/bin "$GOPATH"/src "$GOPATH"/pkg
 
 PATH=$PATH:"$GOPATH"/bin
 
