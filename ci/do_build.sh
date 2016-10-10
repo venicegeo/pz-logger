@@ -17,7 +17,7 @@ go version
 go get -u github.com/alecthomas/gometalinter
 gometalinter --install
 
-# get ourself, and go there
+# build ourself, and go there
 go get github.com/venicegeo/pz-logger
 cd $GOPATH/src/github.com/venicegeo/pz-logger
 
