@@ -1,4 +1,5 @@
 #!/bin/bash
 
 APP=pz-logger
-EXT=bin
+EXT=tgz
+
