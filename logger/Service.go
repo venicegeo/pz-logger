@@ -358,3 +358,54 @@ func createQueryDslAsString(
 
 	return string(output), nil
 }
+
+//TODO
+func (service *Service) PostSyslogMessage(m *SyslogMessage) *piazza.JsonResponse {
+	err := m.ValidateMessage()
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	rfc, err := m.toRFC(MESSAGE)
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	resp := &piazza.JsonResponse{
+		StatusCode: http.StatusOK,
+		Data:       rfc,
+	}
+	return resp
+}
+
+//TODO
+func (service *Service) PostSyslogAudit(m *SyslogMessage) *piazza.JsonResponse {
+	err := m.ValidateAudit()
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	rfc, err := m.toRFC(AUDIT)
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	resp := &piazza.JsonResponse{
+		StatusCode: http.StatusOK,
+		Data:       rfc,
+	}
+	return resp
+}
+
+//TODO
+func (service *Service) PostSyslogMetric(m *SyslogMessage) *piazza.JsonResponse {
+	err := m.ValidateMetric()
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	rfc, err := m.toRFC(METRIC)
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	resp := &piazza.JsonResponse{
+		StatusCode: http.StatusOK,
+		Data:       rfc,
+	}
+	return resp
+}
