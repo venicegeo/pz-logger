@@ -38,13 +38,7 @@ func (server *Server) Init(service *Service) {
 		{Verb: "POST", Path: "/message", Handler: server.handlePostMessage},
 		{Verb: "GET", Path: "/admin/stats", Handler: server.handleGetStats},
 
-		{Verb: "POST", Path: "/syslog/message", Handler: server.handlePostSyslogMessage},
-		{Verb: "POST", Path: "/syslog/audit", Handler: server.handlePostSyslogAudit},
-		{Verb: "POST", Path: "/syslog/metric", Handler: server.handlePostSyslogMetric},
-
-		{Verb: "GET", Path: "/syslog/message", Handler: server.handleGetSyslogMessage},
-		{Verb: "GET", Path: "/syslog/audit", Handler: server.handleGetSyslogAudit},
-		{Verb: "GET", Path: "/syslog/metric", Handler: server.handleGetSyslogMetric},
+		{Verb: "POST", Path: "/syslog", Handler: server.handlePostSyslog},
 	}
 }
 
@@ -82,8 +76,8 @@ func (server *Server) handleGetMessage(c *gin.Context) {
 	piazza.GinReturnJson(c, resp)
 }
 
-func (server *Server) handlePostSyslogMessage(c *gin.Context) {
-	var sysM SyslogMessage
+func (server *Server) handlePostSyslog(c *gin.Context) {
+	sysM := piazza.NewSyslogMessage()
 	err := c.BindJSON(&sysM)
 	if err != nil {
 		resp := &piazza.JsonResponse{
@@ -93,49 +87,6 @@ func (server *Server) handlePostSyslogMessage(c *gin.Context) {
 		piazza.GinReturnJson(c, resp)
 		return
 	}
-	resp := server.service.PostSyslogMessage(&sysM)
+	resp := server.service.PostSyslog(sysM)
 	piazza.GinReturnJson(c, resp)
-}
-func (server *Server) handlePostSyslogAudit(c *gin.Context) {
-	var sysM SyslogMessage
-	err := c.BindJSON(&sysM)
-	if err != nil {
-		resp := &piazza.JsonResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
-		}
-		piazza.GinReturnJson(c, resp)
-		return
-	}
-	resp := server.service.PostSyslogAudit(&sysM)
-	piazza.GinReturnJson(c, resp)
-}
-func (server *Server) handlePostSyslogMetric(c *gin.Context) {
-	var sysM SyslogMessage
-	err := c.BindJSON(&sysM)
-	if err != nil {
-		resp := &piazza.JsonResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
-		}
-		piazza.GinReturnJson(c, resp)
-		return
-	}
-	resp := server.service.PostSyslogMetric(&sysM)
-	piazza.GinReturnJson(c, resp)
-}
-
-//TODO
-func (server *Server) handleGetSyslogMessage(c *gin.Context) {
-
-}
-
-//TODO
-func (server *Server) handleGetSyslogAudit(c *gin.Context) {
-
-}
-
-//TODO
-func (server *Server) handleGetSyslogMetric(c *gin.Context) {
-
 }

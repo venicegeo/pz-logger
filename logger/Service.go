@@ -27,6 +27,7 @@ import (
 )
 
 const schema = "LogData7"
+const syslogType = "Syslog"
 
 type Service struct {
 	sync.Mutex
@@ -110,6 +111,31 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 		}`
 
 		err = esIndex.SetMapping(schema, piazza.JsonString(mapping))
+		if err != nil {
+			log.Printf("LoggerService.Init: %s", err.Error())
+			return err
+		}
+	}
+
+	ok, err = esIndex.TypeExists(syslogType)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		log.Printf("Creating type: %s", syslogType)
+
+		mapping :=
+			`{
+				"Syslog":{
+					"dynamic":"strict",
+					"properties":{
+						"rfc":{
+							"type":"string"
+						}
+					}
+				}
+			}`
+		err = esIndex.SetMapping(syslogType, piazza.JsonString(mapping))
 		if err != nil {
 			log.Printf("LoggerService.Init: %s", err.Error())
 			return err
@@ -360,52 +386,30 @@ func createQueryDslAsString(
 }
 
 //TODO
-func (service *Service) PostSyslogMessage(m *SyslogMessage) *piazza.JsonResponse {
-	err := m.ValidateMessage()
-	if err != nil {
-		return service.newBadRequestResponse(err)
-	}
-	rfc, err := m.toRFC(MESSAGE)
-	if err != nil {
-		return service.newBadRequestResponse(err)
-	}
-	resp := &piazza.JsonResponse{
-		StatusCode: http.StatusOK,
-		Data:       rfc,
-	}
-	return resp
+type Temp struct {
+	Rfc string `json:"rfc"`
 }
 
-//TODO
-func (service *Service) PostSyslogAudit(m *SyslogMessage) *piazza.JsonResponse {
-	err := m.ValidateAudit()
+func (service *Service) PostSyslog(m *piazza.SyslogMessage) *piazza.JsonResponse {
+	err := m.Validate()
 	if err != nil {
 		return service.newBadRequestResponse(err)
 	}
-	rfc, err := m.toRFC(AUDIT)
+	rfc := m.String()
+	_, err = service.esIndex.PostData(syslogType, m.MessageID, Temp{rfc})
 	if err != nil {
-		return service.newBadRequestResponse(err)
+		return service.newInternalErrorResponse(err)
 	}
-	resp := &piazza.JsonResponse{
-		StatusCode: http.StatusOK,
-		Data:       rfc,
-	}
-	return resp
-}
 
-//TODO
-func (service *Service) PostSyslogMetric(m *SyslogMessage) *piazza.JsonResponse {
-	err := m.ValidateMetric()
-	if err != nil {
-		return service.newBadRequestResponse(err)
-	}
-	rfc, err := m.toRFC(METRIC)
-	if err != nil {
-		return service.newBadRequestResponse(err)
-	}
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       rfc,
 	}
+
+	err = resp.SetType()
+	if err != nil {
+		return service.newInternalErrorResponse(err)
+	}
+
 	return resp
 }
