@@ -27,7 +27,6 @@ import (
 )
 
 const schema = "LogData7"
-const syslogType = "Syslog"
 
 type Service struct {
 	sync.Mutex
@@ -111,31 +110,6 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 		}`
 
 		err = esIndex.SetMapping(schema, piazza.JsonString(mapping))
-		if err != nil {
-			log.Printf("LoggerService.Init: %s", err.Error())
-			return err
-		}
-	}
-
-	ok, err = esIndex.TypeExists(syslogType)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		log.Printf("Creating type: %s", syslogType)
-
-		mapping :=
-			`{
-				"Syslog":{
-					"dynamic":"strict",
-					"properties":{
-						"rfc":{
-							"type":"string"
-						}
-					}
-				}
-			}`
-		err = esIndex.SetMapping(syslogType, piazza.JsonString(mapping))
 		if err != nil {
 			log.Printf("LoggerService.Init: %s", err.Error())
 			return err
@@ -385,18 +359,13 @@ func createQueryDslAsString(
 	return string(output), nil
 }
 
-//TODO
-type Temp struct {
-	Rfc string `json:"rfc"`
-}
-
 func (service *Service) PostSyslog(m *piazza.SyslogMessage) *piazza.JsonResponse {
 	err := m.Validate()
 	if err != nil {
 		return service.newBadRequestResponse(err)
 	}
 	rfc := m.String()
-	_, err = service.esIndex.PostData(syslogType, m.MessageID, Temp{rfc})
+	_, err = service.esIndex.PostData(schema, m.MessageID, Message{CreatedOn: time.Now(), Message: rfc})
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
