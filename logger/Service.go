@@ -368,7 +368,12 @@ func (service *Service) PostSyslog(mNew *piazza.SyslogMessage) *piazza.JsonRespo
 	rfc := mNew.String()
 	mssgOld := Message{CreatedOn: time.Now(), Message: rfc}
 
-	_, err = service.esIndex.PostData(schema, mNew.MessageID, mssgOld)
+	service.Lock()
+	idStr := strconv.Itoa(service.id)
+	service.id++
+	service.Unlock()
+
+	_, err = service.esIndex.PostData(schema, idStr, mssgOld)
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
