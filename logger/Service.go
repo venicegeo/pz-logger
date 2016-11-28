@@ -24,6 +24,7 @@ import (
 
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-gocommon/gocommon"
+	syslogger "github.com/venicegeo/pz-gocommon/syslog"
 )
 
 const schema = "LogData7"
@@ -366,11 +367,26 @@ func (service *Service) PostSyslog(mNew *piazza.SyslogMessage) *piazza.JsonRespo
 	}
 
 	rfc := mNew.String()
+
+	var oldSev Severity
+	switch syslogger.Severity(mNew.Severity) {
+	case syslogger.Debug:
+		oldSev = SeverityDebug
+	case syslogger.Informational:
+		oldSev = SeverityInfo
+	case syslogger.Warning:
+		oldSev = SeverityWarning
+	case syslogger.Error:
+		oldSev = SeverityError
+	case syslogger.Fatal:
+		oldSev = SeverityFatal
+	}
+
 	mssgOld := Message{
 		CreatedOn: time.Now(),
-		Service:   "alpha",
-		Address:   "1.2.3.4",
-		Severity:  "Debug",
+		Service:   piazza.ServiceName(mNew.Application),
+		Address:   mNew.HostName,
+		Severity:  Severity(oldSev),
 		Message:   rfc,
 	}
 	err = mssgOld.Validate()
