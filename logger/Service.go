@@ -358,3 +358,27 @@ func createQueryDslAsString(
 
 	return string(output), nil
 }
+
+func (service *Service) PostSyslog(m *piazza.SyslogMessage) *piazza.JsonResponse {
+	err := m.Validate()
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	rfc := m.String()
+	_, err = service.esIndex.PostData(schema, m.MessageID, Message{CreatedOn: time.Now(), Message: rfc})
+	if err != nil {
+		return service.newInternalErrorResponse(err)
+	}
+
+	resp := &piazza.JsonResponse{
+		StatusCode: http.StatusOK,
+		Data:       rfc,
+	}
+
+	err = resp.SetType()
+	if err != nil {
+		return service.newInternalErrorResponse(err)
+	}
+
+	return resp
+}
