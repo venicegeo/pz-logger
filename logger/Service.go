@@ -359,13 +359,16 @@ func createQueryDslAsString(
 	return string(output), nil
 }
 
-func (service *Service) PostSyslog(m *piazza.SyslogMessage) *piazza.JsonResponse {
-	err := m.Validate()
+func (service *Service) PostSyslog(mNew *piazza.SyslogMessage) *piazza.JsonResponse {
+	err := mNew.Validate()
 	if err != nil {
 		return service.newBadRequestResponse(err)
 	}
-	rfc := m.String()
-	_, err = service.esIndex.PostData(schema, m.MessageID, Message{CreatedOn: time.Now(), Message: rfc})
+
+	rfc := mNew.String()
+	mssgOld := Message{CreatedOn: time.Now(), Message: rfc}
+
+	_, err = service.esIndex.PostData(schema, mNew.MessageID, mssgOld)
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
