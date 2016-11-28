@@ -366,7 +366,17 @@ func (service *Service) PostSyslog(mNew *piazza.SyslogMessage) *piazza.JsonRespo
 	}
 
 	rfc := mNew.String()
-	mssgOld := Message{CreatedOn: time.Now(), Message: rfc}
+	mssgOld := Message{
+		CreatedOn: time.Now(),
+		Service:   "alpha",
+		Address:   "1.2.3.4",
+		Severity:  "Debug",
+		Message:   rfc,
+	}
+	err = mssgOld.Validate()
+	if err != nil {
+		return service.newInternalErrorResponse(err)
+	}
 
 	service.Lock()
 	idStr := strconv.Itoa(service.id)
