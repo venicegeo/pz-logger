@@ -162,7 +162,7 @@ func (c *Client) PostMessage(mssg *Message) error {
 
 	err := mssg.Validate()
 	if err != nil {
-		return errors.New("message did not validate")
+		return fmt.Errorf("message did not validate: %s", err.Error())
 	}
 
 	jresp := c.h.PzPost("/message", mssg)
