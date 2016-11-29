@@ -133,6 +133,54 @@ func (m *Message) String() string {
 	return s
 }
 
+// String builds and returns the RFC5424-style textual representation of a Message - Security.
+func (m *Message) SecurityString() string {
+	pri := m.Facility*8 + m.Severity.Value()
+
+	timestamp := m.TimeStamp.Format(time.RFC3339)
+
+	host := m.HostName
+	if host == "" {
+		host = "-"
+	}
+
+	application := m.Application
+	if application == "" {
+		application = "-"
+	}
+
+	proc := m.Process
+	if proc == "" {
+		proc = "-"
+	}
+
+	messageID := m.MessageID
+	if messageID == "" {
+		messageID = "-"
+	}
+
+	header := fmt.Sprintf("<%d>%d %s %s %s %s %s",
+		pri, m.Version, timestamp, host,
+		application, proc, messageID)
+
+	sdes := []string{}
+	if m.AuditData != nil {
+		sdes = append(sdes, m.AuditData.String())
+	}
+	if m.SourceData != nil {
+		sdes = append(sdes, m.SourceData.String())
+	}
+	sde := strings.Join(sdes, " ")
+	if sde == "" {
+		sde = "-"
+	}
+
+	mssg := m.Message
+
+	s := fmt.Sprintf("%s %s %s", header, sde, mssg)
+	return s
+}
+
 func ParseMessageString(s string) (*Message, error) {
 	m := &Message{}
 

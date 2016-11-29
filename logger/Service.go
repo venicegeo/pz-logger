@@ -438,6 +438,7 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	}
 
 	rfc := mNew.String()
+	rfcAudit := mNew.SecurityString()
 
 	var oldSev Severity
 	switch syslogger.Severity(mNew.Severity) {
@@ -476,7 +477,6 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	}
 
 	if service.IsSecurityAudit(mNew) {
-		rfcAudit := mNew.SecurityString()
 		smssgOld := mssgOld
 		smssgOld.Message = rfcAudit
 		err = mssgOld.Validate()
