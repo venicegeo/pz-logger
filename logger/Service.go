@@ -438,7 +438,6 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	}
 
 	rfc := mNew.String()
-	rfcAudit := mNew.SecurityString()
 
 	var oldSev Severity
 	switch syslogger.Severity(mNew.Severity) {
@@ -477,12 +476,6 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	}
 
 	if service.IsSecurityAudit(mNew) {
-		smssgOld := mssgOld
-		smssgOld.Message = rfcAudit
-		err = mssgOld.Validate()
-		if err != nil {
-			return service.newInternalErrorResponse(err)
-		}
 		_, err = service.esIndex.PostData(securitySchema, idStr, mssgOld)
 		if err != nil {
 			return service.newInternalErrorResponse(err)
