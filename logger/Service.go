@@ -44,19 +44,6 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 	var err error
 
 	service.stats.CreatedOn = time.Now()
-	/***
-	err = esIndex.Delete()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if esIndex.IndexExists() {
-		log.Fatal("index still exists")
-	}
-	err = esIndex.Create()
-	if err != nil {
-		log.Fatal(err)
-	}
-	***/
 
 	ok, err := esIndex.IndexExists()
 	if err != nil {
@@ -378,38 +365,51 @@ func createQueryDslAsString(
 	return string(output), nil
 }
 
+func convertToOldSeverity(newSeverity syslogger.Severity) Severity {
+	switch newSeverity {
+	case syslogger.Debug:
+		return SeverityDebug
+	case syslogger.Informational:
+		return SeverityInfo
+	case syslogger.Warning:
+		return SeverityWarning
+	case syslogger.Error:
+		return SeverityError
+	case syslogger.Fatal:
+		return SeverityFatal
+	}
+	log.Printf("bad severity value: %d", newSeverity)
+	return SeverityError
+}
+
 func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse {
 	err := mNew.Validate()
 	if err != nil {
 		return service.newBadRequestResponse(err)
 	}
 
-	rfc := mNew.String()
+	go service.postSyslog(mNew)
 
-	var oldSev Severity
-	switch syslogger.Severity(mNew.Severity) {
-	case syslogger.Debug:
-		oldSev = SeverityDebug
-	case syslogger.Informational:
-		oldSev = SeverityInfo
-	case syslogger.Warning:
-		oldSev = SeverityWarning
-	case syslogger.Error:
-		oldSev = SeverityError
-	case syslogger.Fatal:
-		oldSev = SeverityFatal
-	}
+	return nil
+}
+
+// postSyslog does not return anything. Any errors go to the local log.
+func (service *Service) postSyslog(mNew *syslogger.Message) {
+	severity := convertToOldSeverity(mNew.Severity)
+	text := mNew.String()
+	application := piazza.ServiceName(mNew.Application)
 
 	mssgOld := Message{
 		CreatedOn: time.Now(),
-		Service:   piazza.ServiceName(mNew.Application),
+		Service:   application,
 		Address:   mNew.HostName,
-		Severity:  Severity(oldSev),
-		Message:   rfc,
+		Severity:  severity,
+		Message:   text,
 	}
-	err = mssgOld.Validate()
+	err := mssgOld.Validate()
 	if err != nil {
-		return service.newInternalErrorResponse(err)
+		log.Printf("old message creation: %s", err.Error())
+		return
 	}
 
 	service.Lock()
@@ -419,24 +419,14 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 
 	_, err = service.esIndex.PostData(schema, idStr, mssgOld)
 	if err != nil {
-		return service.newInternalErrorResponse(err)
+		log.Printf("old message post: %s", err.Error())
+		// don't return yet, the audit post might still work
 	}
 
 	if mNew.AuditData != nil {
 		_, err = service.esIndex.PostData(securitySchema, idStr, mssgOld)
 		if err != nil {
-			return service.newInternalErrorResponse(err)
+			log.Printf("old message audit post: %s", err.Error())
 		}
 	}
-
-	resp := &piazza.JsonResponse{
-		StatusCode: http.StatusOK,
-	}
-
-	err = resp.SetType()
-	if err != nil {
-		return service.newInternalErrorResponse(err)
-	}
-
-	return resp
 }
