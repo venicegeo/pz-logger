@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -28,12 +29,15 @@ import (
 )
 
 const schema = "LogData7"
+const securitySchema = "AuditData7"
 
 type Service struct {
 	sync.Mutex
 
 	stats  Stats
 	origin string
+
+	auditActions []string
 
 	esIndex elasticsearch.IIndex
 	id      int
@@ -117,11 +121,78 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 		}
 	}
 
+	ok, err = esIndex.TypeExists(securitySchema)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		log.Printf("Creating type: %s", schema)
+
+		mapping :=
+			`{
+			"AuditData7":{
+				"dynamic": "strict",
+				"properties": {
+					"service": {
+						"type": "string",
+						"store": true,
+						"index": "not_analyzed"
+					},
+					"address": {
+						"type": "string",
+						"store": true,
+						"index": "not_analyzed"
+					},
+					"createdOn": {
+						"type": "date",
+						"store": true,
+						"index": "not_analyzed"
+					},
+					"severity": {
+						"type": "string",
+						"store": true,
+						"index": "not_analyzed"
+					},
+					"message": {
+						"type": "string",
+						"store": true,
+						"index": "analyzed"
+					}
+				}
+			}
+		}`
+
+		err = esIndex.SetMapping(securitySchema, piazza.JsonString(mapping))
+		if err != nil {
+			log.Printf("LoggerService.Init: %s", err.Error())
+			return err
+		}
+	}
+
 	service.esIndex = esIndex
 
 	service.origin = string(sys.Name)
 
+	service.auditActions = readAuditActions()
+
 	return nil
+}
+
+func readAuditActions() []string {
+	verbs := []string{}
+
+	jsn := os.Getenv("PZ_AUDIT_ACTIONS")
+	if jsn == "" {
+		return verbs
+	}
+
+	err := json.Unmarshal([]byte(jsn), &verbs)
+	if err != nil {
+		log.Printf("Unable to parse $PZ_AUDIT_ACTIONS: %s", jsn)
+		return verbs
+	}
+
+	return verbs
 }
 
 func (service *Service) newInternalErrorResponse(err error) *piazza.JsonResponse {
@@ -404,6 +475,13 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 		return service.newInternalErrorResponse(err)
 	}
 
+	if service.IsSecurityAudit(mNew) {
+		_, err = service.esIndex.PostData(securitySchema, idStr, mssgOld)
+		if err != nil {
+			return service.newInternalErrorResponse(err)
+		}
+	}
+
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       rfc,
@@ -415,4 +493,19 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	}
 
 	return resp
+}
+
+// IsSecurityAudit returns true iff the audit action is something we need to formally
+// record as an auidtable event.
+func (service *Service) IsSecurityAudit(m *syslogger.Message) bool {
+	ae := m.AuditData
+	if ae == nil {
+		return false
+	}
+	for _, s := range service.auditActions {
+		if ae.Action == s {
+			return true
+		}
+	}
+	return false
 }
