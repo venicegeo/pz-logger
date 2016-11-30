@@ -390,7 +390,10 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 
 	go service.postSyslog(mNew)
 
-	return nil
+	resp := &piazza.JsonResponse{
+		StatusCode: http.StatusOK,
+	}
+	return resp
 }
 
 // postSyslog does not return anything. Any errors go to the local log.
