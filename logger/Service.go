@@ -431,7 +431,6 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
-		Data:       rfc,
 	}
 
 	err = resp.SetType()
@@ -441,34 +440,3 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 
 	return resp
 }
-
-//func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
-//	err := mssg.Validate()
-//	if err != nil {
-//		return service.newBadRequestResponse(err)
-//	}
-
-//	service.Lock()
-//	idStr := strconv.Itoa(service.id)
-//	service.id++
-//	service.Unlock()
-
-//	_, err = service.esIndex.PostData(schema, idStr, mssg)
-//	if err != nil {
-//		return service.newInternalErrorResponse(err)
-//	}
-
-//	service.stats.NumMessages++
-
-//	resp := &piazza.JsonResponse{
-//		StatusCode: http.StatusOK,
-//		Data:       mssg,
-//	}
-
-//	err = resp.SetType()
-//	if err != nil {
-//		return service.newInternalErrorResponse(err)
-//	}
-
-//	return resp
-//}

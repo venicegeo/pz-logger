@@ -79,14 +79,3 @@ func (server *Server) handlePostSyslog(c *gin.Context) {
 	resp := server.service.PostSyslog(sysM)
 	piazza.GinReturnJson(c, resp)
 }
-
-//func (server *Server) handlePostMessage(c *gin.Context) {
-//	var mssg Message
-//	err := c.BindJSON(&mssg)
-//	if err != nil {
-//		resp := &piazza.JsonResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
-//		piazza.GinReturnJson(c, resp)
-//	}
-//	resp := server.service.PostMessage(&mssg)
-//	piazza.GinReturnJson(c, resp)
-//}
