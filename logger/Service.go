@@ -28,6 +28,7 @@ import (
 )
 
 const schema = "LogData7"
+const securitySchema = "AuditData7"
 
 type Service struct {
 	sync.Mutex
@@ -117,6 +118,54 @@ func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIn
 		}
 	}
 
+	ok, err = esIndex.TypeExists(securitySchema)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		log.Printf("Creating type: %s", schema)
+
+		mapping :=
+			`{
+			"AuditData7":{
+				"dynamic": "strict",
+				"properties": {
+					"service": {
+						"type": "string",
+						"store": true,
+						"index": "not_analyzed"
+					},
+					"address": {
+						"type": "string",
+						"store": true,
+						"index": "not_analyzed"
+					},
+					"createdOn": {
+						"type": "date",
+						"store": true,
+						"index": "not_analyzed"
+					},
+					"severity": {
+						"type": "string",
+						"store": true,
+						"index": "not_analyzed"
+					},
+					"message": {
+						"type": "string",
+						"store": true,
+						"index": "analyzed"
+					}
+				}
+			}
+		}`
+
+		err = esIndex.SetMapping(securitySchema, piazza.JsonString(mapping))
+		if err != nil {
+			log.Printf("LoggerService.Init: %s", err.Error())
+			return err
+		}
+	}
+
 	service.esIndex = esIndex
 
 	service.origin = string(sys.Name)
@@ -147,37 +196,6 @@ func (service *Service) GetRoot() *piazza.JsonResponse {
 	}
 
 	err := resp.SetType()
-	if err != nil {
-		return service.newInternalErrorResponse(err)
-	}
-
-	return resp
-}
-
-func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
-	err := mssg.Validate()
-	if err != nil {
-		return service.newBadRequestResponse(err)
-	}
-
-	service.Lock()
-	idStr := strconv.Itoa(service.id)
-	service.id++
-	service.Unlock()
-
-	_, err = service.esIndex.PostData(schema, idStr, mssg)
-	if err != nil {
-		return service.newInternalErrorResponse(err)
-	}
-
-	service.stats.NumMessages++
-
-	resp := &piazza.JsonResponse{
-		StatusCode: http.StatusOK,
-		Data:       mssg,
-	}
-
-	err = resp.SetType()
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
@@ -404,6 +422,13 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 		return service.newInternalErrorResponse(err)
 	}
 
+	if mNew.AuditData != nil {
+		_, err = service.esIndex.PostData(securitySchema, idStr, mssgOld)
+		if err != nil {
+			return service.newInternalErrorResponse(err)
+		}
+	}
+
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       rfc,
@@ -416,3 +441,34 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 
 	return resp
 }
+
+//func (service *Service) PostMessage(mssg *Message) *piazza.JsonResponse {
+//	err := mssg.Validate()
+//	if err != nil {
+//		return service.newBadRequestResponse(err)
+//	}
+
+//	service.Lock()
+//	idStr := strconv.Itoa(service.id)
+//	service.id++
+//	service.Unlock()
+
+//	_, err = service.esIndex.PostData(schema, idStr, mssg)
+//	if err != nil {
+//		return service.newInternalErrorResponse(err)
+//	}
+
+//	service.stats.NumMessages++
+
+//	resp := &piazza.JsonResponse{
+//		StatusCode: http.StatusOK,
+//		Data:       mssg,
+//	}
+
+//	err = resp.SetType()
+//	if err != nil {
+//		return service.newInternalErrorResponse(err)
+//	}
+
+//	return resp
+//}

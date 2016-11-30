@@ -554,4 +554,14 @@ func (suite *LoggerTester) Test10Syslog() {
 		assert.NoError(err)
 		assert.EqualValues(2, stats.NumMessages)
 	}
+
+	{
+		syslogger.Audit("123", "login", "456", "789")
+		sleep()
+		actual := suite.getLastMessage()
+		assert.Contains(actual, "login")
+		pri := fmt.Sprintf("<%d>%d",
+			8*syslog.DefaultFacility+syslog.Notice.Value(), syslog.DefaultVersion)
+		assert.Contains(actual, pri)
+	}
 }
