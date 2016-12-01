@@ -16,6 +16,7 @@ package logger
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -39,6 +40,12 @@ type Service struct {
 	esIndex elasticsearch.IIndex
 	id      int
 }
+
+const (
+	OldFormat  = "old"
+	RfcFormat  = "rfc"
+	JsonFormat = "json"
+)
 
 func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) error {
 	var err error
@@ -209,6 +216,14 @@ func (service *Service) GetStats() *piazza.JsonResponse {
 }
 
 func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonResponse {
+	format, err := params.GetAsString("format", OldFormat)
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	return service.getMessages(params, format)
+}
+
+func (service *Service) getMessages(params *piazza.HttpQueryParams, format string) *piazza.JsonResponse {
 	var err error
 
 	pagination, err := piazza.NewJsonPagination(params)
@@ -260,10 +275,29 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		}
 	}
 
+	var formattedLines interface{}
+	switch format {
+	case OldFormat:
+		// do nothing
+		formattedLines = lines
+	case JsonFormat:
+		formattedLines, err = toJsonFormat(lines)
+		if err != nil {
+			return service.newInternalErrorResponse(err)
+		}
+	case RfcFormat:
+		formattedLines, err = toRfcFormat(lines)
+		if err != nil {
+			return service.newInternalErrorResponse(err)
+		}
+	default:
+		return service.newInternalErrorResponse(fmt.Errorf("unrecognized format: %s", format))
+	}
+
 	pagination.Count = int(searchResult.TotalHits())
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
-		Data:       lines,
+		Data:       formattedLines,
 		Pagination: pagination,
 	}
 
@@ -272,6 +306,28 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 		return service.newInternalErrorResponse(err)
 	}
 	return resp
+}
+
+func toJsonFormat(lines []Message) ([]syslogger.Message, error) {
+	var newlines = make([]syslogger.Message, len(lines))
+
+	for i, oldM := range lines {
+		newlines[i] = syslogger.Message{
+			Message: oldM.Message,
+		}
+	}
+
+	return newlines, nil
+}
+
+func toRfcFormat(lines []Message) ([]string, error) {
+	var newlines = make([]string, len(lines))
+
+	for i, oldM := range lines {
+		newlines[i] = oldM.Message
+	}
+
+	return newlines, nil
 }
 
 func createQueryDslAsString(
@@ -432,4 +488,12 @@ func (service *Service) postSyslog(mNew *syslogger.Message) {
 			log.Printf("old message audit post: %s", err.Error())
 		}
 	}
+}
+
+func (service *Service) GetSyslog(params *piazza.HttpQueryParams) *piazza.JsonResponse {
+	fmt, err := params.GetAsString("format", JsonFormat)
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	return service.getMessages(params, fmt)
 }

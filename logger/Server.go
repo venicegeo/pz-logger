@@ -38,6 +38,7 @@ func (server *Server) Init(service *Service) {
 		{Verb: "GET", Path: "/message", Handler: server.handleGetMessage},
 		{Verb: "GET", Path: "/admin/stats", Handler: server.handleGetStats},
 
+		{Verb: "GET", Path: "/syslog", Handler: server.handleGetSyslog},
 		{Verb: "POST", Path: "/syslog", Handler: server.handlePostSyslog},
 	}
 }
@@ -77,5 +78,12 @@ func (server *Server) handlePostSyslog(c *gin.Context) {
 		return
 	}
 	resp := server.service.PostSyslog(sysM)
+	piazza.GinReturnJson(c, resp)
+}
+
+func (server *Server) handleGetSyslog(c *gin.Context) {
+	params := piazza.NewQueryParams(c.Request)
+	resp := server.service.GetSyslog(params)
+
 	piazza.GinReturnJson(c, resp)
 }

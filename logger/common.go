@@ -113,4 +113,7 @@ func init() {
 	piazza.JsonResponseDataTypes["[]logger.Message"] = "logmessage-list"
 	piazza.JsonResponseDataTypes["logger.Stats"] = "logstats"
 	piazza.JsonResponseDataTypes["*logger.Stats"] = "logstats"
+	piazza.JsonResponseDataTypes["syslog.Message"] = "syslogmessage"
+	piazza.JsonResponseDataTypes["*syslog.Message"] = "syslogmessage"
+	piazza.JsonResponseDataTypes["[]syslog.Message"] = "syslogmessage-list"
 }
