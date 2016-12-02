@@ -135,16 +135,16 @@ func (service *Service) getMessages(params *piazza.HttpQueryParams, format strin
 	var searchResult *elasticsearch.SearchResult
 
 	if dsl == "" {
-		searchResult, err = service.esIndex.FilterByMatchAll(schema, pagination)
+		searchResult, err = service.esIndex.FilterByMatchAll(logSchema, pagination)
 	} else {
-		searchResult, err = service.esIndex.SearchByJSON(schema, dsl)
+		searchResult, err = service.esIndex.SearchByJSON(logSchema, dsl)
 	}
 
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
 
-	var lines = make([]Message, 0)
+	var lines = make([]syslogger.Message, 0)
 
 	if searchResult != nil && searchResult.GetHits() != nil {
 		for _, hit := range *searchResult.GetHits() {
@@ -153,7 +153,7 @@ func (service *Service) getMessages(params *piazza.HttpQueryParams, format strin
 				continue
 			}
 
-			var msg Message
+			var msg syslogger.Message
 			err = json.Unmarshal(*hit.Source, &msg)
 			if err != nil {
 				log.Printf("UNABLE TO PARSE: %s", string(*hit.Source))
@@ -173,11 +173,11 @@ func (service *Service) getMessages(params *piazza.HttpQueryParams, format strin
 
 	var formattedLines interface{}
 	switch format {
-	case OldFormat:
+	case JsonFormat:
 		// do nothing
 		formattedLines = lines
-	case JsonFormat:
-		formattedLines, err = toJsonFormat(lines)
+	case OldFormat:
+		formattedLines, err = toOldFormat(lines)
 		if err != nil {
 			return service.newInternalErrorResponse(err)
 		}
@@ -204,26 +204,28 @@ func (service *Service) getMessages(params *piazza.HttpQueryParams, format strin
 	return resp
 }
 
-func toJsonFormat(lines []Message) ([]syslogger.Message, error) {
-	var newlines = make([]syslogger.Message, len(lines))
+func toOldFormat(lines []syslogger.Message) ([]Message, error) {
+	var lines2 = make([]Message, len(lines))
 
-	for i, oldM := range lines {
-		newlines[i] = syslogger.Message{
-			Message: oldM.Message,
+	for i, newMssg := range lines {
+		oldMssg, err := convertNewMessageToOld(&newMssg)
+		if err != nil {
+			return nil, err
 		}
+		lines2[i] = *oldMssg
 	}
 
-	return newlines, nil
+	return lines2, nil
 }
 
-func toRfcFormat(lines []Message) ([]string, error) {
-	var newlines = make([]string, len(lines))
+func toRfcFormat(lines []syslogger.Message) ([]string, error) {
+	var lines2 = make([]string, len(lines))
 
-	for i, oldM := range lines {
-		newlines[i] = oldM.Message
+	for i, newMssg := range lines {
+		lines2[i] = newMssg.String()
 	}
 
-	return newlines, nil
+	return lines2, nil
 }
 
 func createQueryDslAsString(
@@ -331,44 +333,6 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	return resp
 }
 
-func convertToOldSeverity(newSeverity syslogger.Severity) Severity {
-	switch newSeverity {
-	case syslogger.Debug:
-		return SeverityDebug
-	case syslogger.Informational:
-		return SeverityInfo
-	case syslogger.Warning:
-		return SeverityWarning
-	case syslogger.Error:
-		return SeverityError
-	case syslogger.Fatal:
-		return SeverityFatal
-	}
-	log.Printf("bad severity value: %d", newSeverity)
-	return SeverityError
-}
-
-func converter(mssgNew *syslogger.Message) (*Message, error) {
-	severity := convertToOldSeverity(mssgNew.Severity)
-	text := mssgNew.String()
-	application := piazza.ServiceName(mssgNew.Application)
-
-	mssgOld := &Message{
-		CreatedOn: time.Now(),
-		Service:   application,
-		Address:   mssgNew.HostName,
-		Severity:  severity,
-		Message:   text,
-	}
-	err := mssgOld.Validate()
-	if err != nil {
-		log.Printf("old message creation: %s", err.Error())
-		return nil, err
-	}
-
-	return mssgOld, nil
-}
-
 // postSyslog does not return anything. Any errors go to the local log.
 func (service *Service) postSyslog(mssgNew *syslogger.Message) error {
 	var err error
@@ -378,19 +342,19 @@ func (service *Service) postSyslog(mssgNew *syslogger.Message) error {
 	service.id++
 	service.Unlock()
 
-	mssgOld, err := converter(mssgNew)
+	mssgOld, err := convertNewMessageToOld(mssgNew)
 	if err != nil {
 		return err
 	}
 
-	_, err = service.esIndex.PostData(schema, idStr, mssgOld)
+	_, err = service.esIndex.PostData(logSchema, idStr, mssgOld)
 	if err != nil {
 		log.Printf("old message post: %s", err.Error())
 		// don't return yet, the audit post might still work
 	}
 
 	if mssgNew.AuditData != nil {
-		_, err = service.esIndex.PostData(securitySchema, idStr, mssgOld)
+		_, err = service.esIndex.PostData(auditSchema, idStr, mssgOld)
 		if err != nil {
 			log.Printf("old message audit post: %s", err.Error())
 		}
@@ -399,10 +363,16 @@ func (service *Service) postSyslog(mssgNew *syslogger.Message) error {
 	return nil
 }
 
-func (service *Service) GetSyslog(params *piazza.HttpQueryParams) *piazza.JsonResponse {
-	fmt, err := params.GetAsString("format", JsonFormat)
+func (service *Service) GetSyslog(params *piazza.HttpQueryParams, newStyle bool) *piazza.JsonResponse {
+	defaultStyle := JsonFormat
+	if !newStyle {
+		defaultStyle = OldFormat
+	}
+
+	fmt, err := params.GetAsString("format", defaultStyle)
 	if err != nil {
 		return service.newBadRequestResponse(err)
 	}
+
 	return service.getMessages(params, fmt)
 }

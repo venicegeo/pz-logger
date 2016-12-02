@@ -35,9 +35,9 @@ func (server *Server) Init(service *Service) {
 	server.Routes = []piazza.RouteData{
 		{Verb: "GET", Path: "/", Handler: server.handleGetRoot},
 		{Verb: "GET", Path: "/version", Handler: server.handleGetVersion},
-		{Verb: "GET", Path: "/message", Handler: server.handleGetMessage},
 		{Verb: "GET", Path: "/admin/stats", Handler: server.handleGetStats},
 
+		{Verb: "GET", Path: "/message", Handler: server.handleGetMessage},
 		{Verb: "GET", Path: "/syslog", Handler: server.handleGetSyslog},
 		{Verb: "POST", Path: "/syslog", Handler: server.handlePostSyslog},
 	}
@@ -59,13 +59,6 @@ func (server *Server) handleGetStats(c *gin.Context) {
 	piazza.GinReturnJson(c, resp)
 }
 
-func (server *Server) handleGetMessage(c *gin.Context) {
-	params := piazza.NewQueryParams(c.Request)
-	resp := server.service.GetMessage(params)
-
-	piazza.GinReturnJson(c, resp)
-}
-
 func (server *Server) handlePostSyslog(c *gin.Context) {
 	sysM := syslogger.NewMessage()
 	err := c.BindJSON(&sysM)
@@ -81,9 +74,14 @@ func (server *Server) handlePostSyslog(c *gin.Context) {
 	piazza.GinReturnJson(c, resp)
 }
 
+func (server *Server) handleGetMessage(c *gin.Context) {
+	params := piazza.NewQueryParams(c.Request)
+	resp := server.service.GetSyslog(params, false)
+	piazza.GinReturnJson(c, resp)
+}
+
 func (server *Server) handleGetSyslog(c *gin.Context) {
 	params := piazza.NewQueryParams(c.Request)
-	resp := server.service.GetSyslog(params)
-
+	resp := server.service.GetSyslog(params, true)
 	piazza.GinReturnJson(c, resp)
 }
