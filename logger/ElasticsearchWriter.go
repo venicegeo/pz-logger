@@ -79,8 +79,8 @@ const schemaMapping = `{
 
 const logSchema = "LogData7x"
 const auditSchema = "AuditData7x"
-const logSchemaMapping = "\"LogData7\": " + schemaMapping + " }"
-const auditSchemaMapping = "\"AuditData7\": " + schemaMapping + " }"
+const logSchemaMapping = "{\"LogData7\": " + schemaMapping + " }"
+const auditSchemaMapping = "{\"AuditData7\": " + schemaMapping + " }"
 
 type ElasticsearchWriter struct {
 	sync.Mutex

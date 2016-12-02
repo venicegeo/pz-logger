@@ -37,7 +37,7 @@ type Service struct {
 	esIndex elasticsearch.IIndex
 	id      int
 
-	writer syslogger.WriterI
+	writer syslogger.Writer
 }
 
 const (
