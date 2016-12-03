@@ -39,8 +39,6 @@ type Service struct {
 
 	esIndex elasticsearch.IIndex
 	id      int
-
-	writer syslogger.WriterI
 }
 
 const (
@@ -423,6 +421,7 @@ func createQueryDslAsString(
 	return string(output), nil
 }
 
+<<<<<<< HEAD
 func convertToOldSeverity(newSeverity syslogger.Severity) Severity {
 	switch newSeverity {
 	case syslogger.Debug:
@@ -454,6 +453,8 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	return resp
 }
 
+=======
+>>>>>>> parent of 14987dd... WIP
 func convertToOldSeverity(newSeverity syslogger.Severity) Severity {
 	switch newSeverity {
 	case syslogger.Debug:
@@ -471,24 +472,40 @@ func convertToOldSeverity(newSeverity syslogger.Severity) Severity {
 	return SeverityError
 }
 
-func converter(mssgNew *syslogger.Message) (*Message, error) {
-	severity := convertToOldSeverity(mssgNew.Severity)
-	text := mssgNew.String()
-	application := piazza.ServiceName(mssgNew.Application)
+func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse {
+	err := mNew.Validate()
+	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
 
-	mssgOld := &Message{
+	go service.postSyslog(mNew)
+
+	resp := &piazza.JsonResponse{
+		StatusCode: http.StatusOK,
+	}
+	return resp
+}
+
+// postSyslog does not return anything. Any errors go to the local log.
+func (service *Service) postSyslog(mNew *syslogger.Message) {
+	severity := convertToOldSeverity(mNew.Severity)
+	text := mNew.String()
+	application := piazza.ServiceName(mNew.Application)
+
+	mssgOld := Message{
 		CreatedOn: time.Now(),
 		Service:   application,
-		Address:   mssgNew.HostName,
+		Address:   mNew.HostName,
 		Severity:  severity,
 		Message:   text,
 	}
 	err := mssgOld.Validate()
 	if err != nil {
 		log.Printf("old message creation: %s", err.Error())
-		return nil, err
+		return
 	}
 
+<<<<<<< HEAD
 	return mssgOld, nil
 }
 
@@ -511,11 +528,14 @@ func (service *Service) postSyslog(mNew *syslogger.Message) {
 		return
 	}
 
+=======
+>>>>>>> parent of 14987dd... WIP
 	service.Lock()
 	idStr := strconv.Itoa(service.id)
 	service.id++
 	service.Unlock()
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 	mssgOld, err := converter(mssgNew)
@@ -524,6 +544,8 @@ func (service *Service) postSyslog(mNew *syslogger.Message) {
 	}
 
 >>>>>>> parent of 140f4c6... completed
+=======
+>>>>>>> parent of 14987dd... WIP
 	_, err = service.esIndex.PostData(schema, idStr, mssgOld)
 	if err != nil {
 		log.Printf("old message post: %s", err.Error())
@@ -531,10 +553,14 @@ func (service *Service) postSyslog(mNew *syslogger.Message) {
 	}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	if mNew.AuditData != nil {
 =======
 	if mssgNew.AuditData != nil {
 >>>>>>> parent of 140f4c6... completed
+=======
+	if mNew.AuditData != nil {
+>>>>>>> parent of 14987dd... WIP
 		_, err = service.esIndex.PostData(securitySchema, idStr, mssgOld)
 		if err != nil {
 			log.Printf("old message audit post: %s", err.Error())
