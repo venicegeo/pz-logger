@@ -26,53 +26,66 @@ import (
 
 //---------------------------------------------------------------------
 
-const schemaMapping = `{
+const schemaMappingX = `{
 	"dynamic": "strict",
 	"properties": {
 		"facility": {
 			"type": "int"
-			"store": true,
-			"index": "not_analyzed"
 		},
 		"severity": {
 			"type": "int"
-			"store": true,
-			"index": "not_analyzed"
 		},
 		"version": {
 			"type": "int"
-			"store": true,
-			"index": "not_analyzed"
 		},
 		"timeStamp": {
 			"type": "date"
-			"store": true,
-			"index": "not_analyzed"
 		},
 		"hostName": {
 			"type": "string"
-			"store": true,
-			"index": "not_analyzed"
 		},
 		"application": {
 			"type": "string"
-			"store": true,
-			"index": "not_analyzed"
 		},
 		"process": {
 			"type": "string"
-			"store": true,
-			"index": "not_analyzed"
 		},
 		"messageId": {
 			"type": "string"
-			"store": true,
-			"index": "not_analyzed"
 		},
 		"message": {
 			"type": "string"
-			"store": true,
-			"index": "analyzed"
+		}
+	}
+}`
+
+const schemaMapping = `{
+	"dynamic": "strict",
+	"properties": {
+		"service": {
+				"type": "string",
+				"store": true,
+				"index": "not_analyzed"
+		},
+		"address": {
+				"type": "string",
+				"store": true,
+				"index": "not_analyzed"
+		},
+		"createdOn": {
+				"type": "date",
+				"store": true,
+				"index": "not_analyzed"
+		},
+		"severity": {
+				"type": "string",
+				"store": true,
+				"index": "not_analyzed"
+		},
+		"message": {
+				"type": "string",
+				"store": true,
+				"index": "analyzed"
 		}
 	}
 }`
