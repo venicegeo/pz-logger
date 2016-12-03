@@ -112,7 +112,6 @@ func NewElasticsearchWriter(esIndex elasticsearch.IIndex) (*ElasticsearchWriter,
 
 // Write writes the message to the ES table(s)
 func (w *ElasticsearchWriter) Write(mssg *syslog.Message) error {
-	log.Printf("ElasticsearchWriter.Write: writing %s", mssg.String())
 	var err error
 
 	err = mssg.Validate()
@@ -137,7 +136,6 @@ func (w *ElasticsearchWriter) Write(mssg *syslog.Message) error {
 			log.Printf("ElasticsearchWriter.Write: %s", err.Error())
 		}
 	}
-	log.Printf("ElasticsearchWriter.Write: wrote")
 
 	return nil
 }
