@@ -77,8 +77,8 @@ const schemaMapping = `{
 	}
 }`
 
-const logSchema = "LogData9x"
-const auditSchema = "AuditData9x"
+const logSchema = "LogData8x"
+const auditSchema = "AuditData8x"
 const logSchemaMapping = "{\"" + logSchema + "\": " + schemaMapping + " }"
 const auditSchemaMapping = "{\"" + auditSchema + "\": " + schemaMapping + " }"
 
