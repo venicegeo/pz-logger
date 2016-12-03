@@ -92,8 +92,8 @@ const schemaMapping = `{
 
 const logSchema = "LogData7x"
 const auditSchema = "AuditData7x"
-const logSchemaMapping = "{\"LogData7\": " + schemaMapping + " }"
-const auditSchemaMapping = "{\"AuditData7\": " + schemaMapping + " }"
+const logSchemaMapping = "{\"LogData7x\": " + schemaMapping + " }"
+const auditSchemaMapping = "{\"AuditData7x\": " + schemaMapping + " }"
 
 type ElasticsearchWriter struct {
 	sync.Mutex
@@ -156,6 +156,9 @@ func setupIndex(esIndex elasticsearch.IIndex) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("%s", logSchema)
+	log.Printf("%s", logSchemaMapping)
 	err = createType(esIndex, logSchema, logSchemaMapping)
 	if err != nil {
 		return err
