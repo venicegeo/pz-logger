@@ -145,7 +145,11 @@ func (service *Service) getMessages(params *piazza.HttpQueryParams, format strin
 
 	var lines = make([]syslogger.Message, 0)
 
+	log.Printf("got hits?")
+
 	if searchResult != nil && searchResult.GetHits() != nil {
+		log.Printf("got hits: %d", len(*searchResult.GetHits()))
+
 		for _, hit := range *searchResult.GetHits() {
 			if hit.Source == nil {
 				log.Printf("null source hit")
