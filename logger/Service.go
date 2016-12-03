@@ -16,7 +16,6 @@ package logger
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -40,12 +39,6 @@ type Service struct {
 	esIndex elasticsearch.IIndex
 	id      int
 }
-
-const (
-	OldFormat  = "old"
-	RfcFormat  = "rfc"
-	JsonFormat = "json"
-)
 
 func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) error {
 	var err error
@@ -216,14 +209,6 @@ func (service *Service) GetStats() *piazza.JsonResponse {
 }
 
 func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonResponse {
-	format, err := params.GetAsString("format", OldFormat)
-	if err != nil {
-		return service.newBadRequestResponse(err)
-	}
-	return service.getMessages(params, format)
-}
-
-func (service *Service) getMessages(params *piazza.HttpQueryParams, format string) *piazza.JsonResponse {
 	var err error
 
 	pagination, err := piazza.NewJsonPagination(params)
@@ -275,29 +260,10 @@ func (service *Service) getMessages(params *piazza.HttpQueryParams, format strin
 		}
 	}
 
-	var formattedLines interface{}
-	switch format {
-	case OldFormat:
-		// do nothing
-		formattedLines = lines
-	case JsonFormat:
-		formattedLines, err = toJsonFormat(lines)
-		if err != nil {
-			return service.newInternalErrorResponse(err)
-		}
-	case RfcFormat:
-		formattedLines, err = toRfcFormat(lines)
-		if err != nil {
-			return service.newInternalErrorResponse(err)
-		}
-	default:
-		return service.newInternalErrorResponse(fmt.Errorf("unrecognized format: %s", format))
-	}
-
 	pagination.Count = int(searchResult.TotalHits())
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
-		Data:       formattedLines,
+		Data:       lines,
 		Pagination: pagination,
 	}
 
@@ -306,28 +272,6 @@ func (service *Service) getMessages(params *piazza.HttpQueryParams, format strin
 		return service.newInternalErrorResponse(err)
 	}
 	return resp
-}
-
-func toJsonFormat(lines []Message) ([]syslogger.Message, error) {
-	var newlines = make([]syslogger.Message, len(lines))
-
-	for i, oldM := range lines {
-		newlines[i] = syslogger.Message{
-			Message: oldM.Message,
-		}
-	}
-
-	return newlines, nil
-}
-
-func toRfcFormat(lines []Message) ([]string, error) {
-	var newlines = make([]string, len(lines))
-
-	for i, oldM := range lines {
-		newlines[i] = oldM.Message
-	}
-
-	return newlines, nil
 }
 
 func createQueryDslAsString(
@@ -421,40 +365,6 @@ func createQueryDslAsString(
 	return string(output), nil
 }
 
-<<<<<<< HEAD
-func convertToOldSeverity(newSeverity syslogger.Severity) Severity {
-	switch newSeverity {
-	case syslogger.Debug:
-		return SeverityDebug
-	case syslogger.Informational:
-		return SeverityInfo
-	case syslogger.Warning:
-		return SeverityWarning
-	case syslogger.Error:
-		return SeverityError
-	case syslogger.Fatal:
-		return SeverityFatal
-	}
-	log.Printf("bad severity value: %d", newSeverity)
-	return SeverityError
-}
-
-func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse {
-	err := mNew.Validate()
-	if err != nil {
-		return service.newBadRequestResponse(err)
-	}
-
-	go service.postSyslog(mNew)
-
-	resp := &piazza.JsonResponse{
-		StatusCode: http.StatusOK,
-	}
-	return resp
-}
-
-=======
->>>>>>> parent of 14987dd... WIP
 func convertToOldSeverity(newSeverity syslogger.Severity) Severity {
 	switch newSeverity {
 	case syslogger.Debug:
@@ -505,73 +415,21 @@ func (service *Service) postSyslog(mNew *syslogger.Message) {
 		return
 	}
 
-<<<<<<< HEAD
-	return mssgOld, nil
-}
-
-// postSyslog does not return anything. Any errors go to the local log.
-func (service *Service) postSyslog(mNew *syslogger.Message) {
-	severity := convertToOldSeverity(mNew.Severity)
-	text := mNew.String()
-	application := piazza.ServiceName(mNew.Application)
-
-	mssgOld := Message{
-		CreatedOn: time.Now(),
-		Service:   application,
-		Address:   mNew.HostName,
-		Severity:  severity,
-		Message:   text,
-	}
-	err := mssgOld.Validate()
-	if err != nil {
-		log.Printf("old message creation: %s", err.Error())
-		return
-	}
-
-=======
->>>>>>> parent of 14987dd... WIP
 	service.Lock()
 	idStr := strconv.Itoa(service.id)
 	service.id++
 	service.Unlock()
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-	mssgOld, err := converter(mssgNew)
-	if err != nil {
-		return err
-	}
-
->>>>>>> parent of 140f4c6... completed
-=======
->>>>>>> parent of 14987dd... WIP
 	_, err = service.esIndex.PostData(schema, idStr, mssgOld)
 	if err != nil {
 		log.Printf("old message post: %s", err.Error())
 		// don't return yet, the audit post might still work
 	}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 	if mNew.AuditData != nil {
-=======
-	if mssgNew.AuditData != nil {
->>>>>>> parent of 140f4c6... completed
-=======
-	if mNew.AuditData != nil {
->>>>>>> parent of 14987dd... WIP
 		_, err = service.esIndex.PostData(securitySchema, idStr, mssgOld)
 		if err != nil {
 			log.Printf("old message audit post: %s", err.Error())
 		}
 	}
-}
-
-func (service *Service) GetSyslog(params *piazza.HttpQueryParams) *piazza.JsonResponse {
-	fmt, err := params.GetAsString("format", JsonFormat)
-	if err != nil {
-		return service.newBadRequestResponse(err)
-	}
-	return service.getMessages(params, fmt)
 }

@@ -101,41 +101,6 @@ func (c *Client) GetVersion() (*piazza.Version, error) {
 
 //---------------------------------------------------------------------
 
-func (c *Client) GetSyslogAsRfc(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]string, int, error) {
-
-	formatString := format.String()
-	paramString := params.String()
-
-	var ext = "?format=rfc"
-
-	if formatString != "" && paramString != "" {
-		ext = "&" + formatString + "&" + paramString
-	} else if formatString == "" && paramString != "" {
-		ext = "&" + paramString
-	} else if formatString != "" && paramString == "" {
-		ext = "&" + formatString
-	} else if formatString == "" && paramString == "" {
-		ext = ""
-	} else {
-		return nil, 0, errors.New("Internal error: failed to parse query params")
-	}
-
-	endpoint := "/syslog" + ext
-
-	jresp := c.h.PzGet(endpoint)
-	if jresp.IsError() {
-		return nil, 0, jresp.ToError()
-	}
-
-	var mssgs []string
-	err := jresp.ExtractData(&mssgs)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return mssgs, jresp.Pagination.Count, nil
-}
-
 func (c *Client) GetMessages(
 	format *piazza.JsonPagination,
 	params *piazza.HttpQueryParams) ([]Message, int, error) {
