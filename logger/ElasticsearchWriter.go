@@ -26,8 +26,9 @@ import (
 
 //---------------------------------------------------------------------
 
+//	"dynamic": "strict",
 const schemaMapping = `{
-	"dynamic": "strict",
+
 	"properties": {
 		"facility": {
 			"type": "integer",
@@ -85,8 +86,8 @@ const schemaMapping = `{
 	}
 }`
 
-const logSchema = "LogData9x"
-const auditSchema = "AuditData9x"
+const logSchema = "LogData10x"
+const auditSchema = "AuditData10x"
 const logSchemaMapping = "{\"" + logSchema + "\": " + schemaMapping + " }"
 const auditSchemaMapping = "{\"" + auditSchema + "\": " + schemaMapping + " }"
 
