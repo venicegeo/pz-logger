@@ -119,12 +119,6 @@ func (c *Client) SetService(name piazza.ServiceName, address string) {
 	c.serviceAddress = address
 }
 
-func (c *Client) PostMessage(mssg *syslog.Message) *piazza.JsonResponse {
-
-	jresp := c.h.PzPost("/syslog", mssg)
-	return jresp
-}
-
 //---------------------------------------------------------------------
 
 func (c *Client) GetAsJson(
