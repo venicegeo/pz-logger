@@ -18,7 +18,6 @@ import (
 	"time"
 
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
-	syslog "github.com/venicegeo/pz-gocommon/syslog"
 )
 
 type IClient interface {
@@ -27,9 +26,7 @@ type IClient interface {
 	GetStats() (*Stats, error)
 
 	// read support
-	GetAsOld(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]Message, int, error)
-	GetAsString(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]string, int, error)
-	GetAsJson(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]syslog.Message, int, error)
+	GetMessages(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]Message, int, error)
 
 	// config support
 	SetService(name piazza.ServiceName, address string)

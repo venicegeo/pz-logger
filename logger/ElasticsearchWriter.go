@@ -30,17 +30,17 @@ const schemaMapping = `{
 	"dynamic": "strict",
 	"properties": {
 		"facility": {
-			"type": "integer",
+			"type": "int",
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"severity": {
-			"type": "integer",
+			"type": "int",
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"version": {
-			"type": "integer",
+			"type": "int",
 			"store": true,
 			"index": "not_analyzed"
 		},
@@ -139,8 +139,8 @@ func setupIndex(esIndex elasticsearch.IIndex) error {
 		return err
 	}
 
-	//log.Printf("%s", logSchema)
-	//log.Printf("%s", logSchemaMapping)
+	log.Printf("%s", logSchema)
+	log.Printf("%s", logSchemaMapping)
 	err = createType(esIndex, logSchema, logSchemaMapping)
 	if err != nil {
 		return err

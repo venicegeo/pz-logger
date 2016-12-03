@@ -15,10 +15,11 @@
 package logger
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/venicegeo/pz-gocommon/gocommon"
-	"github.com/venicegeo/pz-gocommon/syslog"
+	syslog "github.com/venicegeo/pz-gocommon/syslog"
 )
 
 //---------------------------------------------------------------------
@@ -98,6 +99,79 @@ func (c *Client) GetVersion() (*piazza.Version, error) {
 	return &version, nil
 }
 
+//---------------------------------------------------------------------
+
+func (c *Client) GetSyslogAsRfc(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]string, int, error) {
+
+	formatString := format.String()
+	paramString := params.String()
+
+	var ext = "?format=rfc"
+
+	if formatString != "" && paramString != "" {
+		ext = "&" + formatString + "&" + paramString
+	} else if formatString == "" && paramString != "" {
+		ext = "&" + paramString
+	} else if formatString != "" && paramString == "" {
+		ext = "&" + formatString
+	} else if formatString == "" && paramString == "" {
+		ext = ""
+	} else {
+		return nil, 0, errors.New("Internal error: failed to parse query params")
+	}
+
+	endpoint := "/syslog" + ext
+
+	jresp := c.h.PzGet(endpoint)
+	if jresp.IsError() {
+		return nil, 0, jresp.ToError()
+	}
+
+	var mssgs []string
+	err := jresp.ExtractData(&mssgs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return mssgs, jresp.Pagination.Count, nil
+}
+
+func (c *Client) GetMessages(
+	format *piazza.JsonPagination,
+	params *piazza.HttpQueryParams) ([]Message, int, error) {
+
+	formatString := format.String()
+	paramString := params.String()
+
+	var ext string
+	if formatString != "" && paramString != "" {
+		ext = "?" + formatString + "&" + paramString
+	} else if formatString == "" && paramString != "" {
+		ext = "?" + paramString
+	} else if formatString != "" && paramString == "" {
+		ext = "?" + formatString
+	} else if formatString == "" && paramString == "" {
+		ext = ""
+	} else {
+		return nil, 0, errors.New("Internal error: failed to parse query params")
+	}
+
+	endpoint := "/message" + ext
+
+	jresp := c.h.PzGet(endpoint)
+	if jresp.IsError() {
+		return nil, 0, jresp.ToError()
+	}
+
+	var mssgs []Message
+	err := jresp.ExtractData(&mssgs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return mssgs, jresp.Pagination.Count, nil
+}
+
 func (c *Client) GetStats() (*Stats, error) {
 
 	jresp := c.h.PzGet("/admin/stats")
@@ -114,105 +188,64 @@ func (c *Client) GetStats() (*Stats, error) {
 	return stats, nil
 }
 
+//---------------------------------------------------------------------
+
 func (c *Client) SetService(name piazza.ServiceName, address string) {
 	c.serviceName = name
 	c.serviceAddress = address
 }
 
-//---------------------------------------------------------------------
-
-func (c *Client) GetAsJson(
-	format *piazza.JsonPagination,
-	params *piazza.HttpQueryParams,
-) ([]syslog.Message, int, error) {
-
-	ext, err := buildExt(format, params, "json")
-	if err != nil {
-		return nil, 0, err
-	}
-
-	jresp := c.h.PzGet("/syslog" + ext)
-	if jresp.IsError() {
-		return nil, 0, jresp.ToError()
-	}
-
-	var mssgs []syslog.Message
-	err = jresp.ExtractData(&mssgs)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return mssgs, jresp.Pagination.Count, nil
+type SyslogElkWriter struct {
+	Client IClient
 }
 
-func (c *Client) GetAsString(
-	format *piazza.JsonPagination,
-	params *piazza.HttpQueryParams,
-) ([]string, int, error) {
-
-	ext, err := buildExt(format, params, "string")
-	if err != nil {
-		return nil, 0, err
+func (w *SyslogElkWriter) Write(mNew *syslog.Message) error {
+	if w.Client == nil {
+		return fmt.Errorf("Log writer client not set")
 	}
 
-	jresp := c.h.PzGet("/syslog" + ext)
-	if jresp.IsError() {
-		return nil, 0, jresp.ToError()
+	switch w.Client.(type) {
+	default:
+		return fmt.Errorf("Log writer client has invalid type")
+	case *Client:
+		h := w.Client.(*Client).h
+		jresp := h.PzPost("/syslog", mNew)
+		if jresp.IsError() {
+			return jresp.ToError()
+		}
+	case *MockClient:
+		mOld := toOldStyle(mNew)
+		err := w.Client.(*MockClient).PostMessage(mOld)
+		if err != nil {
+			return err
+		}
 	}
-
-	var mssgs []string
-	err = jresp.ExtractData(&mssgs)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return mssgs, jresp.Pagination.Count, nil
+	return nil
 }
 
-func (c *Client) GetAsOld(
-	format *piazza.JsonPagination,
-	params *piazza.HttpQueryParams,
-) ([]Message, int, error) {
+func toOldStyle(mNew *syslog.Message) *Message {
 
-	ext, err := buildExt(format, params, "old")
-	if err != nil {
-		return nil, 0, err
+	severity := SeverityInfo
+	switch mNew.Severity {
+	case syslog.Debug:
+		severity = SeverityDebug
+	case syslog.Informational:
+		severity = SeverityInfo
+	case syslog.Warning:
+		severity = SeverityWarning
+	case syslog.Error:
+		severity = SeverityError
+	case syslog.Fatal:
+		severity = SeverityFatal
 	}
 
-	jresp := c.h.PzGet("/syslog" + ext)
-	if jresp.IsError() {
-		return nil, 0, jresp.ToError()
+	// translate syslog.Message to a logger.Message and the post it via the client
+	mOld := &Message{
+		Service:   piazza.ServiceName(mNew.Application),
+		Address:   mNew.HostName,
+		CreatedOn: mNew.TimeStamp,
+		Severity:  severity,
+		Message:   mNew.String(),
 	}
-
-	var mssgs []Message
-	err = jresp.ExtractData(&mssgs)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return mssgs, jresp.Pagination.Count, nil
-}
-
-func buildExt(
-	format *piazza.JsonPagination,
-	params *piazza.HttpQueryParams,
-	style string) (string, error) {
-	formatString := format.String()
-	paramString := params.String()
-
-	var ext = "?format=" + style
-
-	if formatString != "" && paramString != "" {
-		ext = "&" + formatString + "&" + paramString
-	} else if formatString == "" && paramString != "" {
-		ext = "&" + paramString
-	} else if formatString != "" && paramString == "" {
-		ext = "&" + formatString
-	} else if formatString == "" && paramString == "" {
-		ext = ""
-	} else {
-		return "", fmt.Errorf("Internal error: failed to parse query params")
-	}
-
-	return ext, nil
+	return mOld
 }

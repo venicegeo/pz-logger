@@ -115,7 +115,7 @@ func (suite *LoggerTester) getLastMessage() string {
 		Order:   piazza.SortOrderAscending,
 		SortBy:  "createdOn",
 	}
-	ms, count, err := client.GetAsOld(&format, nil)
+	ms, count, err := client.GetMessages(&format, nil)
 	assert.NoError(err)
 	assert.True(len(ms) > 0)
 	assert.True(count >= len(ms))
@@ -232,7 +232,7 @@ func (suite *LoggerTester) Test05Pagination() {
 			SortBy:  "createdOn",
 			Order:   piazza.SortOrderDescending,
 		}
-		ms, count, err := client.GetAsOld(&format, nil)
+		ms, count, err := client.GetMessages(&format, nil)
 		assert.NoError(err)
 		_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("localhost:%s/message?page=0", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
 		assert.NoError(err)
@@ -247,7 +247,7 @@ func (suite *LoggerTester) Test05Pagination() {
 			SortBy:  "createdOn",
 			Order:   piazza.SortOrderAscending,
 		}
-		ms, count, err = client.GetAsOld(&format, nil)
+		ms, count, err = client.GetMessages(&format, nil)
 		assert.NoError(err)
 		assert.Len(ms, 5)
 		assert.EqualValues(SeverityFatal, ms[4].Severity)
@@ -259,7 +259,7 @@ func (suite *LoggerTester) Test05Pagination() {
 			SortBy:  "createdOn",
 			Order:   piazza.SortOrderDescending,
 		}
-		ms, count, err = client.GetAsOld(&format, nil)
+		ms, count, err = client.GetMessages(&format, nil)
 		assert.NoError(err)
 		assert.Len(ms, 2)
 
@@ -340,7 +340,7 @@ func (suite *LoggerTester) Test06OtherParams() {
 		params.AddString("service", "JobManager")
 		params.AddString("contains", "Success")
 
-		msgs, count, err := client.GetAsOld(&format, &params)
+		msgs, count, err := client.GetMessages(&format, &params)
 		assert.NoError(err)
 		assert.Len(msgs, 1)
 		assert.Equal(5, count)
@@ -445,8 +445,8 @@ func (suite *LoggerTester) Test09GerMessagesErrors() {
 		SortBy:  "id",
 		Order:   piazza.SortOrderDescending,
 	}
-	_, cnt, _ := client.GetAsOld(&format, nil)
-	assert.Zero(cnt)
+	_, _, err := client.GetMessages(&format, nil)
+	assert.Error(err)
 
 	format = piazza.JsonPagination{
 		PerPage: 9999,
@@ -454,10 +454,10 @@ func (suite *LoggerTester) Test09GerMessagesErrors() {
 		SortBy:  "createdOn",
 		Order:   piazza.SortOrderDescending,
 	}
-	mssgs, count, err := client.GetAsOld(&format, nil)
+	mssgs, count, err := client.GetMessages(&format, nil)
 	assert.NoError(err)
 	assert.Equal(0, count)
-	assert.Nil(mssgs)
+	assert.EqualValues([]Message{}, mssgs)
 }
 
 func (suite *LoggerTester) Test10Syslog() {
@@ -467,14 +467,16 @@ func (suite *LoggerTester) Test10Syslog() {
 	suite.setupFixture()
 	defer suite.teardownFixture()
 
-	writer := &syslog.StringWriter{}
+	writer := &SyslogElkWriter{
+		Client: suite.client,
+	}
 	syslogger := syslog.NewLogger(writer, "loggertester")
 
 	{
 		s := "The quick brown fox"
 		syslogger.Warning(s)
 		sleep()
-		actual := writer.Messages[len(writer.Messages)-1]
+		actual := suite.getLastMessage()
 		assert.Contains(actual, s)
 		pri := fmt.Sprintf("<%d>%d",
 			8*syslog.DefaultFacility+syslog.Warning.Value(), syslog.DefaultVersion)
@@ -485,23 +487,23 @@ func (suite *LoggerTester) Test10Syslog() {
 		s := "The lazy dog"
 		syslogger.Error(s)
 		sleep()
-		actual := writer.Messages[len(writer.Messages)-1]
+		actual := suite.getLastMessage()
 		assert.Contains(actual, s)
 		pri := fmt.Sprintf("<%d>%d",
 			8*syslog.DefaultFacility+syslog.Error.Value(), syslog.DefaultVersion)
 		assert.Contains(actual, pri)
 	}
 
-	/*****{
+	{
 		stats, err := suite.client.GetStats()
 		assert.NoError(err)
 		assert.EqualValues(2, stats.NumMessages)
-	}*****/
+	}
 
 	{
 		syslogger.Audit("123", "login", "456", "789")
 		sleep()
-		actual := writer.Messages[len(writer.Messages)-1]
+		actual := suite.getLastMessage()
 		assert.Contains(actual, "login")
 		pri := fmt.Sprintf("<%d>%d",
 			8*syslog.DefaultFacility+syslog.Notice.Value(), syslog.DefaultVersion)
