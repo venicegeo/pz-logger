@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -329,16 +330,37 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 	}
-
 	return resp
 }
 
 // postSyslog does not return anything. Any errors go to the local log.
-func (service *Service) postSyslog(mssg *syslogger.Message) {
-	err := service.writer.Write(mssg)
+func (service *Service) postSyslog(mssgNew *syslogger.Message) error {
+	var err error
+
+	service.Lock()
+	idStr := strconv.Itoa(service.id)
+	service.id++
+	service.Unlock()
+
+	mssgOld, err := convertNewMessageToOld(mssgNew)
 	if err != nil {
-		log.Printf("Service.postSyslog: %s", err.Error())
+		return err
 	}
+
+	_, err = service.esIndex.PostData(logSchema, idStr, mssgOld)
+	if err != nil {
+		log.Printf("old message post: %s", err.Error())
+		// don't return yet, the audit post might still work
+	}
+
+	if mssgNew.AuditData != nil {
+		_, err = service.esIndex.PostData(auditSchema, idStr, mssgOld)
+		if err != nil {
+			log.Printf("old message audit post: %s", err.Error())
+		}
+	}
+
+	return nil
 }
 
 func (service *Service) GetSyslog(params *piazza.HttpQueryParams, newStyle bool) *piazza.JsonResponse {

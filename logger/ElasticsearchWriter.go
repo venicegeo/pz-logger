@@ -77,10 +77,10 @@ const schemaMapping = `{
 	}
 }`
 
-const logSchema = "LogData8x"
-const auditSchema = "AuditData8x"
-const logSchemaMapping = "{\"" + logSchema + "\": " + schemaMapping + " }"
-const auditSchemaMapping = "{\"" + auditSchema + "\": " + schemaMapping + " }"
+const logSchema = "LogData7x"
+const auditSchema = "AuditData7x"
+const logSchemaMapping = "{\"LogData7x\": " + schemaMapping + " }"
+const auditSchemaMapping = "{\"AuditData7x\": " + schemaMapping + " }"
 
 type ElasticsearchWriter struct {
 	sync.Mutex
@@ -101,11 +101,16 @@ func NewElasticsearchWriter(esIndex elasticsearch.IIndex) (*ElasticsearchWriter,
 	return w, nil
 }
 
-// Write writes the message to the ES table(s)
+// Write writes the message to the supplied file.
 func (w *ElasticsearchWriter) Write(mssg *syslog.Message) error {
 	var err error
 
 	err = mssg.Validate()
+	if err != nil {
+		return err
+	}
+
+	mssgOld, err := convertNewMessageToOld(mssg)
 	if err != nil {
 		return err
 	}
@@ -115,16 +120,16 @@ func (w *ElasticsearchWriter) Write(mssg *syslog.Message) error {
 	w.id++
 	w.Unlock()
 
-	_, err = w.esIndex.PostData(logSchema, idStr, mssg)
+	_, err = w.esIndex.PostData(logSchema, idStr, mssgOld)
 	if err != nil {
-		log.Printf("ElasticsearchWriter.Write: %s", err.Error())
-		// don't give up, the audit post might still work
+		log.Printf("old message post: %s", err.Error())
+		// don't return yet, the audit post might still work
 	}
 
 	if mssg.AuditData != nil {
-		_, err = w.esIndex.PostData(auditSchema, idStr, mssg)
+		_, err = w.esIndex.PostData(auditSchema, idStr, mssgOld)
 		if err != nil {
-			log.Printf("ElasticsearchWriter.Write: %s", err.Error())
+			log.Printf("old message audit post: %s", err.Error())
 		}
 	}
 
