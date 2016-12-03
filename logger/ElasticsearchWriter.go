@@ -73,14 +73,6 @@ const schemaMapping = `{
 			"type": "string",
 			"store": true,
 			"index": "analyzed"
-		},
-		"auditData": {
-			"type": "object",
-			"properties": {
-				"actor":	{ "type": "string" },
-				"action":	{ "type": "string" },
-				"actee":	{ "type": "string" }
-			}
 		}
 	}
 }`
