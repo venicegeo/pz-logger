@@ -60,9 +60,8 @@ const schemaMappingX = `{
 }`
 
 const schemaMapping = `{
-{
-"dynamic": "strict",
-"properties": {
+	"dynamic": "strict",
+	"properties": {
 		"service": {
 				"type": "string",
 				"store": true,
@@ -88,8 +87,7 @@ const schemaMapping = `{
 				"store": true,
 				"index": "analyzed"
 		}
-}
-}
+	}
 }`
 
 const logSchema = "LogData7x"
