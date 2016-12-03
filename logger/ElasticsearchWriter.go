@@ -30,47 +30,47 @@ const schemaMapping = `{
 	"dynamic": "strict",
 	"properties": {
 		"facility": {
-			"type": "int",
+			"type": "int"
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"severity": {
-			"type": "int",
+			"type": "int"
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"version": {
-			"type": "int",
+			"type": "int"
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"timeStamp": {
-			"type": "date",
+			"type": "date"
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"hostName": {
-			"type": "string",
+			"type": "string"
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"application": {
-			"type": "string",
+			"type": "string"
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"process": {
-			"type": "string",
+			"type": "string"
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"messageId": {
-			"type": "string",
+			"type": "string"
 			"store": true,
 			"index": "not_analyzed"
 		},
 		"message": {
-			"type": "string",
+			"type": "string"
 			"store": true,
 			"index": "analyzed"
 		}
