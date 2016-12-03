@@ -26,45 +26,28 @@ import (
 
 //---------------------------------------------------------------------
 
+const schema = "LogData7"
+const securitySchema = "AuditData7"
 const schemaMapping = `{
-	"dynamic": "strict",
-	"properties": {
-		"facility": {
-			"type": "int",
+	"LogData7":{
+		"dynamic": "strict",
+		"properties": {
+			"service": {
+				"type": "string",
+				"store": true,
+				"index": "not_analyzed"
+			},
+		"address": {
+			"type": "string",
 			"store": true,
 			"index": "not_analyzed"
 		},
-		"severity": {
-			"type": "int",
-			"store": true,
-			"index": "not_analyzed"
-		},
-		"version": {
-			"type": "int",
-			"store": true,
-			"index": "not_analyzed"
-		},
-		"timeStamp": {
+		"createdOn": {
 			"type": "date",
 			"store": true,
 			"index": "not_analyzed"
 		},
-		"hostName": {
-			"type": "string",
-			"store": true,
-			"index": "not_analyzed"
-		},
-		"application": {
-			"type": "string",
-			"store": true,
-			"index": "not_analyzed"
-		},
-		"process": {
-			"type": "string",
-			"store": true,
-			"index": "not_analyzed"
-		},
-		"messageId": {
+		"severity": {
 			"type": "string",
 			"store": true,
 			"index": "not_analyzed"
@@ -77,10 +60,38 @@ const schemaMapping = `{
 	}
 }`
 
-const logSchema = "LogData7x"
-const auditSchema = "AuditData7x"
-const logSchemaMapping = "\"LogData7\": " + schemaMapping + " }"
-const auditSchemaMapping = "\"AuditData7\": " + schemaMapping + " }"
+const securitySchemaMapping = `{
+	"AuditData7":{
+		"dynamic": "strict",
+		"properties": {
+			"service": {
+				"type": "string",
+				"store": true,
+				"index": "not_analyzed"
+			},
+			"address": {
+				"type": "string",
+				"store": true,
+				"index": "not_analyzed"
+			},
+			"createdOn": {
+				"type": "date",
+				"store": true,
+				"index": "not_analyzed"
+			},
+			"severity": {
+				"type": "string",
+				"store": true,
+				"index": "not_analyzed"
+			},
+			"message": {
+				"type": "string",
+				"store": true,
+				"index": "analyzed"
+			}
+		}
+	}
+}`
 
 type ElasticsearchWriter struct {
 	sync.Mutex
@@ -89,6 +100,7 @@ type ElasticsearchWriter struct {
 }
 
 func NewElasticsearchWriter(esIndex elasticsearch.IIndex) (*ElasticsearchWriter, error) {
+
 	w := &ElasticsearchWriter{
 		esIndex: esIndex,
 	}
@@ -110,7 +122,7 @@ func (w *ElasticsearchWriter) Write(mssg *syslog.Message) error {
 		return err
 	}
 
-	mssgOld, err := convertNewMessageToOld(mssg)
+	mssgOld, err := messageConverter(mssg)
 	if err != nil {
 		return err
 	}
@@ -120,14 +132,14 @@ func (w *ElasticsearchWriter) Write(mssg *syslog.Message) error {
 	w.id++
 	w.Unlock()
 
-	_, err = w.esIndex.PostData(logSchema, idStr, mssgOld)
+	_, err = w.esIndex.PostData(schema, idStr, mssgOld)
 	if err != nil {
 		log.Printf("old message post: %s", err.Error())
 		// don't return yet, the audit post might still work
 	}
 
 	if mssg.AuditData != nil {
-		_, err = w.esIndex.PostData(auditSchema, idStr, mssgOld)
+		_, err = w.esIndex.PostData(securitySchema, idStr, mssgOld)
 		if err != nil {
 			log.Printf("old message audit post: %s", err.Error())
 		}
@@ -138,16 +150,20 @@ func (w *ElasticsearchWriter) Write(mssg *syslog.Message) error {
 
 //---------------------------------------------------------------------
 
+func messageConverter(newMssg *syslog.Message) (*Message, error) {
+	return nil, nil
+}
+
 func setupIndex(esIndex elasticsearch.IIndex) error {
 	err := createIndex(esIndex)
 	if err != nil {
 		return err
 	}
-	err = createType(esIndex, logSchema, logSchemaMapping)
+	err = createType(esIndex, schema, schemaMapping)
 	if err != nil {
 		return err
 	}
-	err = createType(esIndex, auditSchema, auditSchemaMapping)
+	err = createType(esIndex, securitySchema, securitySchemaMapping)
 	return err
 }
 

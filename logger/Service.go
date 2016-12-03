@@ -454,6 +454,44 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	return resp
 }
 
+func convertToOldSeverity(newSeverity syslogger.Severity) Severity {
+	switch newSeverity {
+	case syslogger.Debug:
+		return SeverityDebug
+	case syslogger.Informational:
+		return SeverityInfo
+	case syslogger.Warning:
+		return SeverityWarning
+	case syslogger.Error:
+		return SeverityError
+	case syslogger.Fatal:
+		return SeverityFatal
+	}
+	log.Printf("bad severity value: %d", newSeverity)
+	return SeverityError
+}
+
+func converter(mssgNew *syslogger.Message) (*Message, error) {
+	severity := convertToOldSeverity(mssgNew.Severity)
+	text := mssgNew.String()
+	application := piazza.ServiceName(mssgNew.Application)
+
+	mssgOld := &Message{
+		CreatedOn: time.Now(),
+		Service:   application,
+		Address:   mssgNew.HostName,
+		Severity:  severity,
+		Message:   text,
+	}
+	err := mssgOld.Validate()
+	if err != nil {
+		log.Printf("old message creation: %s", err.Error())
+		return nil, err
+	}
+
+	return mssgOld, nil
+}
+
 // postSyslog does not return anything. Any errors go to the local log.
 func (service *Service) postSyslog(mNew *syslogger.Message) {
 	severity := convertToOldSeverity(mNew.Severity)
@@ -478,13 +516,25 @@ func (service *Service) postSyslog(mNew *syslogger.Message) {
 	service.id++
 	service.Unlock()
 
+<<<<<<< HEAD
+=======
+	mssgOld, err := converter(mssgNew)
+	if err != nil {
+		return err
+	}
+
+>>>>>>> parent of 140f4c6... completed
 	_, err = service.esIndex.PostData(schema, idStr, mssgOld)
 	if err != nil {
 		log.Printf("old message post: %s", err.Error())
 		// don't return yet, the audit post might still work
 	}
 
+<<<<<<< HEAD
 	if mNew.AuditData != nil {
+=======
+	if mssgNew.AuditData != nil {
+>>>>>>> parent of 140f4c6... completed
 		_, err = service.esIndex.PostData(securitySchema, idStr, mssgOld)
 		if err != nil {
 			log.Printf("old message audit post: %s", err.Error())

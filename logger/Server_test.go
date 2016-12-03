@@ -510,3 +510,4 @@ func (suite *LoggerTester) Test10Syslog() {
 		assert.Contains(actual, pri)
 	}
 }
+
