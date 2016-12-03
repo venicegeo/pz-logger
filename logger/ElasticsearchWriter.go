@@ -26,7 +26,7 @@ import (
 
 //---------------------------------------------------------------------
 
-const schemaMappingX = `{
+const schemaMapping = `{
 	"dynamic": "strict",
 	"properties": {
 		"facility": {
@@ -57,39 +57,6 @@ const schemaMappingX = `{
 			"type": "string"
 		}
 	}
-}`
-
-const schemaMapping = `{
-{
-"dynamic": "strict",
-"properties": {
-		"service": {
-				"type": "string",
-				"store": true,
-				"index": "not_analyzed"
-		},
-		"address": {
-				"type": "string",
-				"store": true,
-				"index": "not_analyzed"
-		},
-		"createdOn": {
-				"type": "date",
-				"store": true,
-				"index": "not_analyzed"
-		},
-		"severity": {
-				"type": "string",
-				"store": true,
-				"index": "not_analyzed"
-		},
-		"message": {
-				"type": "string",
-				"store": true,
-				"index": "analyzed"
-		}
-}
-}
 }`
 
 const logSchema = "LogData7x"
