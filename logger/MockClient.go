@@ -19,6 +19,7 @@ import (
 	"time"
 
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
+	"github.com/venicegeo/pz-gocommon/syslog"
 )
 
 // MockClient implements Logger
@@ -103,4 +104,13 @@ func (c *MockClient) PostMessage(mssg *Message) error {
 func (c *MockClient) SetService(name piazza.ServiceName, address string) {
 	c.serviceName = name
 	c.serviceAddress = address
+}
+func (c *MockClient) GetAsOld(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]Message, int, error) {
+	return nil, 0, nil
+}
+func (c *MockClient) GetAsString(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]string, int, error) {
+	return nil, 0, nil
+}
+func (c *MockClient) GetAsJson(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]syslog.Message, int, error) {
+	return nil, 0, nil
 }
