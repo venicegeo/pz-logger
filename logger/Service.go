@@ -407,6 +407,8 @@ func (service *Service) getMessageCommon(params *piazza.HttpQueryParams) (*elast
 		return nil, nil, service.newBadRequestResponse(err)
 	}
 
+	paginationCreatedOnToTimeStamp(pagination)
+
 	dsl, err := createQueryDslAsString(pagination, params)
 	if err != nil {
 		return nil, pagination, service.newBadRequestResponse(err)
@@ -480,6 +482,8 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	if jErr != nil {
 		return jErr
 	}
+	paginationTimeStampToCreateOn(pagination)
+
 	var lines = make([]Message, 0)
 
 	if searchResult != nil && searchResult.GetHits() != nil {
