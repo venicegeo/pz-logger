@@ -121,7 +121,7 @@ func (c *Client) GetMessages(
 		return nil, 0, errors.New("Internal error: failed to parse query params")
 	}
 
-	endpoint := "/message" + ext
+	endpoint := "/syslog" + ext
 
 	jresp := c.h.PzGet(endpoint)
 	if jresp.IsError() {

@@ -16,7 +16,6 @@ package systest
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -89,7 +88,6 @@ func (suite *LoggerTester) verifyMessageExists(expected *syslogger.Message) bool
 		SortBy:  "createdOn",
 	}
 	ms, _, err := client.GetMessages(format, nil)
-	fmt.Println("====\n", ms, "\n=====")
 	assert.NoError(err)
 	assert.Len(ms, format.PerPage)
 
@@ -152,15 +150,19 @@ func (suite *LoggerTester) Test02RawPost() {
 
 	jsn := `
 	{
-		"address":"XXX",
-		"createdOn":"2016-07-22T16:44:58.065583138-04:00",
-		"message":"XXX",
-		"service":"XXX",
-		"severity":"XXX"
+		"facility":1,
+		"severity":4,
+		"version":1,
+		"process":"98",
+		"timeStamp":"2003-10-11T22:14:15.003Z",
+		"hostName":"mx.example.com",
+		"application":"evntslog",
+		"messageId":"idID47",
+		"message":"this is a log message"
 	}`
 	reader := bytes.NewReader([]byte(jsn))
 
-	resp, err := http.Post(suite.url+"/message",
+	resp, err := http.Post(suite.url+"/syslog",
 		piazza.ContentTypeJSON, reader)
 	assert.NoError(err)
 
@@ -230,7 +232,7 @@ func (suite *LoggerTester) Test04Post() {
 	assert.True(suite.verifyMessageExists(data))
 }
 
-func (suite *LoggerTester) xTest05PostHelpers() {
+func (suite *LoggerTester) Test05PostHelpers() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -351,7 +353,7 @@ func (suite *LoggerTester) Test07Pagination() {
 	}
 }
 
-func (suite *LoggerTester) xTest08Params() {
+func (suite *LoggerTester) Test08Params() {
 	t := suite.T()
 	assert := assert.New(t)
 
