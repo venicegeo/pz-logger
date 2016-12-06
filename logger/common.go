@@ -20,6 +20,7 @@ import (
 	"time"
 
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
+	syslog "github.com/venicegeo/pz-gocommon/syslog"
 )
 
 // Message represents the contents of a message for the logger service.
@@ -38,7 +39,7 @@ type IClient interface {
 	GetStats() (*Stats, error)
 
 	// read support
-	GetMessages(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]Message, int, error)
+	GetMessages(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]syslog.Message, int, error)
 
 	// config support
 	SetService(name piazza.ServiceName, address string)
@@ -111,6 +112,19 @@ func init() {
 	piazza.JsonResponseDataTypes["logger.Message"] = "logmessage"
 	piazza.JsonResponseDataTypes["*logger.Message"] = "logmessage"
 	piazza.JsonResponseDataTypes["[]logger.Message"] = "logmessage-list"
+	piazza.JsonResponseDataTypes["[]syslog.Message"] = "syslogMessage-list"
 	piazza.JsonResponseDataTypes["logger.Stats"] = "logstats"
 	piazza.JsonResponseDataTypes["*logger.Stats"] = "logstats"
+}
+
+func paginationTimeStampToCreateOn(pagination *piazza.JsonPagination) {
+	if pagination.SortBy == "timeStamp" {
+		pagination.SortBy = "createdOn"
+	}
+}
+
+func paginationCreatedOnToTimeStamp(pagination *piazza.JsonPagination) {
+	if pagination.SortBy == "createdOn" {
+		pagination.SortBy = "timeStamp"
+	}
 }
