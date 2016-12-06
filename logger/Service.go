@@ -321,23 +321,6 @@ func createQueryDslAsString(
 	return string(output), nil
 }
 
-func convertToOldSeverity(newSeverity syslogger.Severity) Severity {
-	switch newSeverity {
-	case syslogger.Debug:
-		return SeverityDebug
-	case syslogger.Informational:
-		return SeverityInfo
-	case syslogger.Warning:
-		return SeverityWarning
-	case syslogger.Error:
-		return SeverityError
-	case syslogger.Fatal:
-		return SeverityFatal
-	}
-	log.Printf("bad severity value: %d", newSeverity)
-	return SeverityError
-}
-
 func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse {
 	err := mNew.Validate()
 	if err != nil {
@@ -355,8 +338,24 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 	return resp
 }
 
-func (service *Service) newToOld(mNew *syslogger.Message) (*Message, error) {
-	severity := convertToOldSeverity(mNew.Severity)
+func (service *Service) toOldStyle(mNew *syslogger.Message) (*Message, error) {
+	var severity Severity
+
+	switch mNew.Severity {
+	case syslogger.Debug:
+		severity = SeverityDebug
+	case syslogger.Informational:
+		severity = SeverityInfo
+	case syslogger.Warning:
+		severity = SeverityWarning
+	case syslogger.Error:
+		severity = SeverityError
+	case syslogger.Fatal:
+		severity = SeverityFatal
+	default:
+		severity = SeverityError
+	}
+
 	text := mNew.String()
 	application := piazza.ServiceName(mNew.Application)
 
@@ -368,7 +367,7 @@ func (service *Service) newToOld(mNew *syslogger.Message) (*Message, error) {
 		Message:   text,
 	}
 	if err := mssgOld.Validate(); err != nil {
-		return nil, err
+		return mssgOld, err
 	}
 	return mssgOld, nil
 }
@@ -498,7 +497,7 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 				return service.newInternalErrorResponse(err)
 			}
 
-			msg, err = service.newToOld(&sysMsg)
+			msg, err = service.toOldStyle(&sysMsg)
 			if err != nil {
 				log.Printf("UNABLE TO CONVERT TO OLD TYPE: %s", string(*hit.Source))
 				continue

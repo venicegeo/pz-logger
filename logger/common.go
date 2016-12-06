@@ -20,6 +20,7 @@ import (
 	"time"
 
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
+	syslog "github.com/venicegeo/pz-gocommon/syslog"
 )
 
 // Message represents the contents of a message for the logger service.
@@ -38,7 +39,7 @@ type IClient interface {
 	GetStats() (*Stats, error)
 
 	// read support
-	GetMessages(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]Message, int, error)
+	GetMessages(format *piazza.JsonPagination, params *piazza.HttpQueryParams) ([]syslog.Message, int, error)
 
 	// config support
 	SetService(name piazza.ServiceName, address string)
