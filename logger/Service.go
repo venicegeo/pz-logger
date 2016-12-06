@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -39,7 +38,6 @@ type Service struct {
 	origin string
 
 	esIndex elasticsearch.IIndex
-	id      int
 }
 
 func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) error {
@@ -376,14 +374,9 @@ func (service *Service) toOldStyle(mNew *syslogger.Message) (*Message, error) {
 // postSyslog does not return anything. Any errors go to the local log.
 func (service *Service) postSyslog(mNew *syslogger.Message) error {
 
-	service.Lock()
-	idStr := strconv.Itoa(service.id)
-	service.id++
-	service.Unlock()
-
 	isAudit := mNew.AuditData != nil
 
-	_, err := service.esIndex.PostData(schema, idStr, mNew)
+	_, err := service.esIndex.PostData(schema, "", mNew)
 	if err != nil {
 		log.Printf("old message post: %s", err.Error())
 		if !isAudit {
@@ -392,7 +385,7 @@ func (service *Service) postSyslog(mNew *syslogger.Message) error {
 	}
 
 	if isAudit {
-		_, err = service.esIndex.PostData(securitySchema, idStr, mNew)
+		_, err = service.esIndex.PostData(securitySchema, "", mNew)
 		if err != nil {
 			log.Printf("old message audit post: %s", err.Error())
 			return errors.New(fmt.Sprintf("Service.postSyslog: %s", err.Error()))
