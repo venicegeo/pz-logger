@@ -431,6 +431,11 @@ func (service *Service) getMessageCommon(params *piazza.HttpQueryParams) (*elast
 func (service *Service) GetSyslog(params *piazza.HttpQueryParams) *piazza.JsonResponse {
 	var err error
 
+	format, err := params.GetAsString("format", "json")
+	if err != nil {
+		return service.newInternalErrorResponse(err)
+	}
+
 	searchResult, pagination, jErr := service.getMessageCommon(params)
 	if jErr != nil {
 		return jErr
@@ -463,10 +468,23 @@ func (service *Service) GetSyslog(params *piazza.HttpQueryParams) *piazza.JsonRe
 		}
 	}
 
+	var data interface{}
+
+	switch format {
+	case "string":
+		temp := []string{}
+		for _, line := range lines {
+			temp = append(temp, line.String())
+		}
+		data = temp
+	default:
+		data = lines
+	}
+
 	pagination.Count = int(searchResult.TotalHits())
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
-		Data:       lines,
+		Data:       data,
 		Pagination: pagination,
 	}
 
