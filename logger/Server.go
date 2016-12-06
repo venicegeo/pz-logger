@@ -66,6 +66,13 @@ func (server *Server) handleGetMessage(c *gin.Context) {
 	piazza.GinReturnJson(c, resp)
 }
 
+func (server *Server) handleGetSyslog(c *gin.Context) {
+	params := piazza.NewQueryParams(c.Request)
+	resp := server.service.GetSyslog(params)
+
+	piazza.GinReturnJson(c, resp)
+}
+
 func (server *Server) handlePostSyslog(c *gin.Context) {
 	sysM := syslogger.NewMessage()
 	err := c.BindJSON(&sysM)
@@ -78,12 +85,5 @@ func (server *Server) handlePostSyslog(c *gin.Context) {
 		return
 	}
 	resp := server.service.PostSyslog(sysM)
-	piazza.GinReturnJson(c, resp)
-}
-
-func (server *Server) handleGetSyslog(c *gin.Context) {
-	params := piazza.NewQueryParams(c.Request)
-	resp := server.service.GetSyslog(params)
-
 	piazza.GinReturnJson(c, resp)
 }
