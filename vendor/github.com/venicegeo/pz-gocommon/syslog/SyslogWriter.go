@@ -17,7 +17,10 @@ package syslog
 import (
 	"fmt"
 	"io"
+	"log/syslog"
 	"os"
+
+	"github.com/venicegeo/pz-gocommon/elasticsearch"
 )
 
 //---------------------------------------------------------------------
@@ -78,4 +81,62 @@ func (w *FileWriter) Write(mssg *Message) error {
 // Close closes the file. The creator of the FileWriter must call this.
 func (w *FileWriter) Close() error {
 	return w.file.Close()
+}
+
+//---------------------------------------------------------------------
+
+//ElasticWriter implements the WriterI, writing to elasticsearch
+type ElasticWriter struct {
+	Esi elasticsearch.IIndex
+	typ string
+	id  string
+}
+
+//Write writes the message to the elasticsearch index, type, id
+func (w *ElasticWriter) Write(mssg *Message) error {
+	var err error
+
+	if w == nil || w.Esi == nil || w.typ == "" {
+		return fmt.Errorf("writer not set not set")
+	}
+
+	_, err = w.Esi.PostData(w.typ, w.id, mssg)
+	return err
+}
+
+//SetType sets the type to write to
+func (w *ElasticWriter) SetType(typ string) error {
+	if w == nil {
+		return fmt.Errorf("writer not set not set")
+	}
+	w.typ = typ
+	return nil
+}
+
+//SetID sets the id to write to
+func (w *ElasticWriter) SetID(id string) error {
+	if w == nil {
+		return fmt.Errorf("writer not set not set")
+	}
+	w.id = id
+	return nil
+}
+
+//---------------------------------------------------------------------
+
+//SyslogWriter implements the WriterI, writing to syslog
+type SyslogWriter struct {
+	Syslog *syslog.Writer
+}
+
+//Write writes the message to syslog
+func (w *SyslogWriter) Write(mssg *Message) error {
+	var err error
+
+	if w == nil || w.Syslog == nil {
+		return fmt.Errorf("writer not set not set")
+	}
+
+	_, err = w.Syslog.Write([]byte(mssg.String()))
+	return err
 }
