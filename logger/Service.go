@@ -28,153 +28,26 @@ import (
 	syslogger "github.com/venicegeo/pz-gocommon/syslog"
 )
 
-const schema = "LogData"
-const securitySchema = "AuditData"
-
 type Service struct {
 	sync.Mutex
 
 	stats  Stats
 	origin string
 
+	logWriters   []syslogger.Writer
+	auditWriters []syslogger.Writer
+
 	esIndex elasticsearch.IIndex
 }
 
-func (service *Service) Init(sys *piazza.SystemConfig, esIndex elasticsearch.IIndex) error {
-	var err error
+func (service *Service) Init(sys *piazza.SystemConfig, logWriters []syslogger.Writer, auditWriters []syslogger.Writer, esi elasticsearch.IIndex) error {
 
 	service.stats.CreatedOn = time.Now()
 
-	ok, err := esIndex.IndexExists()
-	if err != nil {
-		return err
-	}
-	if !ok {
-		log.Printf("Creating index: %s", esIndex.IndexName())
-		err = esIndex.Create("")
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+	service.logWriters = logWriters
+	service.auditWriters = auditWriters
 
-	ok, err = esIndex.TypeExists(schema)
-	if err != nil {
-		return err
-	}
-	mapping := `
-	{
-	    "dynamic": "strict",
-	    "properties": {
-	    	"facility": {
-        		"type": "integer"
-      		},
-      		"severity": {
-        		"type": "integer"
-      		},
-      		"version": {
-        		"type": "integer"
-      		},
-      		"timeStamp": {
-        		"type": "string",
-        		"index": "not_analyzed"
-      		},
-      		"hostName": {
-        		"type": "string",
-        		"index": "not_analyzed"
-      		},
-      		"application": {
-        		"type": "string",
-        		"index": "not_analyzed"
-      		},
-      		"process": {
-        		"type": "string",
-        		"index": "not_analyzed"
-      		},
-      		"messageId": {
-        		"type": "string",
-        		"index": "not_analyzed"
-      		},
-      		"auditData": {
-        		"dynamic": "strict",
-        		"properties": {
-          			"actor": {
-            			"type": "string",
-            			"index": "not_analyzed"
-          			},
-          			"action": {
-            			"type": "string",
-            			"index": "not_analyzed"
-          			},
-          			"actee": {
-            			"type": "string",
-            			"index": "not_analyzed"
-          			}
-        		}
-      		},
-     		"metricData": {
-        		"dynamic": "strict",
-        		"properties": {
-          			"name": {
-            			"type": "string",
-            			"index": "not_analyzed"
-          			},
-          			"value": {
-            			"type": "double"
-          			},
-          			"object": {
-            			"type": "string",
-            			"index": "not_analyzed"
-          			}
-        		}
-      		},
-      		"sourceData": {
-        		"dynamic": "strict",
-        		"properties": {
-          			"file": {
-            			"type": "string",
-            			"index": "not_analyzed"
-          			},
-          			"function": {
-            			"type": "string",
-            			"index": "not_analyzed"
-          			},
-          			"line": {
-            			"type": "integer"
-          			}
-        		}
-      		},
-      		"message": {
-        		"type": "string",
-        		"index": "not_analyzed"
-      		}
-    	}
-	}`
-
-	if !ok {
-		log.Printf("Creating type: %s", schema)
-
-		err = esIndex.SetMapping(schema, piazza.JsonString(mapping))
-		if err != nil {
-			log.Printf("LoggerService.Init: %s", err.Error())
-			return err
-		}
-	}
-
-	ok, err = esIndex.TypeExists(securitySchema)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		log.Printf("Creating type: %s", securitySchema)
-
-		err = esIndex.SetMapping(securitySchema, piazza.JsonString(mapping))
-		if err != nil {
-			log.Printf("LoggerService.Init: %s", err.Error())
-			return err
-		}
-	}
-
-	service.esIndex = esIndex
+	service.esIndex = esi
 
 	service.origin = string(sys.Name)
 
@@ -262,7 +135,6 @@ func createQueryDslAsString(
 			},
 		})
 	}
-
 	if contains != "" {
 		must = append(must, map[string]interface{}{
 			"multi_match": map[string]interface{}{
@@ -371,24 +243,27 @@ func (service *Service) toOldStyle(mNew *syslogger.Message) (*Message, error) {
 	return mssgOld, nil
 }
 
-// postSyslog does not return anything. Any errors go to the local log.
-func (service *Service) postSyslog(mNew *syslogger.Message) error {
+func (service *Service) postSyslog(mssg *syslogger.Message) error {
+	var err error
+	isAudit := mssg.AuditData != nil
 
-	isAudit := mNew.AuditData != nil
-
-	_, err := service.esIndex.PostData(schema, "", mNew)
-	if err != nil {
-		log.Printf("old message post: %s", err.Error())
-		if !isAudit {
-			return errors.New(fmt.Sprintf("Service.postSyslog: %s", err.Error()))
+	for _, writer := range service.logWriters {
+		err = writer.Write(mssg)
+		if err != nil {
+			log.Printf("message post: %s", err.Error())
+			if !isAudit {
+				return errors.New(fmt.Sprintf("Service.postSyslog: %s", err.Error()))
+			}
 		}
 	}
 
 	if isAudit {
-		_, err = service.esIndex.PostData(securitySchema, "", mNew)
-		if err != nil {
-			log.Printf("old message audit post: %s", err.Error())
-			return errors.New(fmt.Sprintf("Service.postSyslog: %s", err.Error()))
+		for _, writer := range service.auditWriters {
+			err = writer.Write(mssg)
+			if err != nil {
+				log.Printf("message audit post: %s", err.Error())
+				return errors.New(fmt.Sprintf("Service.postSyslog: %s", err.Error()))
+			}
 		}
 	}
 
@@ -411,9 +286,9 @@ func (service *Service) getMessageCommon(params *piazza.HttpQueryParams) (*elast
 	var searchResult *elasticsearch.SearchResult
 
 	if dsl == "" {
-		searchResult, err = service.esIndex.FilterByMatchAll(schema, pagination)
+		searchResult, err = service.esIndex.FilterByMatchAll(LogSchema, pagination)
 	} else {
-		searchResult, err = service.esIndex.SearchByJSON(schema, dsl)
+		searchResult, err = service.esIndex.SearchByJSON(LogSchema, dsl)
 	}
 	if err != nil {
 		return nil, pagination, service.newInternalErrorResponse(err)
