@@ -34,13 +34,13 @@ type Service struct {
 	stats  Stats
 	origin string
 
-	logWriters   []syslogger.WriterI
-	auditWriters []syslogger.WriterI
+	logWriters   []syslogger.Writer
+	auditWriters []syslogger.Writer
 
 	esIndex elasticsearch.IIndex
 }
 
-func (service *Service) Init(sys *piazza.SystemConfig, logWriters []syslogger.WriterI, auditWriters []syslogger.WriterI, esi elasticsearch.IIndex) error {
+func (service *Service) Init(sys *piazza.SystemConfig, logWriters []syslogger.Writer, auditWriters []syslogger.Writer, esi elasticsearch.IIndex) error {
 
 	service.stats.CreatedOn = time.Now()
 

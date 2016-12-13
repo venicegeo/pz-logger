@@ -16,7 +16,6 @@ package main
 
 import (
 	"log"
-	"log/syslog"
 	"os"
 
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
@@ -35,7 +34,7 @@ func main() {
 	}
 
 	var index string
-	if index = os.Getenv("ESINDEX"); index == "" {
+	if index = os.Getenv("LOGGER_INDEX"); index == "" {
 		log.Fatal("Elasticsearch index name not set")
 	}
 
@@ -50,14 +49,10 @@ func main() {
 	logWriter.SetType(pzlogger.LogSchema)
 	auditWriter := syslogger.ElasticWriter{Esi: esi}
 	auditWriter.SetType(pzlogger.SecuritySchema)
-	sysLog, err := syslog.New(syslog.LOG_SYSLOG, "pz-logger")
-	if err != nil {
-		log.Fatal(err)
-	}
-	syslogWriter := syslogger.SyslogWriter{Syslog: sysLog}
+	syslogWriter := syslogger.SyslogdWriter{}
 
 	service := &pzlogger.Service{}
-	err = service.Init(sys, []syslogger.WriterI{logWriter}, []syslogger.WriterI{auditWriter, syslogWriter}, esi)
+	err = service.Init(sys, []syslogger.Writer{&logWriter}, []syslogger.Writer{&auditWriter, &syslogWriter}, esi)
 	if err != nil {
 		log.Fatal(err)
 	}
