@@ -25,15 +25,13 @@ import (
 //---------------------------------------------------------------------
 
 type Client struct {
-	url    string
-	h      piazza.Http
-	Writer syslog.Writer
+	url string
+	h   piazza.Http
 }
 
 //---------------------------------------------------------------------
 
 func NewClient(sys *piazza.SystemConfig) (*Client, error) {
-	var _ IClient = new(Client)
 
 	var err error
 
@@ -61,8 +59,6 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 }
 
 func NewClient2(url string, apiKey string) (*Client, error) {
-	var _ IClient = new(Client)
-
 	service := &Client{
 		url: url,
 		h: piazza.Http{
@@ -145,6 +141,8 @@ func (c *Client) GetStats() (*Stats, error) {
 	return stats, nil
 }
 
+// Write provides the syslog.Writer interface, which means that
+// a logger.Client can be used to construct a syslog.Logger!
 func (c *Client) Write(mssg *syslog.Message) error {
 	h := c.h
 
@@ -160,7 +158,7 @@ func (c *Client) Write(mssg *syslog.Message) error {
 // OLD MODEL
 
 type SyslogElkWriter struct {
-	Client IClient
+	Client *Client
 }
 
 func (w *SyslogElkWriter) Write(mNew *syslog.Message) error {
@@ -168,8 +166,7 @@ func (w *SyslogElkWriter) Write(mNew *syslog.Message) error {
 		return fmt.Errorf("Log writer client not set")
 	}
 
-	ww := w.Client.(*Client)
-	h := ww.h
+	h := w.Client.h
 	jresp := h.PzPost("/syslog", mNew)
 	if jresp.IsError() {
 		return jresp.ToError()

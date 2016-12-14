@@ -270,7 +270,6 @@ func (service *Service) postSyslog(mssg *syslogger.Message) error {
 
 	service.Lock()
 	service.stats.NumMessages++
-	log.Printf("message %d", service.stats.NumMessages)
 
 	service.Unlock()
 

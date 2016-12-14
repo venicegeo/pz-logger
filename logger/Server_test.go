@@ -32,75 +32,11 @@ import (
 type LoggerTester struct {
 	suite.Suite
 
-	esi     elasticsearch.IIndex
-	server  *piazza.GenericServer
-	xserver *Server
-	client  IClient
-}
+	esi    elasticsearch.IIndex
+	server *piazza.GenericServer
 
-func makeIndex(assert *assert.Assertions) elasticsearch.IIndex {
-	esi := elasticsearch.NewMockIndex("loggertest$")
-	err := esi.Create("")
-	assert.NoError(err)
-
-	return esi
-}
-
-func makeSys(assert *assert.Assertions) *piazza.SystemConfig {
-
-	var err error
-	var sys *piazza.SystemConfig
-
-	var required []piazza.ServiceName
-	required = []piazza.ServiceName{}
-	sys, err = piazza.NewSystemConfig(piazza.PzLogger, required)
-	assert.NoError(err)
-
-	return sys
-}
-
-func makeWriter(assert *assert.Assertions, esi elasticsearch.IIndex) syslog.Writer {
-	ew := &syslog.ElasticWriter{Esi: esi}
-	ew.SetType(LogSchema)
-	return ew
-}
-
-func makeServer(assert *assert.Assertions, esi elasticsearch.IIndex, writer syslog.Writer, sys *piazza.SystemConfig) (*piazza.GenericServer, *Server) {
-
-	var err error
-
-	logWriters := []syslog.Writer{writer}
-	auditWriters := []syslog.Writer{}
-
-	service := &Service{}
-	err = service.Init(sys, logWriters, auditWriters, esi)
-	assert.NoError(err)
-
-	server := &Server{}
-	server.Init(service)
-
-	genericServer := &piazza.GenericServer{Sys: sys}
-
-	err = genericServer.Configure(server.Routes)
-	assert.NoError(err)
-
-	_, err = genericServer.Start()
-	assert.NoError(err)
-
-	return genericServer, server
-}
-
-func stopServer(assert *assert.Assertions, server *piazza.GenericServer) {
-	err := server.Stop()
-	assert.NoError(err)
-}
-
-func stopIndex(assert *assert.Assertions, esi elasticsearch.IIndex) {
-	err := esi.Close()
-	assert.NoError(err)
-
-	err = esi.Delete()
-	assert.NoError(err)
+	client    *Client
+	syslogger *syslog.Logger
 }
 
 func (suite *LoggerTester) setupFixture() {
@@ -109,23 +45,76 @@ func (suite *LoggerTester) setupFixture() {
 
 	var err error
 
-	suite.esi = makeIndex(assert)
-	writer := makeWriter(assert, suite.esi)
-	sys := makeSys(assert)
-	suite.server, suite.xserver = makeServer(assert, suite.esi, writer, sys)
+	// make ES index
+	{
+		suite.esi = elasticsearch.NewMockIndex("loggertest$")
+		err = suite.esi.Create("")
+		assert.NoError(err)
+	}
 
-	client, err := NewClient(suite.server.Sys)
-	assert.NoError(err)
-	suite.client = client
+	// make SystemConfig
+	var sys *piazza.SystemConfig
+	{
+		required := []piazza.ServiceName{}
+		sys, err = piazza.NewSystemConfig(piazza.PzLogger, required)
+		assert.NoError(err)
+	}
+
+	// make backend DB writer
+	backendWriter := syslog.NewElasticWriter(suite.esi, LogSchema)
+
+	// make service, server, and generic server
+	{
+		logWriters := []syslog.Writer{backendWriter}
+		auditWriters := []syslog.Writer{}
+
+		service := &Service{}
+		err = service.Init(sys, logWriters, auditWriters, suite.esi)
+		assert.NoError(err)
+
+		server := &Server{}
+		server.Init(service)
+
+		suite.server = &piazza.GenericServer{Sys: sys}
+
+		err = suite.server.Configure(server.Routes)
+		assert.NoError(err)
+
+		_, err = suite.server.Start()
+		assert.NoError(err)
+	}
+
+	// make the client
+	var client *Client
+	{
+		client, err = NewClient(sys)
+		assert.NoError(err)
+		suite.client = client
+	}
+
+	suite.syslogger = syslog.NewLogger(client, "loggertesterapp")
 }
 
 func (suite *LoggerTester) teardownFixture() {
 	t := suite.T()
 	assert := assert.New(t)
 
-	stopServer(assert, suite.server)
+	var err error
 
-	stopIndex(assert, suite.esi)
+	// stop server
+	{
+		err = suite.server.Stop()
+		assert.NoError(err)
+	}
+
+	// close index
+	{
+		err = suite.esi.Close()
+		assert.NoError(err)
+
+		err = suite.esi.Delete()
+		assert.NoError(err)
+	}
 }
 
 func TestRunSuite(t *testing.T) {
@@ -159,7 +148,7 @@ func (suite *LoggerTester) getLastMessage() string {
 
 //---------------------------------------------------------------------
 
-func (suite *LoggerTester) zTest00Time() {
+func (suite *LoggerTester) Test00Time() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -170,7 +159,7 @@ func (suite *LoggerTester) zTest00Time() {
 	assert.EqualValues(a, c)
 }
 
-func (suite *LoggerTester) zTest01Version() {
+func (suite *LoggerTester) Test01Version() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -184,21 +173,23 @@ func (suite *LoggerTester) zTest01Version() {
 	assert.NoError(err)
 }
 
-func (suite *LoggerTester) zTest02Admin() {
+func (suite *LoggerTester) Test02Admin() {
 	t := suite.T()
 	assert := assert.New(t)
 
 	suite.setupFixture()
 	defer suite.teardownFixture()
 
-	_, err := suite.client.GetStats()
+	stats, err := suite.client.GetStats()
 	assert.NoError(err, "GetFromAdminStats")
+	assert.NotNil(stats)
+
 	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("localhost:%s/admin/stats", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
 	assert.NoError(err)
 
 }
 
-func (suite *LoggerTester) zTest03Pagination() {
+func (suite *LoggerTester) Test03Pagination() {
 
 	t := suite.T()
 	assert := assert.New(t)
@@ -208,8 +199,7 @@ func (suite *LoggerTester) zTest03Pagination() {
 
 	var err error
 
-	writer := suite.xserver.service.logWriters[0]
-	syslogger := syslog.NewLogger(writer, "loggertesterapp")
+	syslogger := suite.syslogger
 
 	err = syslogger.Debug("d")
 	assert.NoError(err)
@@ -267,7 +257,7 @@ func (suite *LoggerTester) zTest03Pagination() {
 	assert.Equal(5, count)
 }
 
-// this test uses a query form not supported under mocking
+// this test uses an ES query that is not supported under mocking
 /*
 func (suite *LoggerTester) Test04OtherParams() {
 
@@ -310,7 +300,7 @@ func (suite *LoggerTester) Test04OtherParams() {
 }
 */
 
-func (suite *LoggerTester) zTest05ConstructDsl() {
+func (suite *LoggerTester) Test05ConstructDsl() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -376,7 +366,7 @@ func (suite *LoggerTester) zTest05ConstructDsl() {
 	assert.JSONEq(expected, actual)
 }
 
-func (suite *LoggerTester) zTest06Server() {
+func (suite *LoggerTester) Test06Server() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -393,7 +383,7 @@ func (suite *LoggerTester) zTest06Server() {
 	assert.Equal("yow", resp.Origin)
 }
 
-func (suite *LoggerTester) zTest07GetMessagesErrors() {
+func (suite *LoggerTester) Test07GetMessagesErrors() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -432,8 +422,7 @@ func (suite *LoggerTester) Test08Syslog() {
 
 	var err error
 
-	writer := suite.xserver.service.logWriters[0]
-	syslogger := syslog.NewLogger(writer, "loggertesterapp")
+	syslogger := suite.syslogger
 
 	{
 		s := "The quick brown fox"
