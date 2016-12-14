@@ -25,11 +25,9 @@ import (
 //---------------------------------------------------------------------
 
 type Client struct {
-	url string
-	//apiKey         string
-	serviceName    piazza.ServiceName
-	serviceAddress string
-	h              piazza.Http
+	url    string
+	h      piazza.Http
+	Writer syslog.Writer
 }
 
 //---------------------------------------------------------------------
@@ -45,9 +43,7 @@ func NewClient(sys *piazza.SystemConfig) (*Client, error) {
 	}
 
 	service := &Client{
-		url:            url,
-		serviceName:    sys.Name,
-		serviceAddress: sys.Address,
+		url: url,
 		h: piazza.Http{
 			BaseUrl: url,
 			//ApiKey:  apiKey,
@@ -68,9 +64,7 @@ func NewClient2(url string, apiKey string) (*Client, error) {
 	var _ IClient = new(Client)
 
 	service := &Client{
-		url:            url,
-		serviceName:    "notset",
-		serviceAddress: "0.0.0.0",
+		url: url,
 		h: piazza.Http{
 			BaseUrl: url,
 			ApiKey:  apiKey,
@@ -121,13 +115,11 @@ func (c *Client) GetMessages(
 		return nil, 0, errors.New("Internal error: failed to parse query params")
 	}
 
-	endpoint := "/message" + ext
-
+	endpoint := "/syslog" + ext
 	jresp := c.h.PzGet(endpoint)
 	if jresp.IsError() {
 		return nil, 0, jresp.ToError()
 	}
-
 	var mssgs []syslog.Message
 	err := jresp.ExtractData(&mssgs)
 	if err != nil {
@@ -153,12 +145,19 @@ func (c *Client) GetStats() (*Stats, error) {
 	return stats, nil
 }
 
+func (c *Client) Write(mssg *syslog.Message) error {
+	h := c.h
+
+	jresp := h.PzPost("/syslog", mssg)
+	if jresp.IsError() {
+		return jresp.ToError()
+	}
+	return nil
+}
+
 //---------------------------------------------------------------------
 
-func (c *Client) SetService(name piazza.ServiceName, address string) {
-	c.serviceName = name
-	c.serviceAddress = address
-}
+// OLD MODEL
 
 type SyslogElkWriter struct {
 	Client IClient
@@ -169,20 +168,11 @@ func (w *SyslogElkWriter) Write(mNew *syslog.Message) error {
 		return fmt.Errorf("Log writer client not set")
 	}
 
-	switch w.Client.(type) {
-	default:
-		return fmt.Errorf("Log writer client has invalid type")
-	case *Client:
-		h := w.Client.(*Client).h
-		jresp := h.PzPost("/syslog", mNew)
-		if jresp.IsError() {
-			return jresp.ToError()
-		}
-	case *MockClient:
-		err := w.Client.(*MockClient).PostMessage(mNew)
-		if err != nil {
-			return err
-		}
+	ww := w.Client.(*Client)
+	h := ww.h
+	jresp := h.PzPost("/syslog", mNew)
+	if jresp.IsError() {
+		return jresp.ToError()
 	}
 	return nil
 }
