@@ -1,8 +1,6 @@
 hash: 2fc3bf436db0c442e46ecd0ebc3a32a523ce8eb57c1eae71763cfb31776c06e8
 updated: 2016-12-14T16:54:36.637099981-05:00
 imports:
-- name: github.com/fvbock/endless
-  version: 67d0a784ad8ab10a69d12107f6de220db0c18002
 - name: github.com/gin-gonic/gin
   version: e2212d40c62a98b388a5eb48ecbdcf88534688ba
   subpackages:
