@@ -349,7 +349,6 @@ func (service *Service) GetMessage(params *piazza.HttpQueryParams) *piazza.JsonR
 	if jErr != nil {
 		return jErr
 	}
-	paginationTimeStampToCreateOn(pagination)
 
 	lines, err := extractFromSearchResult(searchResult)
 	if err != nil {
@@ -421,8 +420,6 @@ func (service *Service) PostQuery(params *piazza.HttpQueryParams, jsnQuery strin
 	if err != nil {
 		return service.newBadRequestResponse(err)
 	}
-
-	paginationCreatedOnToTimeStamp(pagination)
 
 	searchResult, err := service.esIndex.SearchByJSON(LogSchema, jsnQuery)
 	if err != nil {
