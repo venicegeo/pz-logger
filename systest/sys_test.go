@@ -62,7 +62,7 @@ func (suite *LoggerTester) setupFixture() {
 	suite.apiKey, err = piazza.GetApiKey(suite.apiServer)
 	assert.NoError(err)
 
-	suite.httpWriter, err = pzsyslog.NewHttpWriter(suite.url)
+	suite.httpWriter, err = pzsyslog.NewHttpWriter(suite.url, suite.apiKey)
 	suite.writer = suite.httpWriter
 	assert.NoError(err)
 	suite.logger = pzsyslog.NewLogger(suite.writer, "loggersystesterapp")
@@ -76,7 +76,7 @@ func TestRunSuite(t *testing.T) {
 	suite.Run(t, s)
 }
 
-func (suite *LoggerTester) verifyMessageExists(expected *pzsyslog.Message) bool {
+func (suite *LoggerTester) verifyMessageExists(expected string) bool {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -91,7 +91,7 @@ func (suite *LoggerTester) verifyMessageExists(expected *pzsyslog.Message) bool 
 	assert.Len(ms, format.PerPage)
 
 	for _, m := range ms {
-		if m.Message == expected.Message {
+		if m.Message == expected {
 			return true
 		}
 	}
@@ -139,7 +139,7 @@ func (suite *LoggerTester) xTest00Version() {
 	assert.EqualValues("1.0.0", version.Version)
 }
 
-func (suite *LoggerTester) Test01RawGet() {
+func (suite *LoggerTester) yTest01RawGet() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -167,7 +167,7 @@ func (suite *LoggerTester) Test01RawGet() {
 	assert.Equal(200, resp.StatusCode)
 }
 
-func (suite *LoggerTester) Test02RawPost() {
+func (suite *LoggerTester) yTest02RawPost() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -199,7 +199,7 @@ func (suite *LoggerTester) Test02RawPost() {
 	assert.Equal(200, resp.StatusCode)
 }
 
-func (suite *LoggerTester) Test03Get() {
+func (suite *LoggerTester) yTest03Get() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -217,7 +217,7 @@ func (suite *LoggerTester) Test03Get() {
 	assert.Len(ms, format.PerPage)
 }
 
-func (suite *LoggerTester) xTest04Post() {
+func (suite *LoggerTester) Test04Post() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -235,18 +235,16 @@ func (suite *LoggerTester) xTest04Post() {
 		Application: "log-tester",
 		HostName:    "128.1.2.3",
 		TimeStamp:   time.Now(),
-		Severity:    pzsyslog.Notice,
+		Severity:    pzsyslog.Error,
 		Message:     key,
 	}
 
-	err = suite.writer.Write(mssg)
-	assert.NoError(err, "PostToMessages")
+	err = suite.httpWriter.Write(mssg)
+	//err = suite.logger.Error(key)
+	assert.NoError(err, "Test04Post")
 
-	for i := 0; i < 100; i++ {
-		ok := suite.verifyMessageExists(mssg)
-		assert.False(ok)
-		sleep()
-	}
+	ok := suite.verifyMessageExists(key)
+	assert.True(ok)
 }
 
 func (suite *LoggerTester) xTest05PostHelpers() {
@@ -286,7 +284,7 @@ func (suite *LoggerTester) xTest05PostHelpers() {
 	}
 }
 
-func (suite *LoggerTester) Test06Admin() {
+func (suite *LoggerTester) yTest06Admin() {
 	t := suite.T()
 	assert := assert.New(t)
 
@@ -299,7 +297,7 @@ func (suite *LoggerTester) Test06Admin() {
 	assert.NotZero(output["numMessages"])
 }
 
-func (suite *LoggerTester) Test07Pagination() {
+func (suite *LoggerTester) yTest07Pagination() {
 	t := suite.T()
 	assert := assert.New(t)
 
