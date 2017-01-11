@@ -44,9 +44,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var esi elasticsearch.IIndex = idx
-
-	logWriter, auditWriter, err := syslogger.GetRequiredESIWriters(esi, loggerType, auditType)
+	logWriter, auditWriter, err := syslogger.GetRequiredESIWriters(idx, loggerType, auditType)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,7 +52,7 @@ func main() {
 	stdOutWriter := syslogger.STDOUTWriter{}
 
 	service := &pzlogger.Service{}
-	err = service.Init(sys, logWriter, syslogger.NewMultiWriter([]syslogger.Writer{auditWriter, &stdOutWriter}), esi)
+	err = service.Init(sys, logWriter, syslogger.NewMultiWriter([]syslogger.Writer{auditWriter, &stdOutWriter}), idx)
 	if err != nil {
 		log.Fatal(err)
 	}
