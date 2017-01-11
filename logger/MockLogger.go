@@ -62,11 +62,11 @@ func NewMockLoggerKit() (*MockLoggerKit, error) {
 
 	// make service, server, and generic server
 	{
-		logWriters := []syslog.Writer{mock.esWriter}
-		auditWriters := []syslog.Writer{}
+		logWriter := mock.esWriter
+		auditWriter := &syslog.NilWriter{}
 
 		service := &Service{}
-		err = service.Init(mock.sys, logWriters, auditWriters, mock.esi)
+		err = service.Init(mock.sys, logWriter, auditWriter, mock.esi)
 		if err != nil {
 			return nil, err
 		}

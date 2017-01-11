@@ -16,7 +16,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-gocommon/gocommon"
@@ -33,14 +32,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var loggerIndex, loggerType string
-	if loggerIndex = os.Getenv("LOGGER_INDEX"); loggerIndex == "" {
-		log.Fatal("Elasticsearch index name not set")
-	}
-	if loggerType = os.Getenv("LOGGER_TYPE"); loggerType == "" {
-		log.Fatal("Elasticsearch type name not set")
+	loggerIndex, loggerType, auditType, err := syslogger.GetRequiredEnvVars()
+	if err != nil {
+		log.Fatal(err)
 	}
 	pzlogger.SetLogSchema(loggerType)
+	pzlogger.SetAuditSchema(auditType)
 
 	idx, err := elasticsearch.NewIndex(sys, loggerIndex, "")
 	if err != nil {
@@ -48,29 +45,16 @@ func main() {
 	}
 
 	var esi elasticsearch.IIndex = idx
-	var existed bool
 
-	logWriter := syslogger.ElasticWriter{Esi: esi}
-	if err = logWriter.SetType(loggerType); err != nil {
+	logWriter, auditWriter, err := syslogger.GetRequiredESIWriters(esi, loggerType, auditType)
+	if err != nil {
 		log.Fatal(err)
-	}
-	if existed, err = logWriter.CreateIndex(); err != nil {
-		log.Fatal(err)
-	}
-	if !existed {
-		log.Printf("Created index: %s", esi.IndexName())
-	}
-	if existed, err = logWriter.CreateType(pzlogger.LogMapping); err != nil {
-		log.Fatal(err)
-	}
-	if !existed {
-		log.Printf("Created type: %s", loggerType)
 	}
 
 	stdOutWriter := syslogger.STDOUTWriter{}
 
 	service := &pzlogger.Service{}
-	err = service.Init(sys, []syslogger.Writer{&logWriter}, []syslogger.Writer{&stdOutWriter}, esi)
+	err = service.Init(sys, logWriter, syslogger.NewMultiWriter([]syslogger.Writer{auditWriter, &stdOutWriter}), esi)
 	if err != nil {
 		log.Fatal(err)
 	}
