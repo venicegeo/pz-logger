@@ -17,6 +17,7 @@ package systest
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -126,6 +127,7 @@ func (suite *LoggerTester) verifyMessageF(
 
 	ok := false
 	for _, m := range ms {
+		log.Printf("%s  %s", m.TimeStamp.String(), m.Message)
 		if m.Message == expected {
 			ok = true
 			break
@@ -169,7 +171,7 @@ func (suite *LoggerTester) makeMessage(text string) *pzsyslog.Message {
 	var err error
 
 	m := pzsyslog.NewMessage()
-
+	log.Printf("%s", m.TimeStamp)
 	m.Message = text
 	m.HostName, err = piazza.GetExternalIP()
 	assert.NoError(err)

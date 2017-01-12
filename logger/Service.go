@@ -208,16 +208,17 @@ func (service *Service) PostSyslog(mNew *syslogger.Message) *piazza.JsonResponse
 }
 
 func (service *Service) postSyslog(mssg *syslogger.Message) error {
-
 	var err error
 	isAudit := mssg.AuditData != nil
 
-	err = service.logWriter.Write(mssg)
-	if err != nil {
-		return fmt.Errorf("syslog.Service.postSyslog: %s", err.Error())
+	if service.logWriter != nil {
+		err = service.logWriter.Write(mssg)
+		if err != nil {
+			return fmt.Errorf("syslog.Service.postSyslog: %s", err.Error())
+		}
 	}
 
-	if isAudit {
+	if isAudit && service.auditWriter != nil {
 		err = service.auditWriter.Write(mssg)
 		if err != nil {
 			return fmt.Errorf("syslog.Service.postSyslog (audit): %s", err.Error())
