@@ -310,11 +310,11 @@ func (suite *LoggerTester) Test05ConstructDsl() {
 						"must":
 						[
 							{
-								"match":{"service":"myservice"}
+								"match":{"application":"myservice"}
 							},
 							{
 								"multi_match":{
-									"fields":["address", "message", "service", "severity"],
+									"fields":["hostName", "application", "process", "messageId", "message"],
 									"query":"mycontains"
 								}
 							},
