@@ -138,7 +138,6 @@ func (suite *LoggerTester) verifyMessageF(
 
 func (suite *LoggerTester) getVersion() (*piazza.Version, error) {
 	h := &piazza.Http{BaseUrl: suite.loggerUrl}
-
 	jresp := h.PzGet("/version")
 	if jresp.IsError() {
 		return nil, jresp.ToError()
@@ -202,6 +201,7 @@ func (suite *LoggerTester) Test01RawGet() {
 	defer suite.teardownFixture()
 
 	resp, err := http.Get(suite.loggerUrl + "/syslog")
+	log.Printf("-- %#v --", resp)
 	assert.NoError(err)
 	assert.True(resp.ContentLength > 0)
 
@@ -263,6 +263,8 @@ func (suite *LoggerTester) Test03Get() {
 	ms, _, err := suite.httpWriter.GetMessages(format, nil)
 	assert.NoError(err)
 	assert.Len(ms, format.PerPage)
+
+	assert.False(time.Time(ms[0].TimeStamp).IsZero())
 }
 
 func (suite *LoggerTester) Test04Post() {
