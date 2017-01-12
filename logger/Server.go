@@ -15,6 +15,7 @@
 package logger
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -73,6 +74,7 @@ func (server *Server) handlePostSyslog(c *gin.Context) {
 	sysM := syslogger.NewMessage()
 
 	err := c.BindJSON(&sysM)
+	log.Printf("handler: %#v", sysM)
 	if err != nil {
 		resp := &piazza.JsonResponse{
 			StatusCode: http.StatusBadRequest,
