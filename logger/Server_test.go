@@ -48,7 +48,7 @@ func (suite *LoggerTester) setupFixture() {
 	assert.NoError(err)
 
 	suite.syslogger = suite.mockLogger.SysLogger
-	suite.writer = suite.mockLogger.httpWriter
+	suite.writer = suite.mockLogger.logWriter
 }
 
 func (suite *LoggerTester) teardownFixture() {
