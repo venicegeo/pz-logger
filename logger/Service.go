@@ -130,7 +130,7 @@ func createQueryDslAsString(
 	if service != "" {
 		must = append(must, map[string]interface{}{
 			"match": map[string]interface{}{
-				"service": service,
+				"application": service,
 			},
 		})
 	}
@@ -138,7 +138,7 @@ func createQueryDslAsString(
 		must = append(must, map[string]interface{}{
 			"multi_match": map[string]interface{}{
 				"query":  contains,
-				"fields": []string{"address", "message", "service", "severity"},
+				"fields": []string{"hostName", "application", "process", "messageId", "message"},
 			},
 		})
 	}
