@@ -191,12 +191,6 @@ func createQueryDslAsString(
 }
 
 func (service *Service) PostSyslog(mNew *pzsyslog.Message) *piazza.JsonResponse {
-	log.Printf("PostSyslog: %s", mNew.TimeStamp.String())
-	log.Printf("PostSyslog: %s", mNew.Message)
-	log.Printf("PostSyslog: %#v", mNew.TimeStamp)
-	fmt.Printf("xPostSyslog: %s", mNew.TimeStamp.String())
-	fmt.Printf("xPostSyslog: %s", mNew.Message)
-	fmt.Printf("xPostSyslog: %#v", mNew.TimeStamp)
 	err := mNew.Validate()
 	if err != nil {
 		return service.newBadRequestResponse(err)
