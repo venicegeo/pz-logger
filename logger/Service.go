@@ -33,18 +33,17 @@ type Service struct {
 	stats  Stats
 	origin string
 
-	logWriters   []syslogger.Writer
-	auditWriters []syslogger.Writer
+	logWriter   syslogger.Writer
+	auditWriter syslogger.Writer
 
 	esIndex elasticsearch.IIndex
 }
 
-func (service *Service) Init(sys *piazza.SystemConfig, logWriters []syslogger.Writer, auditWriters []syslogger.Writer, esi elasticsearch.IIndex) error {
-
+func (service *Service) Init(sys *piazza.SystemConfig, logWriter syslogger.Writer, auditWriter syslogger.Writer, esi elasticsearch.IIndex) error {
 	service.stats.CreatedOn = time.Now()
 
-	service.logWriters = logWriters
-	service.auditWriters = auditWriters
+	service.logWriter = logWriter
+	service.auditWriter = auditWriter
 
 	service.esIndex = esi
 
@@ -213,19 +212,15 @@ func (service *Service) postSyslog(mssg *syslogger.Message) error {
 	var err error
 	isAudit := mssg.AuditData != nil
 
-	for _, writer := range service.logWriters {
-		err = writer.Write(mssg)
-		if err != nil {
-			return fmt.Errorf("syslog.Service.postSyslog: %s", err.Error())
-		}
+	err = service.logWriter.Write(mssg)
+	if err != nil {
+		return fmt.Errorf("syslog.Service.postSyslog: %s", err.Error())
 	}
 
 	if isAudit {
-		for _, writer := range service.auditWriters {
-			err = writer.Write(mssg)
-			if err != nil {
-				return fmt.Errorf("syslog.Service.postSyslog (audit): %s", err.Error())
-			}
+		err = service.auditWriter.Write(mssg)
+		if err != nil {
+			return fmt.Errorf("syslog.Service.postSyslog (audit): %s", err.Error())
 		}
 	}
 
