@@ -32,7 +32,7 @@ type Stats struct {
 	// not the total number of messages in the system
 	NumMessages int `json:"numMessages"`
 
-	NumMessagesByApplication map[string]int `json:"numMessagesByApplication`
+	NumMessagesByApplication map[string]int `json:"numMessagesByApplication"`
 }
 
 //---------------------------------------------------------------------------
