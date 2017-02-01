@@ -146,9 +146,8 @@ func createQueryDslAsString(
 	}
 	if contains != "" {
 		must = append(must, map[string]interface{}{
-			"multi_match": map[string]interface{}{
-				"query":  contains,
-				"fields": []string{"hostName", "application", "process", "messageId", "message"},
+			"wildcard": map[string]interface{}{
+				"message":  "*" + contains + "*",
 			},
 		})
 	}
