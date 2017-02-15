@@ -328,7 +328,7 @@ func (suite *LoggerTester) Test05ConstructDsl() {
 	{
 		"from":0,
 		"query": {
-			"filtered":{ 
+			"filtered":{
 				"query":{
 					"bool":{
 						"must":
@@ -337,16 +337,26 @@ func (suite *LoggerTester) Test05ConstructDsl() {
 								"match":{"application":"myservice"}
 							},
 							{
-								"multi_match":{
-									"fields":["hostName", "application", "process", "messageId", "message"],
-									"query":"mycontains"
+								"filtered":{
+									"filter":{
+										"bool":{
+											"should":[
+												{"query":{"wildcard":{"hostName":{"value":"*mycontains*"}}}},
+												{"query":{"wildcard":{"application":{"value":"*mycontains*"}}}},
+												{"query":{"wildcard":{"process":{"value":"*mycontains*"}}}},
+												{"query":{"wildcard":{"messageId":{"value":"*mycontains*"}}}},
+												{"query":{"wildcard":{"message":{"value":"*mycontains*"}}}}
+											]
+										}
+									},
+									"query":{"match_all":{}}
 								}
 							},
 							{
 								"range":
 								{
 									"timeStamp":{
-										"gte":"2016-07-26T02:00:00Z", "lte":"2016-07-26T01:00:00Z"
+										"lte":"2016-07-26T01:00:00Z", "gte":"2016-07-26T02:00:00Z"
 									}
 								}
 							}
@@ -355,7 +365,7 @@ func (suite *LoggerTester) Test05ConstructDsl() {
 				}
 			}
 		},
-		"size":100, 
+		"size":100,
 		"sort":{"timeStamp":"desc"}
 	}`
 	assert.JSONEq(expected, actual)
