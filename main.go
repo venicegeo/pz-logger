@@ -32,14 +32,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	idx, logESWriter, err := setupES(sys)
+	idx, logESWriter, auditWriter, err := setupES(sys)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	stdoutWriter := pzsyslog.StdoutWriter{}
-
-	kit, err := pzlogger.NewKit(sys, logESWriter, &stdoutWriter, idx, true)
+	kit, err := pzlogger.NewKit(sys, logESWriter, auditWriter, idx, true)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,7 +67,7 @@ func closeES(idx elasticsearch.IIndex, logWriter pzsyslog.Writer) error {
 	return idx.Close()
 }
 
-func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, error) {
+func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, pzsyslog.Writer, error) {
 	loggerIndex, loggerType, err := pzsyslog.GetRequiredEnvVars()
 	if err != nil {
 		log.Fatal(err)
@@ -78,13 +76,16 @@ func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, e
 
 	idx, err := elasticsearch.NewIndex(sys, loggerIndex, "")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	logESWriter, err := pzsyslog.GetRequiredESIWriters(idx, loggerType)
-	if err != nil {
-		return nil, nil, err
+	logEsWriter := pzsyslog.NewElasticWriter(idx, loggerType)
+	if _, err = logEsWriter.CreateIndex(); err != nil {
+		return idx, nil, nil, err
+	}
+	if _, err = logEsWriter.CreateType(pzsyslog.LogMapping); err != nil {
+		return idx, nil, nil, err
 	}
 
-	return idx, logESWriter, nil
+	return idx, logEsWriter, &pzsyslog.StdoutWriter{}, nil
 }
