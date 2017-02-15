@@ -186,7 +186,7 @@ func (suite *LoggerTester) Test01Version() {
 	version, err := suite.getVersion()
 	assert.NoError(err)
 	assert.EqualValues("1.0.0", version.Version)
-	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("localhost:%s/version", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
+	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("http://localhost:%s/version", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
 	assert.NoError(err)
 }
 
@@ -202,7 +202,7 @@ func (suite *LoggerTester) Test02Admin() {
 	assert.NoError(err, "GetFromAdminStats")
 	assert.NotNil(output)
 
-	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("localhost:%s/admin/stats", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
+	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("http://localhost:%s/admin/stats", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
 	assert.NoError(err)
 
 }
@@ -232,7 +232,7 @@ func (suite *LoggerTester) Test03Pagination() {
 
 	ms, err := suite.logReader.Read(1)
 	assert.NoError(err)
-	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("localhost:%s/syslog?page=0", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
+	_, _, _, err = piazza.HTTP(piazza.GET, fmt.Sprintf("http://localhost:%s/syslog?page=0", piazza.LocalPortNumbers[piazza.PzLogger]), piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), nil)
 	assert.NoError(err)
 
 	assert.Len(ms, 1)
