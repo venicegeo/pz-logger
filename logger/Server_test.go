@@ -96,7 +96,7 @@ func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, e
 
 	idx := elasticsearch.NewMockIndex(loggerIndex)
 
-	logESWriter := pzsyslog.NewElasticWriter(idx, LogSchema)
+	logESWriter := pzsyslog.NewElasticWriter(idx, pzsyslog.LoggerType)
 	if _, err = logESWriter.CreateIndex(); err != nil {
 		return idx, nil, err
 	}

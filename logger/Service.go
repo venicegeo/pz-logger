@@ -313,9 +313,9 @@ func (service *Service) getMessageCommon(params *piazza.HttpQueryParams) (*elast
 	var searchResult *elasticsearch.SearchResult
 
 	if dsl == "" {
-		searchResult, err = service.esIndex.FilterByMatchAll(LogSchema, pagination)
+		searchResult, err = service.esIndex.FilterByMatchAll(pzsyslog.LoggerType, pagination)
 	} else {
-		searchResult, err = service.esIndex.SearchByJSON(LogSchema, dsl)
+		searchResult, err = service.esIndex.SearchByJSON(pzsyslog.LoggerType, dsl)
 	}
 	if err != nil {
 		return nil, pagination, service.newInternalErrorResponse(err)
@@ -408,7 +408,7 @@ func (service *Service) PostQuery(params *piazza.HttpQueryParams, jsnQuery strin
 		return service.newBadRequestResponse(err)
 	}
 
-	searchResult, err := service.esIndex.SearchByJSON(LogSchema, jsnQuery)
+	searchResult, err := service.esIndex.SearchByJSON(pzsyslog.LoggerType, jsnQuery)
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}

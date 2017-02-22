@@ -20,8 +20,6 @@ import (
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
-const LogSchema string = "LogData"
-
 //---------------------------------------------------------------------------
 
 type Stats struct {

@@ -102,7 +102,7 @@ func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, p
 		return nil, nil, nil, err
 	}
 
-	logEsWriter := pzsyslog.NewElasticWriter(idx, pzlogger.LogSchema)
+	logEsWriter := pzsyslog.NewElasticWriter(idx, pzsyslog.LoggerType)
 	if _, err = logEsWriter.CreateIndex(); err != nil {
 		return idx, nil, nil, err
 	}
