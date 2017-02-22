@@ -3,6 +3,7 @@ INDEX_NAME=pzlogger5
 ALIAS_NAME=$1
 ES_IP=$2
 TESTING=$3
+aliases=_aliases
 Schema='
 		"LogData": {
 			"dynamic": "strict",
@@ -79,7 +80,8 @@ if [[ "$http_code" != 200 ]]; then
 fi
 
 if [[ $catCurl == *""\""index"\"":"\""$INDEX_NAME"\"""* ]]; then
-  echo "Index $INDEX_NAME already exists"
+  echo "Index already exists"
+  al=`curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d "{"\""actions"\"" : [ { "\""add"\"" : { "\""index"\"" : "\""$INDEX_NAME"\"", "\""alias"\"" : "\""$ALIAS_NAME"\"" } }]}" "$ES_IP$aliases"`
   exit 0
 fi
 
@@ -95,8 +97,6 @@ if [[ $createIndexCurl != '{"acknowledged":true}200' ]]; then
   echo "Failed to create index $INDEX_NAME. Code: $http_code"
   exit 1
 fi
-
-aliases=_aliases
 
 #
 # If testing, create two indices that have the alias we are trying to set
