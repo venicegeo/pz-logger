@@ -80,6 +80,7 @@ func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, p
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
+			fmt.Println("PWD:", pwd)
 			err = filepath.Walk(pwd, visit)
 			fmt.Printf("filepath.Walk() returned %v\n", err)
 		}
