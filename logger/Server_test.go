@@ -89,19 +89,18 @@ func (suite *LoggerTester) setupFixture() {
 }
 
 func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, error) {
-	loggerIndex, loggerType, err := pzsyslog.GetRequiredEnvVars()
+	loggerIndex, err := pzsyslog.GetRequiredEnvVars()
 	if err != nil {
 		log.Fatal(err)
 	}
-	SetLogSchema(loggerType)
 
 	idx := elasticsearch.NewMockIndex(loggerIndex)
 
-	logESWriter := pzsyslog.NewElasticWriter(idx, loggerType)
+	logESWriter := pzsyslog.NewElasticWriter(idx, LogSchema)
 	if _, err = logESWriter.CreateIndex(); err != nil {
 		return idx, nil, err
 	}
-	if _, err = logESWriter.CreateType(pzsyslog.LogMapping); err != nil {
+	if _, err = logESWriter.CreateType("{}"); err != nil {
 		return idx, nil, err
 	}
 

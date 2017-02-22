@@ -20,7 +20,7 @@ import (
 	piazza "github.com/venicegeo/pz-gocommon/gocommon"
 )
 
-var logSchema string = "LogData"
+const LogSchema string = "LogData"
 
 //---------------------------------------------------------------------------
 
@@ -46,8 +46,4 @@ func paginationCreatedOnToTimeStamp(pagination *piazza.JsonPagination) {
 	if pagination.SortBy == "createdOn" {
 		pagination.SortBy = "timeStamp"
 	}
-}
-
-func SetLogSchema(schema string) {
-	logSchema = schema
 }

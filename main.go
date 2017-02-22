@@ -92,22 +92,18 @@ func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, p
 		log.Println(string(outDat))
 	}
 
-	loggerIndex, loggerType, err := pzsyslog.GetRequiredEnvVars()
+	loggerIndex, err := pzsyslog.GetRequiredEnvVars()
 	if err != nil {
 		log.Fatal(err)
 	}
-	pzlogger.SetLogSchema(loggerType)
 
 	idx, err := elasticsearch.NewIndex(sys, loggerIndex, "")
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	logEsWriter := pzsyslog.NewElasticWriter(idx, loggerType)
+	logEsWriter := pzsyslog.NewElasticWriter(idx, pzlogger.LogSchema)
 	if _, err = logEsWriter.CreateIndex(); err != nil {
-		return idx, nil, nil, err
-	}
-	if _, err = logEsWriter.CreateType(pzsyslog.LogMapping); err != nil {
 		return idx, nil, nil, err
 	}
 

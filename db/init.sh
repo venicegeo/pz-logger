@@ -63,8 +63,79 @@ if [[ $ES_IP != */ ]]; then
 fi
 
 if [[ $TESTING == "" ]]; then
-  $TESTING=false
+  $TESTING="false"
 fi
+
+function removeAliases {
+  echo "Running remove alias function"
+  crash=$1
+
+  #
+  # Search for indices that are using the alias we are trying to set
+  #
+
+  getAliasesCurl=`curl -XGET -H "Content-Type: application/json" -H "Cache-Control: no-cache" "$ES_IP$cat/aliases" --write-out %{http_code} 2>/dev/null`
+  http_code=`echo $catCurl | cut -d] -f2`
+  if [[ "$http_code" != 200 ]]; then
+    echo "Status code $http_code returned from catting aliases"
+    if [ "$crash" == true ]; then
+      exit 1
+    fi
+  fi
+
+  #
+  # Extract index names that are using the alias from the above result
+  #
+
+  regex=""\""alias"\"":"\""$ALIAS_NAME"\"","\""index"\"":"\""([^"\""]+)"
+  temp=`echo $getAliasesCurl|grep -Eo $regex | cut -d\" -f8`
+  indexArr=(${temp// / })
+  echo "Found ${#indexArr[@]} indices currently using alias $ALIAS_NAME: ${indexArr[@]}"
+
+  #
+  # Remove alias from all above indices
+  #
+
+  for index in ${indexArr[@]}
+  do
+    removeAliasCurl=`curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d "{
+      "\""actions"\"" : [
+          { "\""remove"\"" : { "\""index"\"" : "\""$index"\"", "\""alias"\"" : "\""$ALIAS_NAME"\"" } }
+      ]
+    }" "$ES_IP$aliases" --write-out %{http_code} 2>/dev/null`
+    http_code=`echo $catCurl | cut -d] -f2`
+    if [[ $removeAliasCurl != '{"acknowledged":true}200' ]]; then
+      echo "Failed to remove alias $ALIAS_NAME on index $index. Code: $http_code"
+      if [ "$crash" == true ]; then    
+        exit 1
+      fi
+    fi
+    echo "Removed alias $ALIAS_NAME on index $index"
+  done
+}
+
+function createAlias {
+  echo "Running create alias function"
+  crash=$1
+
+  #
+  # Create alias on our index
+  #
+
+  createAliasCurl=`curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d "{
+      "\""actions"\"" : [
+          { "\""add"\"" : { "\""index"\"" : "\""$INDEX_NAME"\"", "\""alias"\"" : "\""$ALIAS_NAME"\"" } }
+      ]
+  }" "$ES_IP$aliases" --write-out %{http_code} 2>/dev/null`
+  http_code=`echo $catCurl | cut -d] -f2`
+  if [[ $createAliasCurl != '{"acknowledged":true}200' ]]; then
+    echo "Failed to create alias $ALIAS_NAME on index $INDEX_NAME. Code: $http_code"
+    if [ "$crash" == true ]; then
+      exit 1
+    fi
+  fi
+  echo "Created alias $ALIAS_NAME on index $INDEX_NAME"
+}
 
 #
 # Check to see if index already exists
@@ -80,9 +151,10 @@ if [[ "$http_code" != 200 ]]; then
 fi
 
 if [[ $catCurl == *""\""index"\"":"\""$INDEX_NAME"\"""* ]]; then
+  removeAliases false
+  createAlias true
   echo "Index already exists"
-  al=`curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d "{"\""actions"\"" : [ { "\""add"\"" : { "\""index"\"" : "\""$INDEX_NAME"\"", "\""alias"\"" : "\""$ALIAS_NAME"\"" } }]}" "$ES_IP$aliases"`
-  exit 0
+exit 0
 fi
 
 #
@@ -116,60 +188,9 @@ if [ "$TESTING" = true ] ; then
     }" "$ES_IP$aliases" --write-out %{http_code}; echo " "
 fi
 
-#
-# Search for indices that are using the alias we are trying to set
-#
+removeAliases false
 
-getAliasesCurl=`curl -XGET -H "Content-Type: application/json" -H "Cache-Control: no-cache" "$ES_IP$cat/aliases" --write-out %{http_code} 2>/dev/null`
-http_code=`echo $catCurl | cut -d] -f2`
-if [[ "$http_code" != 200 ]]; then
-  echo "Status code $http_code returned from catting aliases"
-  exit 1
-fi
-
-#
-# Extract index names that are using the alias from the above result
-#
-
-regex=""\""alias"\"":"\""$ALIAS_NAME"\"","\""index"\"":"\""([^"\""]+)"
-temp=`echo $getAliasesCurl|grep -Eo $regex | cut -d\" -f8`
-indexArr=(${temp// / })
-echo "Found ${#indexArr[@]} indices currently using alias $ALIAS_NAME: ${indexArr[@]}"
-
-#
-# Remove alias from all above indices
-#
-
-for index in ${indexArr[@]}
-do
-  removeAliasCurl=`curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d "{
-    "\""actions"\"" : [
-        { "\""remove"\"" : { "\""index"\"" : "\""$index"\"", "\""alias"\"" : "\""$ALIAS_NAME"\"" } }
-    ]
-  }" "$ES_IP$aliases" --write-out %{http_code} 2>/dev/null`
-  http_code=`echo $catCurl | cut -d] -f2`
-  if [[ $removeAliasCurl != '{"acknowledged":true}200' ]]; then
-    echo "Failed to remove alias $ALIAS_NAME on index $index. Code: $http_code"
-    exit 1
-  fi
-  echo "Removed alias $ALIAS_NAME on index $index"
-done
-
-#
-# Create alias on our index
-#
-
-createAliasCurl=`curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d "{
-    "\""actions"\"" : [
-        { "\""add"\"" : { "\""index"\"" : "\""$INDEX_NAME"\"", "\""alias"\"" : "\""$ALIAS_NAME"\"" } }
-    ]
-}" "$ES_IP$aliases" --write-out %{http_code} 2>/dev/null`
-http_code=`echo $catCurl | cut -d] -f2`
-if [[ $createIndexCurl != '{"acknowledged":true}200' ]]; then
-  echo "Failed to create alias $ALIAS_NAME on index $INDEX_NAME. Code: $http_code"
-  exit 1
-fi
-echo "Created alias $ALIAS_NAME on index $INDEX_NAME"
+createAlias true
 
 echo 
 echo "Success!"

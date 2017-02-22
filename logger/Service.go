@@ -197,7 +197,7 @@ func createQueryDslAsString(
 		}
 		must = append(must, map[string]interface{}{
 			"filtered": map[string]interface{}{
-				"query":  map[string]interface{}{
+				"query": map[string]interface{}{
 					"match_all": map[string]interface{}{},
 				},
 				"filter": map[string]interface{}{
@@ -313,9 +313,9 @@ func (service *Service) getMessageCommon(params *piazza.HttpQueryParams) (*elast
 	var searchResult *elasticsearch.SearchResult
 
 	if dsl == "" {
-		searchResult, err = service.esIndex.FilterByMatchAll(logSchema, pagination)
+		searchResult, err = service.esIndex.FilterByMatchAll(LogSchema, pagination)
 	} else {
-		searchResult, err = service.esIndex.SearchByJSON(logSchema, dsl)
+		searchResult, err = service.esIndex.SearchByJSON(LogSchema, dsl)
 	}
 	if err != nil {
 		return nil, pagination, service.newInternalErrorResponse(err)
@@ -408,7 +408,7 @@ func (service *Service) PostQuery(params *piazza.HttpQueryParams, jsnQuery strin
 		return service.newBadRequestResponse(err)
 	}
 
-	searchResult, err := service.esIndex.SearchByJSON(logSchema, jsnQuery)
+	searchResult, err := service.esIndex.SearchByJSON(LogSchema, jsnQuery)
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
