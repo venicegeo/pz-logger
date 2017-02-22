@@ -15,7 +15,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/venicegeo/pz-gocommon/elasticsearch"
 	"github.com/venicegeo/pz-gocommon/gocommon"
@@ -68,6 +71,20 @@ func closeES(idx elasticsearch.IIndex, logWriter pzsyslog.Writer) error {
 }
 
 func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, pzsyslog.Writer, error) {
+	{
+		visit := func(path string, f os.FileInfo, err error) error {
+			fmt.Println(path)
+			return nil
+		}
+		pwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			err = filepath.Walk(pwd, visit)
+			fmt.Printf("filepath.Walk() returned %v\n", err)
+		}
+	}
+
 	loggerIndex, loggerType, err := pzsyslog.GetRequiredEnvVars()
 	if err != nil {
 		log.Fatal(err)

@@ -2,7 +2,7 @@
 INDEX_NAME=pzlogger5
 ALIAS_NAME=$1
 ES_IP=$2
-TESTING=true
+TESTING=$3
 Schema='
 		"LogData": {
 			"dynamic": "strict",
@@ -59,6 +59,10 @@ fi
 
 if [[ $ES_IP != */ ]]; then
   ES_IP="$ES_IP/"
+fi
+
+if [[ $TESTING == "" ]]; then
+  $TESTING=false
 fi
 
 #
