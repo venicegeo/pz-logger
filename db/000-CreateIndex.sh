@@ -4,7 +4,9 @@ ALIAS_NAME=$1
 ES_IP=$2
 TESTING=$3
 aliases=_aliases
-Schema='
+IndexSettings='
+{
+	"mappings": {
 		"LogData": {
 			"dynamic": "strict",
 			"properties": {
@@ -46,6 +48,8 @@ Schema='
 				"message": { "index": "not_analyzed", "type": "string" }
 			}
 		}
+	}
+}
 	'
 
 if [[ $ALIAS_NAME == "" ]]; then
@@ -162,7 +166,7 @@ fi
 #
 
 echo "Creating index $INDEX_NAME with mappings..."
-createIndexCurl=`curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d "{ "\""mappings"\"": {$Schema}}" "$ES_IP$INDEX_NAME" --write-out %{http_code} 2>/dev/null`
+createIndexCurl=`curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d "$IndexSettings" "$ES_IP$INDEX_NAME" --write-out %{http_code} 2>/dev/null`
 echo $createIndexCurl
 http_code=`echo $catCurl | cut -d] -f2`
 if [[ $createIndexCurl != '{"acknowledged":true}200' ]]; then
