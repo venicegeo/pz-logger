@@ -67,7 +67,7 @@ if [[ $ES_IP != */ ]]; then
 fi
 
 if [[ $TESTING == "" ]]; then
-  $TESTING="false"
+  TESTING=false
 fi
 
 function removeAliases {
