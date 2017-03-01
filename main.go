@@ -84,6 +84,9 @@ func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, p
 		log.Println("Running init script...")
 		outDat, err := exec.Command("bash", pwd+"/db/000-CreateIndex.sh", "piazzalogger", esURL).Output()
 		if err != nil {
+			log.Println("Command failed:", "bash", pwd+"/db/000-CreateIndex.sh", "piazzalogger", esURL)
+			log.Println("Error:", err.Error())
+			log.Println("Output:", string(outDat))
 			return nil, nil, nil, err
 		}
 		if !(strings.HasSuffix(string(outDat), "Index already exists\n") || strings.HasSuffix(string(outDat), "Success!\n")) {
