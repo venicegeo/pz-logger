@@ -53,26 +53,34 @@ IndexSettings='
 }
 	'
 
-if [[ $ALIAS_NAME == "" ]]; then
+	
+echo "Checking alias name"
+echo $ALIAS_NAME
+
+echo "Going to if statement"
+	
+if [ "$ALIAS_NAME" = "" ]; then
   echo "Please specify an alias name as argument 1"
   exit 1
 fi
 
-if [[ $ES_IP == "" ]]; then
+echo "There is an alias"
+
+if [ "$ES_IP" = "" ]; then
   echo "Please specify the elasticsearch ip as argument 2"
   exit 1
 fi 
 
-if [[ $ES_IP != */ ]]; then
+if [[ $ES_IP =~ ^.+[^\/]$ ]]; then
   ES_IP="$ES_IP/"
 fi
 
-if [[ $TESTING == "" ]]; then
+if [ "$TESTING" = "" ]; then
   TESTING=false
 fi
 
 function removeAliases {
-  if [ "$TESTING" = true ] ; then
+  if [ "$TESTING" = true ]; then
     echo "Running remove alias function"
   fi
   crash=$1
@@ -82,10 +90,10 @@ function removeAliases {
   #
 
   getAliasesCurl=`curl -XGET -H "Content-Type: application/json" -H "Cache-Control: no-cache" "$ES_IP$cat/aliases" --write-out %{http_code} 2>/dev/null`
-  http_code=`echo $catCurl | cut -d] -f2`
-  if [[ "$http_code" != 200 ]]; then
+  http_code=${getAliasesCurl: -3}
+  if [ "$http_code" -ne 200 ]; then
     echo "Status code $http_code returned from catting aliases"
-    if [ "$crash" == true ]; then
+    if [ "$crash" = true ]; then
       exit 1
     fi
   fi
@@ -112,8 +120,8 @@ function removeAliases {
           { "\""remove"\"" : { "\""index"\"" : "\""$index"\"", "\""alias"\"" : "\""$ALIAS_NAME"\"" } }
       ]
     }" "$ES_IP$aliases" --write-out %{http_code} 2>/dev/null`
-    http_code=`echo $catCurl | cut -d] -f2`
-    if [[ $removeAliasCurl != '{"acknowledged":true}200' ]]; then
+    http_code=${removeAliasCurl: -3}
+    if [ $removeAliasCurl != '{"acknowledged":true}200' ]; then
       echo "Failed to remove alias $ALIAS_NAME on index $index. Code: $http_code"
       if [ "$crash" == true ]; then    
         exit 1
@@ -140,8 +148,8 @@ function createAlias {
           { "\""add"\"" : { "\""index"\"" : "\""$INDEX_NAME"\"", "\""alias"\"" : "\""$ALIAS_NAME"\"" } }
       ]
   }" "$ES_IP$aliases" --write-out %{http_code} 2>/dev/null`
-  http_code=`echo $catCurl | cut -d] -f2`
-  if [[ $createAliasCurl != '{"acknowledged":true}200' ]]; then
+  http_code=${createAliasCurl: -3}
+  if [ $createAliasCurl != '{"acknowledged":true}200' ]; then
     echo "Failed to create alias $ALIAS_NAME on index $INDEX_NAME. Code: $http_code"
     if [ "$crash" == true ]; then
       exit 1
@@ -160,14 +168,17 @@ if [ "$TESTING" = true ] ; then
   echo "Checking to see if index $INDEX_NAME already exists..."
 fi
 cat=_cat
+echo "$ES_IP$cat/indices"
 catCurl=`curl -X GET -H "Content-Type: application/json" -H "Cache-Control: no-cache" "$ES_IP$cat/indices" --write-out %{http_code} 2>/dev/null`
-http_code=`echo $catCurl | cut -d] -f2`
-if [[ "$http_code" != 200 ]]; then
+echo "$catCurl"
+http_code=${catCurl: -3}
+echo "$http_code"
+if [ "$http_code" != 200 ]; then
   echo "Status code $http_code returned while checking indices"
   exit 1
 fi
 
-if [[ $catCurl == *""\""index"\"":"\""$INDEX_NAME"\"""* ]]; then
+if [ $catCurl == *""\""index"\"":"\""$INDEX_NAME"\"""* ]; then
   removeAliases false
   createAlias true
   echo "Index already exists"
@@ -182,8 +193,8 @@ if [ "$TESTING" = true ] ; then
   echo "Creating index $INDEX_NAME with mappings..."
 fi
 createIndexCurl=`curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d "$IndexSettings" "$ES_IP$INDEX_NAME" --write-out %{http_code} 2>/dev/null`
-http_code=`echo $catCurl | cut -d] -f2`
-if [[ $createIndexCurl != '{"acknowledged":true}200' ]]; then
+http_code=${createIndexCurl: -3}
+if [ $createIndexCurl != '{"acknowledged":true}200' ]; then
   echo "Failed to create index $INDEX_NAME. Code: $http_code"
   exit 1
 fi
@@ -211,3 +222,4 @@ removeAliases false
 createAlias true
 
 echo "Success!"
+
