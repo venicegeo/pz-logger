@@ -4,6 +4,7 @@ ALIAS_NAME=$1
 ES_IP=$2
 TESTING=$3
 aliases=_aliases
+echo "This script is running!"
 IndexSettings='
 {
 	"mappings": {
