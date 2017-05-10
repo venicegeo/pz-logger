@@ -1,6 +1,5 @@
 ci/
 config/
-db/
 gopath/
 logger/
 query/
