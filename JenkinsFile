@@ -26,6 +26,7 @@ node {
 
         cd ${root}
 
+        cp \$GOPATH/bin/pz-logger .
         tar -cvzf pz-logger.tgz \
             *.cov \
             *.cov.txt \
@@ -37,7 +38,6 @@ node {
   }
 
   stage('CI Deploy') {
-    sh 'ls -al'
     cfPush()
     cfBgDeploy()
   }
