@@ -2,8 +2,6 @@ ci/
 config/
 gopath/
 logger/
-query/
-systest/
 vendor/
 JenkinsFile
 jenkins.properties
