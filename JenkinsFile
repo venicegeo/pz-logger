@@ -39,7 +39,6 @@ node {
   }
 
   stage('CI Deploy') {
-    sh 'ls -al'
     cfPush()
     cfBgDeploy()
   }
