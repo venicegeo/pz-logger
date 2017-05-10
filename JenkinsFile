@@ -1,0 +1,69 @@
+@Library('pipelib@master') _
+
+node {
+  def root = pwd()
+
+  stage('Setup') {
+    git([
+      url: "https://github.com/venicegeo/pz-logger",
+      branch: "master"
+    ])
+  }
+
+  stage('Archive') {
+    withGolang {
+      sh """
+        # install metalinter
+        go get -u github.com/alecthomas/gometalinter
+        gometalinter --install
+
+        # build ourself, and go there
+        go get github.com/venicegeo/pz-logger
+        cd \$GOPATH/src/github.com/venicegeo/pz-logger
+
+        go test -v -coverprofile=${root}/logger.cov -coverpkg github.com/venicegeo/pz-logger/logger github.com/venicegeo/pz-logger/logger
+        go tool cover -func=${root}/logger.cov -o ${root}/logger.cov.txt
+
+        cd ${root}
+
+        tar -cvzf pz-logger.tgz \
+            *.cov \
+            *.cov.txt \
+            glide.lock \
+            glide.yaml
+      """
+    }
+    mavenPush()
+  }
+
+  stage('CI Deploy') {
+    cfPush()
+    cfBgDeploy()
+  }
+
+  stage('Integration Testing') {
+    postman()
+  }
+
+  stage('Reset') {
+    git([
+      url: "https://github.com/venicegeo/pz-logger",
+      branch: "master"
+    ])
+  }
+
+  stage('Staging Deploy') {
+    cfPush {
+      cfDomain  = 'stage.geointservices.io'
+      cfSpace   = 'stage'
+    }
+    cfBgDeploy {
+      cfDomain  = 'stage.geointservices.io'
+      cfSpace   = 'stage'
+    }
+  }
+
+  stage('Cleanup') {
+    deleteDir()
+  }
+}
