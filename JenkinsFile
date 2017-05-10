@@ -26,8 +26,9 @@ node {
 
         cd ${root}
 
-        cp \$GOPATH/bin/pz-logger .
+        cp \$GOPATH/bin/pz-logger ${root}/pz-logger
         tar -cvzf pz-logger.tgz \
+            pz-logger \
             *.cov \
             *.cov.txt \
             glide.lock \
@@ -38,6 +39,7 @@ node {
   }
 
   stage('CI Deploy') {
+    sh 'ls -al'
     cfPush()
     cfBgDeploy()
   }
