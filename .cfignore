@@ -10,3 +10,4 @@ jenkins.properties
 manifest.*.yml
 .*
 *.properties
+*.tgz
