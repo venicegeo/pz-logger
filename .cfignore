@@ -5,8 +5,6 @@ logger/
 query/
 systest/
 vendor/
-glide.lock
-glide.yaml
 JenkinsFile
 jenkins.properties
 manifest.*.yml
