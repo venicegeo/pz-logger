@@ -1,5 +1,5 @@
 #!/bin/bash
-INDEX_NAME=pzlogger5
+INDEX_NAME=pzlogger6
 ALIAS_NAME=$1
 ES_IP=$2
 TESTING=$3
@@ -15,35 +15,35 @@ LogMapping='
 				"type": "date",
 				"format": "yyyy-MM-dd'\''T'\''HH:mm:ssZZ||yyyy-MM-dd'\''T'\''HH:mm:ss.SZZ||yyyy-MM-dd'\''T'\''HH:mm:ss.SSZZ||yyyy-MM-dd'\''T'\''HH:mm:ss.SSSZZ||yyyy-MM-dd'\''T'\''HH:mm:ss.SSSSZZ||yyyy-MM-dd'\''T'\''HH:mm:ss.SSSSSZZ||yyyy-MM-dd'\''T'\''HH:mm:ss.SSSSSSZZ||yyyy-MM-dd'\''T'\''HH:mm:ss.SSSSSSSZZ"					
 			},
-			"hostName": { "index": "not_analyzed", "type": "string" },
-			"application": { "index": "not_analyzed", "type": "string" },
-			"process": { "index": "not_analyzed", "type": "string" },
-			"messageId": { "index": "not_analyzed", "type": "string" },
+			"hostName": { "type": "keyword" },
+			"application": { "type": "keyword" },
+			"process": { "type": "keyword" },
+			"messageId": { "type": "keyword" },
 			"auditData": {
 				"dynamic": "strict",
 				"properties": {
-					"actor": { "index": "not_analyzed", "type": "string" },
-					"actee": { "index": "not_analyzed", "type": "string" },
-					"action": { "index": "not_analyzed", "type": "string" }
+					"actor": { "type": "keyword" },
+					"actee": { "type": "keyword" },
+					"action": { "type": "keyword" }
 				}
 			},
 			"metricData": {
 				"dynamic": "strict",
 				"properties": {
-					"name": { "index": "not_analyzed", "type": "string" },
+					"name": { "type": "keyword" },
 					"value": { "type": "double" },
-					"object": { "index": "not_analyzed", "type": "string" }
+					"object": { "type": "keyword" }
 				}
 			},
 			"sourceData": {
 				"dynamic": "strict",
 				"properties": {
-					"file": { "index": "not_analyzed", "type": "string" },
+					"file": { "type": "keyword" },
 					"line": { "type": "integer" },
-					"function": { "index": "not_analyzed", "type": "string" }
+					"function": { "type": "keyword" }
 				}
 			},
-			"message": { "index": "not_analyzed", "type": "string" }
+			"message": { "type": "text" }
 		}
 	}'
 IndexSettings="
