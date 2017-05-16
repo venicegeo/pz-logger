@@ -41,6 +41,7 @@ node {
   }
 
   stage('CI Deploy') {
+    cfPush()
     zap {
       threadfixId = THREADFIX_ID
     }
