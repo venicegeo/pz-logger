@@ -15,6 +15,7 @@
 package logger
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -457,14 +458,15 @@ func (suite *LoggerTester) Test08PostQuery() {
     "query": {
         "match_all": {}
     },
-	"size": 10000,
-	"from": 0,
 	"sort": {
 		"timeStamp": "asc"
 	}
 }`
 
-	resp := h.PzPost("/query", jsn)
+	input := map[string]interface{}{}
+	err := json.Unmarshal([]byte(jsn), &input)
+	assert.NoError(err)
+	resp := h.PzPost("/query", input)
 	assert.True(resp.IsError())
 	assert.Error(resp.ToError())
 	assert.Contains(resp.ToError().Error(), "not supported under mocking")
