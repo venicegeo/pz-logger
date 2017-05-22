@@ -414,7 +414,6 @@ func (service *Service) PostQuery(params *piazza.HttpQueryParams, jsnQuery strin
 	}
 
 	searchResult, err := service.esIndex.SearchByJSON(pzsyslog.LoggerType, jsnQuery)
-	fmt.Println(searchResult, err)
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
