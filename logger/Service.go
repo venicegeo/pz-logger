@@ -403,12 +403,18 @@ func extractFromSearchResult(searchResult *elasticsearch.SearchResult) ([]pzsysl
 
 func (service *Service) PostQuery(params *piazza.HttpQueryParams, jsnQuery string) *piazza.JsonResponse {
 
-	pagination, err := piazza.NewJsonPagination(params)
+	format, err := piazza.NewJsonPagination(params)
 	if err != nil {
+		return service.newBadRequestResponse(err)
+	}
+	paginationCreatedOnToTimeStamp(format)
+
+	if jsnQuery, err = syncPagination(jsnQuery, *format); err != nil {
 		return service.newBadRequestResponse(err)
 	}
 
 	searchResult, err := service.esIndex.SearchByJSON(pzsyslog.LoggerType, jsnQuery)
+	fmt.Println(searchResult, err)
 	if err != nil {
 		return service.newInternalErrorResponse(err)
 	}
@@ -418,11 +424,11 @@ func (service *Service) PostQuery(params *piazza.HttpQueryParams, jsnQuery strin
 		return service.newInternalErrorResponse(err)
 	}
 
-	pagination.Count = int(searchResult.TotalHits())
+	format.Count = int(searchResult.TotalHits())
 	resp := &piazza.JsonResponse{
 		StatusCode: http.StatusOK,
 		Data:       lines,
-		Pagination: pagination,
+		Pagination: format,
 	}
 
 	err = resp.SetType()
@@ -431,4 +437,33 @@ func (service *Service) PostQuery(params *piazza.HttpQueryParams, jsnQuery strin
 	}
 
 	return resp
+}
+
+func syncPagination(dslString string, format piazza.JsonPagination) (string, error) {
+	// Overwrite any from/size in dsl with what's in the params
+	b := []byte(dslString)
+	var f interface{}
+	err := json.Unmarshal(b, &f)
+	if err != nil {
+		return "", err
+	}
+	dsl := f.(map[string]interface{})
+	dsl["from"] = format.Page * format.PerPage
+	dsl["size"] = format.PerPage
+	if dsl["sort"] == nil {
+		// Since ES has more fine grained sorting allow their sorting to take precedence
+		// If sorting wasn't specified in the DSL, put in sorting from Piazza
+		bts := []byte("[{\"" + format.SortBy + "\":\"" + string(format.Order) + "\"}]")
+		var g interface{}
+		if err = json.Unmarshal(bts, &g); err != nil {
+			return "", err
+		}
+		sortDsl := g.([]interface{})
+		dsl["sort"] = sortDsl
+	}
+	byteArray, err := json.Marshal(dsl)
+	if err != nil {
+		return "", err
+	}
+	return string(byteArray), nil
 }
