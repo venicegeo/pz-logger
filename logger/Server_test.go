@@ -458,6 +458,8 @@ func (suite *LoggerTester) Test08PostQuery() {
     "query": {
         "match_all": {}
     },
+	"size": 10000,
+	"from": 0,
 	"sort": {
 		"timeStamp": "asc"
 	}
