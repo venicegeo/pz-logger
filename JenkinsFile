@@ -70,6 +70,12 @@ node {
     }
   }
 
+  stage ('Stage: Integration Testing') {
+    postman {
+      cfSpace = 'stage'
+    }
+  }
+
   stage('Cleanup') {
     deleteDir()
   }
