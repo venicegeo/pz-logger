@@ -38,9 +38,11 @@ type Service struct {
 	auditWriter pzsyslog.Writer
 
 	esIndex elasticsearch.IIndex
+
+	pen string
 }
 
-func (service *Service) Init(sys *piazza.SystemConfig, logWriter pzsyslog.Writer, auditWriter pzsyslog.Writer, esi elasticsearch.IIndex, asyncLogging bool) error {
+func (service *Service) Init(sys *piazza.SystemConfig, logWriter pzsyslog.Writer, auditWriter pzsyslog.Writer, esi elasticsearch.IIndex, asyncLogging bool, pen string) error {
 	service.stats.CreatedOn = time.Now()
 	service.stats.NumMessagesByApplication = map[string]int{}
 
@@ -52,6 +54,8 @@ func (service *Service) Init(sys *piazza.SystemConfig, logWriter pzsyslog.Writer
 	service.origin = string(sys.Name)
 
 	service.async = asyncLogging
+
+	service.pen = pen
 
 	return nil
 }

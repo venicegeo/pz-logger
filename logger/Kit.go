@@ -43,6 +43,7 @@ func NewKit(
 	auditWriter pzsyslog.Writer,
 	esi elasticsearch.IIndex,
 	asyncLogging bool,
+	pen string,
 ) (*Kit, error) {
 
 	var err error
@@ -55,7 +56,7 @@ func NewKit(
 	kit.AuditWriter = auditWriter
 	kit.Async = asyncLogging
 
-	err = kit.Service.Init(kit.Sys, kit.LogWriter, kit.AuditWriter, kit.esi, kit.Async)
+	err = kit.Service.Init(kit.Sys, kit.LogWriter, kit.AuditWriter, kit.esi, kit.Async, pen)
 	if err != nil {
 		return nil, err
 	}

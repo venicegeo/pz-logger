@@ -72,7 +72,7 @@ func (suite *LoggerTester) setupFixture() {
 		rwLogWriter := &pzsyslog.LocalReaderWriter{}
 		logWriter := pzsyslog.NewMultiWriter([]pzsyslog.Writer{logESWriter, rwLogWriter})
 
-		suite.kit, err = NewKit(sys, logWriter, auditWriter, idx, false)
+		suite.kit, err = NewKit(sys, logWriter, auditWriter, idx, false, "123456")
 		assert.NoError(err)
 
 		err = suite.kit.Start()
@@ -85,7 +85,7 @@ func (suite *LoggerTester) setupFixture() {
 	{
 		writer, err := pzsyslog.NewHttpWriter(suite.kit.Url, "")
 		assert.NoError(err)
-		suite.logger = pzsyslog.NewLogger(writer, writer, "pz-logger/unittest")
+		suite.logger = pzsyslog.NewLogger(writer, writer, "pz-logger/unittest", "123456")
 	}
 }
 
