@@ -72,7 +72,7 @@ func (server *Server) handleGetSyslog(c *gin.Context) {
 }
 
 func (server *Server) handlePostSyslog(c *gin.Context) {
-	sysM := syslogger.NewMessage()
+	sysM := syslogger.NewMessage(server.service.pen)
 
 	err := c.BindJSON(&sysM)
 	if err != nil {

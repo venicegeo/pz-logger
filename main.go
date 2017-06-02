@@ -43,7 +43,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	kit, err := pzlogger.NewKit(sys, logESWriter, auditWriter, idx, true)
+	pen := os.Getenv("PZ_PEN")
+	if pen == "" {
+		log.Fatal("Environment Variable PZ_PEN not found")
+	}
+
+	kit, err := pzlogger.NewKit(sys, logESWriter, auditWriter, idx, true, pen)
 	if err != nil {
 		log.Fatal(err)
 	}

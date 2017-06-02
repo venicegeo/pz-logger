@@ -17,7 +17,7 @@ imports:
 - name: github.com/mattn/go-isatty
   version: dda3de49cbfcec471bd7a70e6cc01fcc3ff90109
 - name: github.com/venicegeo/pz-gocommon
-  version: c11485d5105cfa4e03f2fc6c8844e6b64ddafedf
+  version: 26d09443af8a4ae9b45d40a4877f6abed766d6a5
   subpackages:
   - elasticsearch
   - gocommon
