@@ -44,6 +44,7 @@ type LoggerTester struct {
 	auditWriter pzsyslog.Writer
 
 	logger    *pzsyslog.Logger
+	pen       string
 	apiKey    string
 	apiHost   string
 	loggerUrl string
@@ -84,7 +85,11 @@ func (suite *LoggerTester) setupFixture() {
 	suite.mssgProcess = strconv.Itoa(os.Getpid())
 	suite.mmsgSeverity = pzsyslog.Informational
 
-	suite.logger = pzsyslog.NewLogger(suite.logWriter, suite.auditWriter, suite.mssgApplication)
+	suite.pen = os.Getenv("PZ_PEN")
+	if suite.pen == "" {
+		log.Fatal("Environment Variable PZ_PEN not found")
+	}
+	suite.logger = pzsyslog.NewLogger(suite.logWriter, suite.auditWriter, suite.mssgApplication, suite.pen)
 }
 
 func (suite *LoggerTester) teardownFixture() {
@@ -166,7 +171,7 @@ func (suite *LoggerTester) makeMessage(text string) *pzsyslog.Message {
 
 	var err error
 
-	m := pzsyslog.NewMessage()
+	m := pzsyslog.NewMessage(suite.pen)
 	m.Message = text
 	m.HostName, err = piazza.GetExternalIP()
 	assert.NoError(err)
@@ -436,8 +441,9 @@ func (suite *LoggerTester) Test08Params() {
 
 		msgs, _, err := suite.httpWriter.GetMessages(format, params)
 		assert.NoError(err)
-
-		assert.Len(msgs, 1)
+		for _, msg := range msgs {
+			assert.Equal(suite.mssgApplication, msg.Application)
+		}
 	}
 
 	// test contains param
@@ -471,15 +477,19 @@ func (suite *LoggerTester) Test09Query() {
 	}
 }`
 
-	h := &piazza.Http{BaseUrl: suite.loggerUrl}
-	resp := h.PzPost("/query", jsn)
+	code, dat, _, err := piazza.HTTP(piazza.POST, suite.loggerUrl+"/query", piazza.NewHeaderBuilder().AddJsonContentType().GetHeader(), bytes.NewReader([]byte(jsn)))
+	log.Println(string(dat))
+	assert.NoError(err)
+	assert.Equal(200, code)
 
-	assert.False(resp.IsError())
-	assert.Nil(resp.ToError())
+	resp := piazza.JsonResponse{}
+	assert.NoError(json.Unmarshal(dat, &resp))
 
-	data := []pzsyslog.Message{}
-	err := resp.ExtractData(&data)
+	dat, err = json.Marshal(resp.Data)
 	assert.NoError(err)
 
-	assert.Len(data, 5)
+	msgs := []pzsyslog.Message{}
+	assert.NoError(json.Unmarshal(dat, &msgs))
+
+	assert.Len(msgs, 5, "Length is not 5 but [%d]", len(msgs))
 }
