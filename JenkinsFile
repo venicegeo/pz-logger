@@ -1,82 +1,56 @@
-@Library('pipelib@master') _
-
-def THREADFIX_ID = env.THREADFIX_ID ? env.THREADFIX_ID : '115'
+#!/usr/bin/groovy
 
 node {
   def root = pwd()
-
-  stage('Setup') {
-    git([
-      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/pz-logger',
-      branch: "master"
-    ])
-  }
-
-  stage('Archive') {
-    withGolang {
-      sh """
-        # install metalinter
-        go get -u github.com/alecthomas/gometalinter
-        gometalinter --install
-
-        # build ourself, and go there
-        go get github.com/venicegeo/pz-logger
-        cd \$GOPATH/src/github.com/venicegeo/pz-logger
-
-        go test -v -coverprofile=${root}/logger.cov -coverpkg github.com/venicegeo/pz-logger/logger github.com/venicegeo/pz-logger/logger
-        go tool cover -func=${root}/logger.cov -o ${root}/logger.cov.txt
-
-        cd ${root}
-
-        cp \$GOPATH/bin/pz-logger ${root}/pz-logger
-        tar -cvzf pz-logger.tgz \
-            pz-logger \
-            *.cov \
-            *.cov.txt \
-            glide.lock \
-            glide.yaml
-      """
+  def mvn = tool 'M3'
+  def sonarUrl = "https://sonar.gs.mil"
+  def golangTool = tool 'golang_1.7'
+  
+  // Getting the GO environment ready along with defining GIT credentials
+    stage('Setup') {
+        deleteDir()
+        // github is open gitlab requires credentials to clone
+        if(env.GITLAB_CREDS) {
+          git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
+        } else {
+          git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
+        }
+        
+        withEnv([
+           "PATH+=${golangTool}/bin:${root}/gopath/bin",
+            "GOROOT=${golangTool}",
+            "GOPATH=${root}/gopath"
+        ]) {
+            sh """
+              mkdir -p ${root}/gopath/bin ${root}/gopath/pkg ${root}/gopath/src
+              go version
+            """
+        }
     }
-    mavenPush()
-  }
+    stage('Archive') {
+        withEnv([
+           "PATH+=${golangTool}/bin:${root}/gopath/bin",
+            "GOROOT=${golangTool}",
+            "GOPATH=${root}/gopath"
+        ]) {
+           sh """
+             echo "${env.REPO_PATH}"
+             go get "${env.REPO_PATH}"
+             cd "\$GOPATH/src/${env.REPO_PATH}"
+             
+             go test -v -coverprofile=${root}/logger.cov -coverpkg ${env.REPO_PATH}/logger ${env.REPO_PATH}/logger
+             go tool cover -func=${root}/logger.cov -o ${root}/logger.cov.txt
 
-  stage('CI Deploy') {
-    cfPush()
-    zap {
-      threadfixId = THREADFIX_ID
-    }
-    cfBgDeploy()
-  }
+             cd ${root}
 
-  stage('Integration Testing') {
-    postman()
-  }
-
-  stage('Reset') {
-    git([
-      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/pz-logger',
-      branch: "master"
-    ])
-  }
-
-  stage('Staging Deploy') {
-    cfPush {
-      cfDomain  = 'stage.geointservices.io'
-      cfSpace   = 'stage'
-    }
-    cfBgDeploy {
-      cfDomain  = 'stage.geointservices.io'
-      cfSpace   = 'stage'
-    }
-  }
-
-  stage ('Stage: Integration Testing') {
-    postman {
-      cfSpace = 'stage'
-    }
-  }
-
-  stage('Cleanup') {
-    deleteDir()
-  }
+             cp \$GOPATH/bin/pz-logger ${root}/pz-logger
+              tar -cvzf pz-logger.tgz \
+                pz-logger \
+                *.cov \
+                *.cov.txt \
+                glide.lock \
+                glide.yaml
+           """
+        }
+    }    
 }
