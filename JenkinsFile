@@ -27,7 +27,33 @@ node {
             """
         }
     }
+    
+    def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
+    appvers = appvers.trim()
+    def appName = "pz-logger-${appvers}"
+
+    if(params.SECENV) {
+        stage("Security Configs") {
+        //Do CTM Stuff
+        }
+    }
+    
+    stage("Security Scan Pass/Fail") {
+        // Query threadfix and block if any highs/crits are found
+        /*sh "mkdir -p sspf-pkg"
+        dir("./sspf-pkg") {
+          withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+            sh "curl -L ${env.SSPF_PACKAGE} -o sspf.zip"
+            sh "unzip sspf.zip"
+            dir("./sspf-master/sspf") {
+              sh "/bin/curl --fail --silent ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}?apiKey=${THREADFIX_KEY} | ./sspf.py"
+            }
+          }
+        }*/
+      }
+        
     stage('Archive') {
+        def archiveName = "pz-logger.tgz"
         withEnv([
            "PATH+=${golangTool}/bin:${root}/gopath/bin",
             "GOROOT=${golangTool}",
@@ -46,13 +72,126 @@ node {
              go tool cover -func=logger.cov -o logger.cov.txt
              
              cp \$GOPATH/bin/pz-logger ${root}/pz-logger
-              tar -cvzf pz-logger.tgz \
+             
+              tar -cvzf ${archiveName} \
                 pz-logger \
                 *.cov \
                 *.cov.txt \
                 glide.lock \
                 glide.yaml
            """
+           def getDependencyStatus = sh(script: """mvn --quiet --settings ~/.m2/settings.xml dependency:get \
+			-Dmaven.repo.local="${root}/.m2/repository" \
+			-DrepositoryId=nexus \
+			-DartifactId=pz-logger \
+			-Dversion=${appvers} \
+			-DgroupId="org.venice.piazza" \
+			-Dpackaging=tgz \
+			-DremoteRepositories="nexus::default::${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
+			>> /dev/null 2>&1 \
+    		""", returnStatus: true)
+        	if (getDependencyStatus == 0) {
+        		echo "Artifact version ${appvers} exists in Nexus, nothing to do"
+        	} else {
+        	  // Deploy file
+              sh "tar -czf ${archiveName} -C ${root} public"
+              sh """mvn -X --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${archiveName} \
+        		-DrepositoryId=nexus \
+        		-Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" \
+        		-DgroupId="org.venice.piazza" \
+        		-DgeneratePom=false \
+        		-Dpackaging=tgz \
+        		-Dmaven.repo.local="${root}/.m2/repository" \
+        		-DartifactId=pz-logger \
+        		-Dversion=${appvers} \
+        	  """
+        	}
         }
-    }    
+    }
+    if(params.DEPLOY_PHASE_ONE) {
+        stage ("Int Deploy") {
+        if(!fileExists('.cf')) {
+          sh "mkdir -p .cf"
+        }
+        withEnv(['CF_HOME=.cf']) {
+          withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
+            sh "cf api ${env.PCF_API_ENDPOINT}"
+            sh "cf auth ${CFUSER} ${CFPASS}"
+            sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}"
+            sh "cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -d ${env.PHASE_ONE_PCF_DOMAIN} --no-start"
+    		sh "cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}"
+    		sh "cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}"
+    		sh "cf start ${appName}"
+    	  }
+    	}
+    	withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+    	  sh "mkdir -p ${root}/zap-out"
+    	  sh """${zapHome}/zap.sh -cmd \
+    	    -quickout ${root}/zap-out/zap.xml \
+    	    -quickurl https://${appName}.${env.PHASE_ONE_PCF_DOMAIN} \
+    	  """
+    	  sh "cat ${root}/zap-out/zap.xml"
+    	  sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+    	}
+        withEnv(['CF_HOME=.cf']) {
+          withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
+            sh "cf api ${env.PCF_API_ENDPOINT}"
+            sh "cf auth ${CFUSER} ${CFPASS}"
+            sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}"
+    		def legacyAppNames = sh(script: "cf routes | grep \"pz-logger \" | awk '{print \$4}'", returnStdout: true)
+    		sh "cf map-route ${appName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname pz-logger"
+    		// Remove Legacy applications
+    		for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+    		  def legacyAppName = legacyApp.toString().trim()
+    		  if (legacyAppName != appName) {
+    		    sh "cf delete -f ${legacyAppName}"
+    		  }
+    		}
+    	  }
+    	}
+      }
+    }
+    if(params.DEPLOY_PHASE_TWO) {
+	  stage('Stage Deploy') {
+		if(!fileExists('.cf')) {
+		  sh "mkdir -p .cf"
+		}
+		withEnv(['CF_HOME=.cf']) {
+		  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
+			sh "cf api ${env.PCF_API_ENDPOINT}"
+			sh "cf auth ${CFUSER} ${CFPASS}"
+			sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"
+			sh "cf push ${appName} --hostname ${appName} -f manifest.jenkins.yml -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start"
+			sh "cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}"
+			sh "cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}"
+			sh "cf start ${appName}"
+		  }
+		}
+		withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
+		  sh "mkdir -p ${root}/zap-out"
+		  sh """${zapHome}/zap.sh -cmd \
+			-quickout ${root}/zap-out/zap.xml \
+			-quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN} \
+		  """
+		  sh "cat ${root}/zap-out/zap.xml"
+		  sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+		}
+		withEnv(['CF_HOME=.cf']) {
+		  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
+			sh "cf api ${env.PCF_API_ENDPOINT}"
+			sh "cf auth ${CFUSER} ${CFPASS}"
+			sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"
+			def legacyAppNames = sh(script: "cf routes | grep \"pz-logger \" | awk '{print \$4}'", returnStdout: true)
+			sh "cf map-route ${appName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname pz-logger"
+		    // Remove Legacy applications
+		    for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
+		      def legacyAppName = legacyApp.toString().trim()
+			  if (legacyAppName != appName) {
+		        sh "cf delete -f ${legacyAppName}"
+			  }
+		    }
+		  }
+		}
+	  }
+  }
 }
