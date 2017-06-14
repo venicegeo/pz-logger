@@ -5,6 +5,7 @@ node {
   def mvn = tool 'M3'
   def sonarUrl = "https://sonar.gs.mil"
   def golangTool = tool 'golang_1.7'
+  def zapHome = tool 'ZAProxy_v2_5_0'
   
   // Getting the GO environment ready along with defining GIT credentials
     stage('Setup') {
@@ -61,11 +62,9 @@ node {
         ]) {
            sh """
              mkdir -p ${GOPATH}/src/github.com/venicegeo/pz-logger
-             find . -maxdepth 1 -mindepth 1 -not -name gopath -exec mv '{}' gopath/src/github.com/venicegeo/pz-logger/ \\;
+             find . -maxdepth 1 -mindepth 1 -not -name gopath -exec cp -R '{}' gopath/src/github.com/venicegeo/pz-logger/ \\;
              cd "\$GOPATH/src/github.com/venicegeo/pz-logger"
              go install
-             cp glide.lock ${root}/glide.lock
-             cp glide.yaml ${root}/glide.yaml
              cd logger
              go test -v -coverprofile=${root}/logger.cov
              cd ${root}
