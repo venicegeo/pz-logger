@@ -159,29 +159,31 @@ node {
 		}
 		withEnv(['CF_HOME=.cf']) {
 		  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
-			sh "cf api ${env.PCF_API_ENDPOINT}"
-			sh "cf auth ${CFUSER} ${CFPASS}"
-			sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"
-			sh "cf push ${appName} --hostname ${appName} -f manifest.jenkins.yml -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start"
-			sh "cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}"
-			sh "cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}"
-			sh "cf start ${appName}"
+			sh """cf api ${env.PCF_API_ENDPOINT}
+			cf auth ${CFUSER} ${CFPASS}
+			cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
+			cf push ${appName} --hostname ${appName} -f manifest.jenkins.yml -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start
+			cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}
+			cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
+			cf start ${appName}"""
 		  }
 		}
 		withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
-		  sh "mkdir -p ${root}/zap-out"
-		  sh """${zapHome}/zap.sh -cmd \
+		  sh """
+		   mkdir -p ${root}/zap-out
+		   ${zapHome}/zap.sh -cmd \
 			-quickout ${root}/zap-out/zap.xml \
-			-quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN} \
-		  """
-		  sh "cat ${root}/zap-out/zap.xml"
-		  sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}"
+			-quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN}
+		   cat ${root}/zap-out/zap.xml
+		   sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
+		 """
 		}
 		withEnv(['CF_HOME=.cf']) {
 		  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: "${env.PCF_CREDS}", usernameVariable: 'CFUSER', passwordVariable: 'CFPASS']]) {
-			sh "cf api ${env.PCF_API_ENDPOINT}"
-			sh "cf auth ${CFUSER} ${CFPASS}"
-			sh "cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"
+			sh """
+			 cf api ${env.PCF_API_ENDPOINT}
+			 cf auth ${CFUSER} ${CFPASS}
+			 cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}"""
 			def legacyAppNames = sh(script: "cf routes | grep \"pz-logger \" | awk '{print \$4}'", returnStdout: true)
 			sh "cf map-route ${appName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname pz-logger"
 		    // Remove Legacy applications
