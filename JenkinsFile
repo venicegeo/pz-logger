@@ -6,6 +6,7 @@ node {
   def sonarUrl = "https://sonar.gs.mil"
   def golangTool = tool 'golang_1.7'
   def zapHome = tool 'ZAProxy_v2_5_0'
+  def nodejs = tool 'NodeJS_6'
   
   // Getting the GO environment ready along with defining GIT credentials
     stage('Setup') {
@@ -108,7 +109,7 @@ node {
         }
     }
     if(params.DEPLOY_PHASE_ONE) {
-        stage ("Int Deploy") {
+        stage ("Phase One Deploy") {
         if(!fileExists('.cf')) {
           sh "mkdir -p .cf"
         }
@@ -152,8 +153,29 @@ node {
     	}
       }
     }
+    if (!params.SKIP_INTEGRATION_TESTS) {
+        stage('Phase One Integration Tests') {
+          if(!fileExists("integration-tests")) {
+            sh "mkdir -p integration-tests"
+          }
+          // Clone Test Repository
+          withCredentials([file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: 'POSTMAN_FILE')]) {
+            withEnv(["PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin", "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}", "HOME=${WORKSPACE}"]) {
+              dir ("integration-tests") {
+                if(env.GITLAB_CREDS) {
+                  git url: "https://github.com/venicegeo/pztest-integration.git", branch: "master", credentialsId: "${env.GITLAB_CREDS}"
+                } else {
+                  git url: "https://github.com/venicegeo/pztest-integration.git", branch: "master"
+                }
+                sh "npm install newman@2"
+                sh "ci/blackbox.sh"
+              }
+            }
+          }
+        }
+    }
     if(params.DEPLOY_PHASE_TWO) {
-	  stage('Stage Deploy') {
+	  stage('Phase Two Deploy') {
 		if(!fileExists('.cf')) {
 		  sh "mkdir -p .cf"
 		}
@@ -175,7 +197,7 @@ node {
 			-quickout ${root}/zap-out/zap.xml \
 			-quickurl https://${appName}.${env.PHASE_TWO_PCF_DOMAIN}
 		   cat ${root}/zap-out/zap.xml
-		   sh "/bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
+		   /bin/curl -v --insecure -H 'Accept: application/json' -X POST --form file=@${root}/zap-out/zap.xml ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}/upload?apiKey=${THREADFIX_KEY}
 		 """
 		}
 		withEnv(['CF_HOME=.cf']) {
@@ -197,4 +219,16 @@ node {
 		}
 	  }
   }
+
+    if (!params.SKIP_INTEGRATION_TESTS) {
+      stage('Phase Two Integration Tests') {
+        withCredentials([file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: 'POSTMAN_FILE')]) {
+          withEnv(["PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin", "PCF_SPACE=${env.PHASE_TWO_PCF_SPACE}", "HOME=${WORKSPACE}"]) {
+            dir ("integration-tests") {
+              sh "ci/blackbox.sh"
+            }
+          }
+        }
+      }
+    }
 }
