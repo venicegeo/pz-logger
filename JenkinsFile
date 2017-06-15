@@ -9,8 +9,8 @@ node {
   def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
   appvers = appvers.trim()
   def appName = "pz-logger-${appvers}"
-  
-    // Getting the GO environment ready along with defining GIT credentials
+    
+  // Getting the GO environment ready along with defining GIT credentials
     stage('Setup') {
         deleteDir()
         // github is open gitlab requires credentials to clone
@@ -30,11 +30,23 @@ node {
               go version
             """
         }
-    }
-    
-    if(params.SECENV) {
-        stage("Security Configs") {
-        //Do CTM Stuff
+        
+        if (!params.SKIP_INTEGRATION_TESTS) {
+          if(!fileExists("integration-tests")) {
+            sh "mkdir -p integration-tests"
+          }
+          withCredentials([file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: 'POSTMAN_FILE')]) {
+            withEnv(["PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin", "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}", "HOME=${WORKSPACE}"]) {
+              dir ("integration-tests") {
+                if(env.GITLAB_CREDS) {
+                  git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
+                } else {
+                  git url: "${env.INTEGRATION_GIT_URL}", branch: "${env.INTEGRATION_GIT_BRANCH}"
+                }
+                sh "npm install newman@2"
+              }
+            }
+          }
         }
     }
     
@@ -159,19 +171,9 @@ node {
     }
     if (!params.SKIP_INTEGRATION_TESTS) {
         stage('Phase One Integration Tests') {
-          if(!fileExists("integration-tests")) {
-            sh "mkdir -p integration-tests"
-          }
-          // Clone Test Repository
           withCredentials([file(credentialsId: "${POSTMAN_SECRET_FILE}", variable: 'POSTMAN_FILE')]) {
             withEnv(["PATH+=${root}/integration-tests/node_modules/newman/bin:${nodejs}/bin", "PCF_SPACE=${env.PHASE_ONE_PCF_SPACE}", "HOME=${WORKSPACE}"]) {
               dir ("integration-tests") {
-                if(env.GITLAB_CREDS) {
-                  git url: "https://github.com/venicegeo/pztest-integration.git", branch: "master", credentialsId: "${env.GITLAB_CREDS}"
-                } else {
-                  git url: "https://github.com/venicegeo/pztest-integration.git", branch: "master"
-                }
-                sh "npm install newman@2"
                 sh "ci/blackbox.sh"
               }
             }
