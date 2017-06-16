@@ -75,7 +75,7 @@ node {
         ]) {
             if(params.INSTALL_METALINTER) {
                 sh """
-                  go get github.com/alecthomas/gometalinter
+                  go get -u github.com/alecthomas/gometalinter
                   gometalinter --install
                 """
             }
@@ -97,7 +97,7 @@ node {
             } else {
                 sh """
                   tar -czf ${archiveName} -C ${root} public
-                  mvn -X --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${archiveName} -DrepositoryId=nexus	-Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}"	-DgroupId="org.venice.piazza"	-DgeneratePom=false	-Dpackaging=tgz	-Dmaven.repo.local="${root}/.m2/repository"	-DartifactId=pz-logger	-Dversion=${appvers}
+                  mvn -X --settings ~/.m2/settings.xml deploy:deploy-file -Dfile=${archiveName} -DrepositoryId=nexus	-Durl="${env.ARTIFACT_STORAGE_DEPLOY_URL}" -DgroupId="org.venice.piazza" -DgeneratePom=false -Dpackaging=tgz -Dmaven.repo.local="${root}/.m2/repository" -DartifactId=pz-logger -Dversion=${appvers}
                 """
             }
         }
