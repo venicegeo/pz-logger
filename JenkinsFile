@@ -16,6 +16,16 @@ node {
         } else {
             git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
         }
+        withEnv([
+          "PATH+=${golangTool}/bin:${root}/gopath/bin",
+          "GOROOT=${golangTool}",
+          "GOPATH=${root}/gopath"
+        ]) {
+            sh """
+              mkdir -p ${root}/gopath/bin ${root}/gopath/pkg ${root}/gopath/src
+              go version
+            """
+        }
         if(!params.SKIP_INTEGRATION_TESTS) {
             if(!fileExists("integration-tests")) {
                 sh "mkdir -p integration-tests"
