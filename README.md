@@ -12,6 +12,7 @@ mkdir $GOPATH/src/github.com/
 mkdir $GOPATH/src/github.com/venicegeo
 cd $GOPATH/src/github.com/venicegeo/
 git clone https://github.com/venicegeo/pz-logger
+cd pz-logger
 go build
 ./pz-logger
 ```
