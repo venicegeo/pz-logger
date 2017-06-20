@@ -24,7 +24,8 @@ LogMapping='
 				"properties": {
 					"actor": { "index": "not_analyzed", "type": "string" },
 					"actee": { "index": "not_analyzed", "type": "string" },
-					"action": { "index": "not_analyzed", "type": "string" }
+					"action": { "index": "not_analyzed", "type": "string" },
+					"request": { "index": "not_analyzed", "type": "string" }
 				}
 			},
 			"metricData": {
