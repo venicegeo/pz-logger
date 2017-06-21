@@ -3,7 +3,7 @@
 node {
     def root = pwd()
     def mvn = tool 'M3'
-    def golangTool = tool 'golang_1_7'
+    def golangTool = tool 'golang_1.7'
     def zapHome = tool 'ZAProxy_v2_5_0'
     def nodejs = tool 'NodeJS_6'
     def appvers = sh(script: """git describe --long --tags --always | sed 's/\\./-/'g""", returnStdout: true)
@@ -73,12 +73,6 @@ node {
           "GOROOT=${golangTool}",
           "GOPATH=${root}/gopath"
         ]) {
-            if(params.INSTALL_METALINTER) {
-                sh """
-                  go get -u github.com/alecthomas/gometalinter
-                  gometalinter --install
-                """
-            }
             sh """
               mkdir -p ${GOPATH}/src/github.com/venicegeo/pz-logger
               find . -maxdepth 1 -mindepth 1 -not -name gopath -exec cp -R '{}' gopath/src/github.com/venicegeo/pz-logger/ \\;
@@ -149,7 +143,6 @@ node {
                 for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
                     def legacyAppName = legacyApp.toString().trim()
                     if(legacyAppName != appName) {
-                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_ONE_PCF_DOMAIN} --hostname ${legacyAppName}"
                         sh "cf delete -f ${legacyAppName}"
                     }
                 }
@@ -221,7 +214,6 @@ node {
                 for (Object legacyApp : legacyAppNames.trim().tokenize(',')) {
                     def legacyAppName = legacyApp.toString().trim()
                     if(legacyAppName != appName) {
-                        sh "cf unmap-route ${legacyAppName} ${env.PHASE_TWO_PCF_DOMAIN} --hostname ${legacyAppName}"
                         sh "cf delete -f ${legacyAppName}"
                     }
                 }
