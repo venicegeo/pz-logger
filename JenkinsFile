@@ -80,6 +80,7 @@ node {
               go install
               cd logger
               go test -v -coverprofile=${root}/logger.cov
+              cd ..
               cd ${root}
               go tool cover -func=logger.cov -o logger.cov.txt
               cp \$GOPATH/bin/pz-logger ${root}/pz-logger
