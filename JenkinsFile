@@ -69,6 +69,7 @@ node {
               cd "\$GOPATH/src/github.com/venicegeo/pz-logger"
               go install
               cp glide.* ${root}
+	      cp manifest.jenkins.yml ${root}
               cd logger
               go test -v -coverprofile=${root}/logger.cov
               cd ..
