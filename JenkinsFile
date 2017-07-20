@@ -8,21 +8,24 @@ node {
     def nodejs = tool 'NodeJS_6'
     stage("Setup") {
         deleteDir()
-        if(env.GITLAB_CREDS) {
-            git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
-        } else {
-            git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
-        }
-        withEnv([
+		withEnv([
           "PATH+=${golangTool}/bin:${root}/gopath/bin",
           "GOROOT=${golangTool}",
           "GOPATH=${root}/gopath"
         ]) {
             sh """
-              mkdir -p ${root}/gopath/bin ${root}/gopath/pkg ${root}/gopath/src
+              mkdir -p ${root}/gopath/bin ${root}/gopath/pkg ${root}/gopath/src/github.com/venicegeo/pz-logger
               go version
             """
         }
+		dir("${root}/gopath/src/github.com/venicegeo/pz-logger") {
+			if(env.GITLAB_CREDS) {
+				git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}", credentialsId: "${env.GITLAB_CREDS}"
+			} else {
+				git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
+			}
+		}
+        
         if(!params.SKIP_INTEGRATION_TESTS) {
             if(!fileExists("integration-tests")) {
                 sh "mkdir -p integration-tests"
@@ -53,19 +56,7 @@ node {
     def appvers = sh(script: """git describe --long --tags --always | sed 's/\\./-/'g""", returnStdout: true)
     appvers = appvers.trim()
     def appName = "pz-logger-${appvers}"
-    stage("Security Scan Pass/Fail") {
-        // Query threadfix and block if any highs/crits are found
-        /*sh "mkdir -p sspf-pkg"
-        dir("./sspf-pkg") {
-            withCredentials([[$class: 'StringBinding', credentialsId: "${env.THREADFIX_API_KEY}", variable: 'THREADFIX_KEY']]) {
-                sh "curl -L ${env.SSPF_PACKAGE} -o sspf.zip"
-                sh "unzip sspf.zip"
-                dir("./sspf-master/sspf") {
-                    sh "/bin/curl --fail --silent ${env.THREADFIX_URL}/rest/applications/${THREADFIX_ID}?apiKey=${THREADFIX_KEY} | ./sspf.py"
-                }
-            }
-        }*/
-    }
+
     stage("Archive") {
         def archiveName = "pz-logger.tgz"
         withEnv([
@@ -74,8 +65,6 @@ node {
           "GOPATH=${root}/gopath"
         ]) {
             sh """
-              mkdir -p ${GOPATH}/src/github.com/venicegeo/pz-logger
-              find . -maxdepth 1 -mindepth 1 -not -name gopath -exec cp -R '{}' gopath/src/github.com/venicegeo/pz-logger/ \\;
               cd "\$GOPATH/src/github.com/venicegeo/pz-logger"
               go install
               cd logger
