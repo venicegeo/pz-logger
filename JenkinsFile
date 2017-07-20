@@ -67,6 +67,7 @@ node {
             sh """
               cd "\$GOPATH/src/github.com/venicegeo/pz-logger"
               go install
+              cp glide.* ${root}
               cd logger
               go test -v -coverprofile=${root}/logger.cov
               cd ..
