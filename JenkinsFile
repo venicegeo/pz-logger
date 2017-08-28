@@ -7,6 +7,9 @@ node {
     def zapHome = tool 'ZAProxy_v2_5_0'
     def nodejs = tool 'NodeJS_6'
 
+    def appvers = ""sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true).trim()
+    def appName =  ""
+     appName = "pz-logger-${appvers}"
 
     stage("Setup") {
         deleteDir()
@@ -26,6 +29,8 @@ node {
 			} else {
 				git url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
 			}
+			appvers = ""sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true).trim()
+    			appName = "pz-logger-${appvers}"
 		}
 
         if(!params.SKIP_INTEGRATION_TESTS) {
@@ -55,10 +60,6 @@ node {
             }
         }
     }
-
-  def appvers = sh(script: "git describe --long --tags --always | sed 's/\\./-/'g", returnStdout: true)
-  appvers = appvers.trim()
-  def appName = "pz-logger-${appvers}"
 
     stage("Archive") {
         def archiveName = "pz-logger.tgz"
