@@ -104,11 +104,13 @@ node {
                   cf auth ${CFUSER} ${CFPASS}
                   cf target -o ${env.PCF_ORG} -s ${env.PHASE_ONE_PCF_SPACE}
                   cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -d ${env.PHASE_ONE_PCF_DOMAIN} --no-start
-                  cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}
-                  cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}
-                """
-                try {
-                  sh "cf start ${appName}"
+				"""
+				try {
+					sh """				
+					  cf set-env ${appName} SPACE ${env.PHASE_ONE_PCF_SPACE}
+					  cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}
+					"""
+                    sh "cf start ${appName}"
                 } catch (Exception e) {
                   //sh "cf logs --recent ${appName}"
                   sh "cf delete ${appName} -f -r"
@@ -185,11 +187,13 @@ node {
                       cf auth ${CFUSER} ${CFPASS}
                       cf target -o ${env.PCF_ORG} -s ${env.PHASE_TWO_PCF_SPACE}
                       cf push ${appName} -f manifest.jenkins.yml --hostname ${appName} -d ${env.PHASE_TWO_PCF_DOMAIN} --no-start
-                      cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}
-                      cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
-                    """
+					"""
                     try {
-                      sh "cf start ${appName}"
+						sh """					
+						  cf set-env ${appName} SPACE ${env.PHASE_TWO_PCF_SPACE}
+						  cf set-env ${appName} DOMAIN ${env.PHASE_TWO_PCF_DOMAIN}
+						"""
+                        sh "cf start ${appName}"
                     } catch (Exception e) {
                       //sh "cf logs --recent ${appName}"
                       sh "cf delete ${appName} -f -r"
