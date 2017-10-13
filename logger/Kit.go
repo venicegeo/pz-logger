@@ -73,7 +73,7 @@ func NewKit(
 		return nil, err
 	}
 
-	kit.Url = piazza.DefaultProtocol + "://" + kit.GenericServer.Sys.BindTo
+	kit.Url = piazza.GenericServerProtocol + "://" + kit.GenericServer.Sys.BindTo
 
 	return kit, nil
 }
