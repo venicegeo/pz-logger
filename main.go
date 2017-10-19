@@ -89,7 +89,7 @@ func setupES(sys *piazza.SystemConfig) (elasticsearch.IIndex, pzsyslog.Writer, p
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		esURL, err := sys.GetURL(piazza.PzElasticSearch)
+		esURL, err := sys.GetURLNoProtocol(piazza.PzElasticSearch)
 		if err != nil {
 			return nil, nil, nil, err
 		}
