@@ -35,7 +35,7 @@ type Index struct {
 
 // NewIndex is the initializing constructor for the type Index.
 func NewIndex(sys *piazza.SystemConfig, index string, settings string) (*Index, error) {
-	url, err := sys.GetURL(piazza.PzElasticSearch)
+	url, err := sys.GetURLNoProtocol(piazza.PzElasticSearch)
 	if err != nil {
 		return nil, err
 	}
