@@ -49,7 +49,7 @@ node {
                         }
                         sh """
                           mkdir -p ${root}/.npmcache
-                          npm install newman@2
+                          npm install newman@3
                         """
                     }
                 }
