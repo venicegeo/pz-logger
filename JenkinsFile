@@ -111,8 +111,8 @@ node {
 					  cf set-env ${appName} DOMAIN ${env.PHASE_ONE_PCF_DOMAIN}
 					"""
                     sh "cf start ${appName}"
+                    sh "cf logs --recent ${appName}"
                 } catch (Exception e) {
-                  //sh "cf logs --recent ${appName}"
                   sh "cf delete ${appName} -f -r"
                   error("Error during application start. Deleting ${appName} and failing the build.")
                 }
