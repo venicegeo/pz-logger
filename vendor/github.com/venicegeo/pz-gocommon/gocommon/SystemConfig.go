@@ -202,7 +202,8 @@ func (sys *SystemConfig) runHealthChecks() error {
 
 		resp, err := http.Get(url)
 		if err != nil {
-			fmt.Printf("request = <%#v>", resp.Request)
+			fmt.Printf("request = <%#v>\n", resp.Request)
+			fmt.Printf("request.URL = <%#v>\n", resp.Request.URL)
 			return fmt.Errorf("Health check errored for service: %s at %s <%#v>", name, url, resp)
 		}
 
@@ -212,7 +213,8 @@ func (sys *SystemConfig) runHealthChecks() error {
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("request = <%#v>", resp.Request)
+			fmt.Printf("request = <%#v>\n", resp.Request)
+			fmt.Printf("request.URL = <%#v>\n", resp.Request.URL)
 			return fmt.Errorf("Health check failed for service: %s at %s <%#v>", name, url, resp)
 		}
 	}
