@@ -18,14 +18,18 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 )
 
-const DefaultElasticsearchAddress = "http://localhost:9200"
-const DefaultKafkaAddress = "http://localhost:9092"
+const DefaultElasticsearchAddress = "localhost:9200"
+const DefaultKafkaAddress = "localhost:9092"
+const DefaultPzLoggerAddress = "localhost:14600"
+const DefaultPzUuidgenAddress = "localhost:14800"
 const DefaultDomain = ".venicegeo.io"
-const DefaultOutboundProtocol = "https"
-const GenericServerProtocol = "http"
+const DefaultProtocol = "http"
+
+var hasProtocol = regexp.MustCompile(`^[a-z]+:\/\/.+$`)
 
 const waitTimeoutMs = 3000
 const waitSleepMs = 250
@@ -195,10 +199,7 @@ func (sys *SystemConfig) runHealthChecks() error {
 			continue
 		}
 
-		url := addr + HealthcheckEndpoints[name]
-		if !(strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")) {
-			url = DefaultOutboundProtocol + "://" + url
-		}
+		url := createUrl(addr, HealthcheckEndpoints[name])
 
 		resp, err := http.Get(url)
 		if err != nil {
@@ -242,11 +243,7 @@ func (sys *SystemConfig) GetURL(name ServiceName) (string, error) {
 		return "", err
 	}
 
-	url := addr + EndpointPrefixes[name]
-	if !(strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")) {
-		url = DefaultOutboundProtocol + url
-	}
-
+	url := createUrl(addr, EndpointPrefixes[name])
 	return url, nil
 }
 
@@ -260,7 +257,7 @@ func (sys *SystemConfig) WaitForService(name ServiceName) error {
 		return err
 	}
 
-	url := fmt.Sprintf("%s://%s", DefaultOutboundProtocol, addr)
+	url := createUrl(addr)
 	return WaitForService(name, url)
 }
 
@@ -270,6 +267,17 @@ func (sys *SystemConfig) WaitForServiceToDie(name ServiceName) error {
 		return err
 	}
 
-	url := fmt.Sprintf("%s://%s", DefaultOutboundProtocol, addr)
+	url := createUrl(addr)
 	return WaitForServiceToDie(name, url)
+}
+
+func createUrl(parts ...string) string {
+	url := ""
+	for _, p := range parts {
+		url += p
+	}
+	if !hasProtocol.MatchString(url) {
+		url = DefaultProtocol + "://" + url
+	}
+	return url
 }
