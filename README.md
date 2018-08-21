@@ -58,7 +58,7 @@ rather than the default (which is the newest revision in Github).
   in `vendor/` and update `glide.yaml` and `glide.lock` to remember its version.
 
 ### Build the project
-To build `pzsvc-hello`, run `go install` from the project directory. To build it from elsewhere, run:
+To build `pz-logger`, run `go install` from the project directory. To build it from elsewhere, run:
 
 	$ go install github.com/venicegeo/pz-logger
 
