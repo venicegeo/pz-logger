@@ -8,6 +8,8 @@ Before building and running the pz-logger project, please ensure that the follow
 - [Glide](https://glide.sh)
 - [ElasticSearch](https://www.elastic.co/)
 
+For additional details on prerequisites, please refer to the Piazza Developer's Guide repository content for [Core Overview](https://github.com/venicegeo/pz-docs/blob/master/documents/devguide/02-pz-core.md) or [Piazza Logger](https://github.com/venicegeo/pz-docs/blob/master/documents/devguide/06-pz-logger.md) sections. Also refer to the [prerequisites for using Piazza](https://github.com/venicegeo/pz-docs/blob/master/documents/devguide/03-jobs.md) section for additional details.
+
 ***
 ## Setup
  
